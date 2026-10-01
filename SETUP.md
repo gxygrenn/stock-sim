@@ -20,6 +20,7 @@ cd stock-sim
 |---|---|
 | `stock-sim/` | 模拟炒股**稳健版**（源码 = 部署目录）|
 | `aggressive-app/` | 模拟炒股**激进版**（源码 = 部署目录）|
+| `us-stock-app/` | 模拟炒股**美股版**（源码 = 部署目录，15只美股 + 标普500）|
 | `stock-sim-cloud/` | 云服务版（历史）|
 | `stock-sim-docs/` | 说明书副本（历史）|
 | `trade-desk/` | 交易工作台 |
@@ -38,6 +39,9 @@ cd stock-sim && python server.py
 
 # 激进版（端口 8000）
 cd aggressive-app && python server.py
+
+# 美股版（端口 8000）
+cd us-stock-app && python server.py
 
 # 交易工作台（端口 8123）
 cd trade-desk && python server.py
@@ -64,9 +68,17 @@ cd trade-desk && python server.py
 1. 对 `aggressive-app` 目录单独部署
 2. 若也被识别成同一应用，复制到全新独立目录再部署
 
-### 3.3 部署后设置门控模式
+### 3.3 美股版
 
-两版默认都要设为门控模式（`autoTrade=false`）：
+> ⚠️ **关键坑（与激进版相同）**：美股版目录**必须用不带 `stock-sim` 前缀的名字**（当前是 `us-stock-app`），否则部署工具会把它识别成 A 股版的同一应用家族、覆盖稳健/激进版。**新设备上请保持 `us-stock-app` 这个目录名**。
+
+1. 先通过云服务创建一个独立应用（对话中说「为美股版创建独立应用」），拿到独立域名（形如 `stock-sim-us.app.workbuddy.host`）
+2. 对 `us-stock-app` 目录部署，启动命令 `python server.py`
+3. 美股版特点：股票池是 15 只美股（us 代码）、指数标普500、交易时段北京时间 21:30-次日4:00（夏令时），龙虎榜/公告/估值信号已关闭（A股专属），整手 1 股起
+
+### 3.4 部署后设置门控模式
+
+三版默认都要设为门控模式（`autoTrade=false`）：
 
 ```bash
 curl -X POST https://<你的域名>/api/config \
@@ -86,6 +98,9 @@ curl -X POST https://<你的域名>/api/config \
 | 稳健版·云端LLM专家团评审 | 工作日 9/10/11/13/14/15 点 :10 | 读队列→LLM 评审→写回 |
 | 激进版·盘中定时唤醒扫描 | 工作日 9/10/11/13/14/15 点 :05 | 同上 |
 | 激进版·云端LLM专家团评审 | 工作日 9/10/11/13/14/15 点 :15 | 同上 |
+| 美股版·盘中定时唤醒扫描 | 美股时段 22/23/0/1/2/3 点整点 | curl 触发 refresh+scan，防沙箱挂起 |
+| 美股版·云端LLM专家团评审 | 美股时段 22/23/0/1/2/3 点 :10 | 读队列→LLM 评审→写回 |
+| 美股版·专家团评审对账 | 美股收盘后 4:30 | 读 reviewLog 算命中率，写 review-audit-us-*.md |
 | 每日代码自动提交推送 | 每天 23:30 | git add -A + commit + push |
 
 ### 唤醒扫描自动化 prompt 模板
@@ -133,7 +148,7 @@ git push origin main
 
 ## 六、已知注意事项
 
-1. **国庆休市**：成交逻辑在 `in_trading_hours()` 为 False 时不会立即成交，评审 BUY 的候选会进入 `approved` 状态，待复市后第一个交易时段按最新价成交。
+1. **国庆休市**：A 股两版的成交逻辑在 `in_trading_hours()` 为 False 时不会立即成交，评审 BUY 的候选会进入 `approved` 状态，待复市后第一个交易时段按最新价成交。**美股版不受国庆影响**，国庆期间正常自动跑。
 2. **自动化依赖客户端运行**：WorkBuddy 自动化（含每日推送）只在客户端运行时触发。
 3. **`.gitignore` 排除项**：`data.json`、`downloads/`、`.workbuddy/`、`.wbapp_*.genie` 不进版本库，新设备需按上述步骤重新生成。
 4. **两版参数差异**（稳健 vs 激进）：
@@ -141,3 +156,4 @@ git push origin main
    - buyPct：20% vs 35%
    - maxHold：8 vs 12
    - stopLossPct：-8% vs -15%
+5. **美股版交易时段**：北京时间 21:30-次日4:00（夏令时，3-11月）/ 22:30-次日5:00（冬令时，11-3月），已内置夏令时自动判断。美股版信号只剩「技术面 + 新闻」两路。
