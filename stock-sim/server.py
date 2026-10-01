@@ -88,7 +88,7 @@ DEFAULT_POOL = [
 ]
 
 DEFAULT_CONFIG = {
-    "autoTrade": True,   # 消息驱动自动买卖，可在页面上一键关掉
+    "autoTrade": False,  # 门控模式：候选股送 LLM 专家团评审后代为下单（与激进版一致）
     "scanMin": 30,       # 每 30 分钟扫一次全网快讯
     "buyPct": 20,        # 单次买入动用可用现金的比例
     "sellPct": 50,       # 单次卖出持仓的比例
