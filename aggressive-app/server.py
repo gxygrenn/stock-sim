@@ -153,6 +153,7 @@ def default_state():
         "council": [],     # 评议团合议记录（最近若干次）
         "pendingReview": [],  # 待 LLM 专家团评审的候选（autoTrade 关闭时由 scan 维护）
         "reviewed": {},    # code -> 最近一次专家评审时间（冷却用）
+        "reviewLog": [],   # 专家团评审历史台账（code/name/verdict/confidence/note/outcome/成交价，最近 200 条，独立于队列生命周期）
         "expiredReviews": [],  # 队列 TTL 超时作废的候选（供复盘归因，最近 100 条）
         "dailyReviews": [],  # 每日复盘存档（最近 30 天，由复盘自动化写入）
         "config": dict(DEFAULT_CONFIG),
@@ -1002,6 +1003,7 @@ def daily_facts(s):
                           for p in (s.get("pendingReview") or [])],
         "expiredRecent": (s.get("expiredReviews") or [])[-5:],
         "reviewedToday": reviewed_today,
+        "reviewLog": (s.get("reviewLog") or [])[-200:],
         "councilToday": council_today[:10],
         "historyLast10": hist[-10:],
         "lastScan": s.get("lastScan"),
@@ -1082,6 +1084,17 @@ def expire_stale_reviews(s):
     return len(dropped)
 
 
+def _link_review_log(s, code, price, action):
+    """成交后把成交价/动作回写到评审台账对应条目，实现「评审→成交→结果」可追溯。"""
+    rl = s.get("reviewLog") or []
+    for r in reversed(rl):
+        if r.get("code") == code and r.get("fillPrice") is None:
+            r["fillPrice"] = price
+            r["fillTime"] = now_str()
+            r["outcome"] = action
+            return
+
+
 def execute_approved(s):
     """把 LLM 专家团「已批准」的候选落地成成交（评审与执行解耦的核心）。
 
@@ -1153,6 +1166,7 @@ def execute_approved(s):
             if tr:
                 pend.remove(p)
                 done += 1
+                _link_review_log(s, p["code"], price, "已买入")
                 log("评审补做买入 %s %d 股 @%.3f（%s）" % (item["name"], qty, price, lagtxt))
         elif verdict == "SELL":
             h = find_holding(s, p["code"])
@@ -1165,6 +1179,7 @@ def execute_approved(s):
             if tr:
                 pend.remove(p)
                 done += 1
+                _link_review_log(s, p["code"], price, "已卖出")
                 log("评审补做卖出 %s %d 股 @%.3f（%s）" % (item["name"], qty, price, lagtxt))
     return done
 
@@ -1588,6 +1603,14 @@ class Handler(BaseHTTPRequestHandler):
                         if hit in pend:
                             pend.remove(hit)
                         outcome = "HOLD，出队"
+                    # 评审历史台账：完整留存结论，独立于队列生命周期，供事后对账审计
+                    rl = s.setdefault("reviewLog", [])
+                    rl.append({"code": code, "name": hit.get("name"),
+                               "verdict": verdict, "confidence": conf, "note": note,
+                               "reviewedAt": reviewed_at, "outcome": outcome,
+                               "queued": verdict in ("BUY", "SELL"),
+                               "fillPrice": None, "fillTime": None})
+                    s["reviewLog"] = rl[-200:]
                     log("专家团评审 %s(%s) -> %s 信心%s（%s）| %s"
                         % (code, hit.get("name"), verdict or "?", conf or "-",
                            note[:30], outcome))
