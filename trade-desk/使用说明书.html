@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>交易工作台 · 使用说明书</title>
+<style>
+:root{--bg:#f7f8fa;--panel:#fff;--border:#e3e6ec;--text:#1f2430;--muted:#6b7280;
+  --accent:#2563eb;--up:#d92c20;--down:#128a3e;--warn:#b45309}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--text);font:15px/1.75 "Segoe UI","Microsoft YaHei",sans-serif}
+.wrap{max-width:860px;margin:0 auto;padding:32px 20px 60px}
+header{border-bottom:3px solid var(--accent);padding-bottom:16px;margin-bottom:8px}
+header h1{font-size:26px}
+header .sub{color:var(--muted);font-size:13px;margin-top:4px}
+.meta{display:flex;gap:16px;flex-wrap:wrap;color:var(--muted);font-size:12px;margin:14px 0 24px}
+.meta span{background:var(--panel);border:1px solid var(--border);border-radius:6px;padding:4px 10px}
+h2{font-size:19px;margin:34px 0 12px;padding-left:12px;border-left:4px solid var(--accent)}
+h3{font-size:15px;margin:20px 0 8px;color:var(--accent)}
+p{margin:8px 0}
+.card{background:var(--panel);border:1px solid var(--border);border-radius:10px;padding:16px 20px;margin:12px 0}
+table{width:100%;border-collapse:collapse;margin:10px 0;font-size:14px;background:var(--panel)}
+th,td{border:1px solid var(--border);padding:8px 12px;text-align:left;vertical-align:top}
+th{background:#eef2ff;font-weight:600;white-space:nowrap}
+code{background:#eef2ff;color:var(--accent);border-radius:4px;padding:1px 6px;font-size:13px}
+.up{color:var(--up);font-weight:600}.down{color:var(--down);font-weight:600}
+.tip{background:#fffbeb;border:1px solid #fde68a;border-radius:8px;padding:10px 14px;margin:10px 0;font-size:14px}
+.tip b{color:var(--warn)}
+.danger{background:#fef2f2;border:1px solid #fecaca;border-radius:8px;padding:10px 14px;margin:10px 0;font-size:14px}
+ol,ul{padding-left:22px;margin:8px 0}
+li{margin:5px 0}
+kbd{background:#1f2430;color:#fff;border-radius:4px;padding:1px 7px;font-size:12px}
+.steps{counter-reset:s;list-style:none;padding-left:0}
+.steps li{counter-increment:s;position:relative;padding-left:38px;margin:10px 0}
+.steps li::before{content:counter(s);position:absolute;left:0;top:3px;width:24px;height:24px;
+  background:var(--accent);color:#fff;border-radius:50%;text-align:center;line-height:24px;font-size:13px;font-weight:600}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:12px;margin:12px 0}
+.feature{background:var(--panel);border:1px solid var(--border);border-radius:10px;padding:14px 16px}
+.feature b{display:block;margin-bottom:4px}
+.feature span{color:var(--muted);font-size:13px}
+footer{margin-top:44px;padding-top:16px;border-top:1px solid var(--border);color:var(--muted);font-size:12px;text-align:center}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header>
+  <h1>📈 交易工作台 · 使用说明书</h1>
+  <div class="sub">多市场行情监控 · 持仓记账 · 策略回测 一站式工具</div>
+</header>
+<div class="meta">
+  <span>📦 版本 v1.1</span>
+  <span>🌐 在线地址：https://trade-desk-terminal.app.workbuddy.host/</span>
+  <span>🧩 技术栈：Python 标准库后端 + 单文件网页前端</span>
+</div>
+
+<h2>一、它能做什么</h2>
+<div class="grid">
+  <div class="feature"><b>📊 行情监控</b><span>A股、港股、美股、国内期货四类标的的实时看板，支持涨跌提醒</span></div>
+  <div class="feature"><b>💰 持仓交易</b><span>记录买卖流水，自动算持仓成本、市值与浮动盈亏</span></div>
+  <div class="feature"><b>📝 每日复盘</b><span>自动生成复盘底稿，记录心得标签，系统从历史中提炼你的经验</span></div>
+  <div class="feature"><b>🧪 策略回测</b><span>双均线、均线突破两种经典策略，历史数据验证，图形化展示买卖点</span></div>
+</div>
+<p>数据来源为腾讯财经与新浪财经的<b>免费公开接口</b>，由服务端代理抓取，打开网页即可使用，无需注册、无需 API Key。</p>
+
+<h2>二、三分钟上手</h2>
+<ol class="steps">
+  <li>打开 <code>https://trade-desk-terminal.app.workbuddy.host/</code>，看到三个页签：<b>行情监控 / 持仓交易 / 策略回测</b>。</li>
+  <li>在「行情监控」页输入一个代码（例如 <code>sh600519</code>）点「添加自选」，或直接点快捷按钮。</li>
+  <li>行情每 20 秒自动刷新；点某行右侧的「设提醒」可以设置价格/涨跌幅预警。</li>
+  <li>切到「持仓交易」，把实际买入记一笔（方向、代码、价格、数量），持仓盈亏自动生成。</li>
+  <li>切到「策略回测」，输入代码点「开始回测」，看 K 线买卖点和收益统计。</li>
+</ol>
+
+<h2>三、代码格式速查</h2>
+<table>
+  <tr><th>市场</th><th>格式</th><th>示例</th><th>说明</th></tr>
+  <tr><td>A股</td><td><code>sh</code>/<code>sz</code> + 6位代码</td><td><code>sh600519</code> 贵州茅台<br><code>sz000001</code> 平安银行</td><td>沪市 sh、深市 sz</td></tr>
+  <tr><td>港股</td><td><code>hk</code> + 5位代码</td><td><code>hk00700</code> 腾讯控股</td><td>补足5位</td></tr>
+  <tr><td>美股</td><td><code>us</code> + 代码</td><td><code>usAAPL</code> 苹果<br><code>usTSLA</code> 特斯拉</td><td>字母代码</td></tr>
+  <tr><td>期货</td><td><code>nf_</code> + 品种+连续</td><td><code>nf_RB0</code> 螺纹钢连续<br><code>nf_AU0</code> 沪金连续</td><td>新浪国内期货品种</td></tr>
+</table>
+<div class="tip"><b>💡 提示：</b>输入无法识别的代码会得到明确报错并提示正确格式；常用品种的代码可以搜「新浪期货 品种代码」查询。</div>
+
+<h2>四、功能详解</h2>
+
+<h3>📊 行情监控</h3>
+<div class="card">
+  <ul>
+    <li><b>自选列表</b>：展示名称、现价、涨跌幅、今开/最高/最低、行情时间。<span class="up">红色 = 上涨</span>、<span class="down">绿色 = 下跌</span>（A股习惯配色）。</li>
+    <li><b>自动刷新</b>：页面停留时每 20 秒刷新一次行情，每 60 秒自动检查一次提醒；也可随时点「刷新行情」。</li>
+    <li><b>设提醒</b>：点自选行右侧「设提醒」，代码会自动填入下方表单。四种规则：
+      <ul>
+        <li>价格 ≥ / ≤ —— 跌到位、涨到位提醒（如设置 <code>below 1200</code>）</li>
+        <li>涨幅 ≥ % / 跌幅 ≤ % —— 盯当日涨跌幅（如 <code>pct_up 3</code> 表示涨超3%提醒）</li>
+      </ul>
+    </li>
+    <li><b>触发效果</b>：满足条件后该行整行高亮、标记「已触发」并记录触发时间与当时价格；规则会保留，不需要时手动删除。</li>
+  </ul>
+</div>
+
+<h3>💰 持仓交易</h3>
+<div class="card">
+  <ul>
+    <li><b>录入</b>：选择买入/卖出 → 填代码、成交价、数量 → 「记一笔」。留空价格或数量会提示错误。</li>
+    <li><b>持仓计算</b>：多次买入自动<b>摊薄成本</b>（加权平均）；卖出按成本扣减。当前市值与浮动盈亏按<b>实时行情</b>计算。</li>
+    <li><b>顶部卡片</b>：总市值、总浮动盈亏一目了然。</li>
+    <li><b>流水管理</b>：每笔流水可单独删除，删除后持仓重新计算。</li>
+  </ul>
+</div>
+<div class="tip"><b>💡 说明：</b>持仓模块是<b>记账工具</b>，不会连接券商、不会真实下单。行情停牌或源故障时会标注「行情数据不可用」，此时按成本价暂估市值。</div>
+
+<h3>📝 每日复盘</h3>
+<div class="card">
+  <ul>
+    <li><b>生成底稿</b>：选日期点「生成底稿」，自动汇总当日自选涨跌、当日交易流水与持仓盈亏快照，省去手工抄数。</li>
+    <li><b>写复盘</b>：选市场情绪（乐观/中性/谨慎/悲观）、填当日浮动盈亏、点选行为标签（追高、止损、拿住、纪律好…可自定义）、写心得，保存即可。同一日期重复保存会覆盖当天旧复盘。</li>
+    <li><b>经验洞察（学习引擎）</b>：系统统计每个行为标签出现时段的盈亏——
+      <ul>
+        <li>只有<b>重复出现 ≥2 次</b>的标签才被视为"经验模式"，单次偶然不计入；</li>
+        <li>自动生成教训，例如：「追高」出现过的 N 个交易日平均亏损 X 元——这是你最需要警惕的行为模式；</li>
+        <li>做得好的行为也会被点名表扬，帮你把它固化成纪律。</li>
+      </ul>
+    </li>
+    <li><b>复盘历史</b>：按日期倒序展示，点击可展开心得与底稿快照。</li>
+  </ul>
+</div>
+<div class="tip"><b>💡 用法建议：</b>每天收盘后花 2 分钟：生成底稿 → 点标签 → 写一两句心得。坚持 5 篇以上，洞察的参考价值会明显提升。</div>
+
+<h3>🧪 策略回测</h3>
+<div class="card">
+  <ul>
+    <li><b>双均线金叉/死叉</b>：短期均线上穿长期均线买入（金叉），下穿卖出（死叉）。默认 MA5 / MA20，可自行调整。</li>
+    <li><b>均线突破</b>：收盘价上穿 N 日均线买入，下穿卖出。</li>
+    <li><b>规则</b>：信号当日收盘价成交、全仓进出，计入双边手续费（默认 0.08%/次），初始资金默认 10 万。</li>
+    <li><b>图表</b>：上方为 K 线 + 均线 + ▲买▼卖标记；下方为策略权益曲线。</li>
+    <li><b>统计指标</b>：总收益率、年化收益、最大回撤、交易次数、胜率，以及与「买入持有」的对比。</li>
+  </ul>
+</div>
+<div class="danger"><b>⚠️ 重要提醒：</b>回测采用历史数据与理想化假设（收盘成交、无滑点、无停牌跳空处理），<b>过去表现不代表未来收益</b>。回测结果仅用于理解策略特性，不构成任何投资建议。</div>
+
+<h2>五、常见问题 FAQ</h2>
+<table>
+  <tr><th>问题</th><th>解答</th></tr>
+  <tr><td>行情多久更新一次？</td><td>页面打开时每 20 秒自动刷新。免费接口为延时/快照行情，非 tick 级实时，节假日与非交易时段显示最近一次收盘数据。</td></tr>
+  <tr><td>某行显示「行情数据不可用」？</td><td>该数据源暂时抓取失败或代码不存在。其他市场不受影响；稍后点「刷新行情」重试，长期失败请检查代码格式。</td></tr>
+  <tr><td>期货为什么用新浪而股票用腾讯？</td><td>腾讯接口不提供国内期货行情，新浪提供；系统已自动按代码前缀路由，无需关心。</td></tr>
+  <tr><td>数据保存在哪里？会不会丢？</td><td>保存在服务端 JSON 文件中（自选 / 提醒 / 流水），刷新页面、关闭浏览器都不会丢失。</td></tr>
+  <tr><td>回测可以用于期货吗？</td><td>可以，期货日 K 走新浪接口，如 <code>nf_RB0</code>。但注意回测按「股数」计算，未乘合约乘数，期货结果仅供趋势参考。</td></tr>
+  <tr><td>能提醒我手机吗？</td><td>目前提醒在页面内展示（需保持页面打开）。如需推送通知可后续扩展。</td></tr>
+  <tr><td>复盘标签可以自己加吗？</td><td>可以，在「+加标签」输入自定义标签；标签越贴近你真实的行为模式，经验洞察越有价值。</td></tr>
+  <tr><td>经验洞察是怎么算的？</td><td>把每篇复盘的「行为标签」与当天的浮动盈亏关联：同一标签出现 ≥2 次即视为模式，统计其平均盈亏与胜率，按平均盈亏排序给出教训。</td></tr>
+  <tr><td>支持外汇/加密货币吗？</td><td>当前版本聚焦 A股/港股/美股/国内期货，其他市场可按需扩展。</td></tr>
+</table>
+
+<h2>六、快捷键与页面元素</h2>
+<table>
+  <tr><th>元素</th><th>作用</th></tr>
+  <tr><td>顶部四个页签</td><td>切换 行情监控 / 持仓交易 / 每日复盘 / 策略回测</td></tr>
+  <tr><td>快捷按钮（贵州茅台等）</td><td>点击直接填入代码并添加自选</td></tr>
+  <tr><td>「设提醒」链接</td><td>把该行代码填入提醒表单，再填阈值即可</td></tr>
+  <tr><td>「立即检查」按钮</td><td>不等自动周期，马上核对一次所有提醒</td></tr>
+  <tr><td>数字颜色</td><td><span class="up">红</span> = 涨/盈利，<span class="down">绿</span> = 跌/亏损，灰色 = 平盘</td></tr>
+</table>
+
+<h2>七、本地部署（可选）</h2>
+<div class="card">
+<p>想在自己电脑跑一份？项目只有两个文件：</p>
+<ol>
+  <li>安装任意 Python 3.10+（无需 pip 装任何包）；</li>
+  <li>把 <code>server.py</code> 与 <code>index.html</code> 放同一目录；</li>
+  <li>运行 <code>python server.py</code>，浏览器打开 <code>http://127.0.0.1:8123</code>。</li>
+  <li>换端口：<code>PORT=9000 python server.py</code>（Windows PowerShell：<code>$env:PORT=9000; python server.py</code>）。</li>
+</ol>
+</div>
+
+<footer>
+  交易工作台 v1.0 · 数据来源：腾讯财经 / 新浪财经免费公开接口 · 延时数据，仅供研究学习使用，不构成投资建议
+</footer>
+</div>
+</body>
+</html>

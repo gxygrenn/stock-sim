@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>模拟炒股工具 · 使用说明书</title>
+<style>
+  :root{
+    --ink:#1f2430; --sub:#5c6472; --faint:#8a93a5; --line:#e5e8ee;
+    --brand:#2f6fed; --brand-bg:#eef4ff; --up:#d43d2a; --down:#1a9e54;
+    --warn:#8a6d1a; --warn-bg:#fffbe8; --ok-bg:#edfaf2; --card:#ffffff;
+  }
+  *{box-sizing:border-box; margin:0; padding:0}
+  body{font-family:"Microsoft YaHei","PingFang SC",system-ui,sans-serif;
+       color:var(--ink); background:#f5f7fa; line-height:1.75; font-size:14.5px}
+  .layout{display:flex; max-width:1180px; margin:0 auto; gap:28px; padding:28px 20px 60px}
+  /* ---------- 侧边目录 ---------- */
+  nav{flex:0 0 218px; position:sticky; top:24px; align-self:flex-start;
+      background:var(--card); border:1px solid var(--line); border-radius:12px; padding:14px 10px}
+  nav .logo{font-weight:700; font-size:15px; padding:6px 10px 12px; border-bottom:1px solid var(--line); margin-bottom:8px}
+  nav .logo span{color:var(--brand)}
+  nav a{display:block; padding:7px 10px; border-radius:8px; color:var(--sub);
+        text-decoration:none; font-size:13.5px}
+  nav a:hover{background:var(--brand-bg); color:var(--brand)}
+  nav a.h2{padding-left:22px; font-size:13px; color:var(--faint)}
+  /* ---------- 正文 ---------- */
+  main{flex:1; min-width:0}
+  section{background:var(--card); border:1px solid var(--line); border-radius:12px;
+          padding:26px 30px; margin-bottom:22px}
+  h1{font-size:24px; margin-bottom:6px}
+  h2{font-size:18px; margin-bottom:14px; padding-left:12px; border-left:4px solid var(--brand)}
+  h3{font-size:15.5px; margin:20px 0 8px}
+  p{margin:8px 0; color:#333a47}
+  .sub{color:var(--sub)}
+  code{background:#f0f2f6; border-radius:4px; padding:1px 6px; font-size:13px;
+       font-family:Consolas,monospace; color:#b03a5b}
+  table{width:100%; border-collapse:collapse; margin:12px 0; font-size:13.5px}
+  th{background:#f6f8fb; text-align:left; padding:8px 10px; border:1px solid var(--line); white-space:nowrap}
+  td{padding:8px 10px; border:1px solid var(--line); vertical-align:top}
+  tr:nth-child(even) td{background:#fbfcfe}
+  .badge{display:inline-block; border-radius:6px; padding:1px 8px; font-size:12px; font-weight:600}
+  .b-buy{background:#fdecea; color:var(--up)}
+  .b-sell{background:#e6f7ee; color:var(--down)}
+  .b-wait{background:#f0f2f6; color:var(--sub)}
+  .b-veto{background:#fff4e0; color:#b07400}
+  .tip{border-radius:10px; padding:12px 16px; margin:12px 0; font-size:13.5px}
+  .tip.warn{background:var(--warn-bg); border:1px dashed #d8b13c; color:var(--warn)}
+  .tip.info{background:var(--brand-bg); border:1px solid #cdddfb; color:#2456b8}
+  .tip.ok{background:var(--ok-bg); border:1px solid #bfe8cf; color:#146c3c}
+  .flow{display:flex; flex-wrap:wrap; align-items:center; gap:6px; margin:14px 0}
+  .flow .node{background:var(--brand-bg); border:1px solid #cdddfb; color:#2456b8;
+              border-radius:8px; padding:6px 12px; font-size:13px; font-weight:600}
+  .flow .node.gate{background:var(--warn-bg); border-color:#d8b13c; color:var(--warn)}
+  .flow .node.ai{background:#f3eaff; border-color:#d9c2f5; color:#6b3fa0}
+  .flow .arr{color:var(--faint); font-weight:700}
+  ul,ol{margin:8px 0 8px 22px}
+  li{margin:4px 0}
+  .grid2{display:grid; grid-template-columns:1fr 1fr; gap:14px}
+  .mini{border:1px solid var(--line); border-radius:10px; padding:12px 16px}
+  .mini b{display:block; margin-bottom:4px}
+  .kbd{border:1px solid var(--line); border-bottom-width:2px; border-radius:5px;
+       background:#fff; padding:0 6px; font-size:12.5px}
+  .foot{color:var(--faint); font-size:12.5px; text-align:center; margin-top:10px}
+  a.url{color:var(--brand); word-break:break-all}
+  @media(max-width:900px){ .layout{flex-direction:column} nav{position:static; flex:none} .grid2{grid-template-columns:1fr} }
+</style>
+</head>
+<body>
+<div class="layout">
+
+<nav>
+  <div class="logo">📈 模拟炒股<span>说明书</span></div>
+  <a href="#s1">1. 这是什么</a>
+  <a href="#s2">2. 快速上手</a>
+  <a href="#s3">3. 界面导览</a>
+  <a href="#s4">4. 自动交易怎么运转</a>
+  <a class="h2" href="#s41">4.1 消息打分与四路信号</a>
+  <a class="h2" href="#s42">4.2 内置专家评议团</a>
+  <a class="h2" href="#s43">4.3 LLM 专家团门控</a>
+  <a href="#s5">5. 参数对照表</a>
+  <a href="#s6">6. 按钮与操作</a>
+  <a href="#s7">7. 评审留档在哪里看</a>
+  <a href="#s8">8. 常见问题</a>
+  <a href="#s9">9. 免责声明</a>
+</nav>
+
+<main>
+
+<!-- ================= 1 ================= -->
+<section id="s1">
+  <h1>模拟炒股工具 · 使用说明书</h1>
+  <p class="sub">版本：专家团门控版（2026-09-13 上线）&nbsp;·&nbsp; 在线地址：<a class="url" href="https://stock-sim-pnl.app.workbuddy.host/">https://stock-sim-pnl.app.workbuddy.host/</a></p>
+  <p>这是一个 <b>A 股模拟交易机器人</b>：10 万元虚拟本金、15 只自选股票池，7×24 小时运行在云端。
+  它持续抓取全网财经快讯、技术面、龙虎榜、公司公告等信息，给每只股票打分；
+  够格的候选股会交给<b>交易分析专家团（LLM 多角色评审）</b>裁决，通过后才自动买入或卖出。
+  全程不需要你盯盘，但每一个决策都有记录、可复盘。</p>
+  <div class="tip info">💡 <b>一句话理解</b>：工具负责「发现机会」，专家团负责「把关决策」，你负责「随时查看与随时接管」。</div>
+  <div class="grid2">
+    <div class="mini"><b>虚拟资金</b>初始 100,000 元，含手续费（万 2.5，最低 5 元）与印花税（卖出 0.05%），100 股整手交易，完全贴近 A 股规则。</div>
+    <div class="mini"><b>数据真实</b>行情、快讯、龙虎榜、公告全部来自公开真实数据源（腾讯/东财/巨潮/新浪财经），只是钱是虚拟的。</div>
+    <div class="mini"><b>双重智能</b>内置规则评议团（毫秒级、免费）+ LLM 专家团（深度评审、每小时一轮），互为补充。</div>
+    <div class="mini"><b>随时接管</b>所有自动功能都能一键开关，也可以手动买卖、手动投喂消息演练。</div>
+  </div>
+</section>
+
+<!-- ================= 2 ================= -->
+<section id="s2">
+  <h2>2. 快速上手</h2>
+  <ol>
+    <li><b>打开网址</b>：<a class="url" href="https://stock-sim-pnl.app.workbuddy.host/">https://stock-sim-pnl.app.workbuddy.host/</a>（手机/电脑浏览器均可，无需登录）。</li>
+    <li><b>看顶栏状态药丸</b>：绿色脉冲点 = 运行中，旁边显示下次扫描倒计时。</li>
+    <li><b>看右侧消息流</b>：每 10 分钟刷新的财经快讯，红色 <span class="badge b-buy">买入</span> / 绿色 <span class="badge b-sell">卖出</span> / 灰色 <span class="badge b-wait">观望</span> 徽章是系统的初步判断。</li>
+    <li><b>看「⏳ 待专家团评审」队列</b>：在「专家评议团」面板顶部，排队等 LLM 专家团裁决的股票会列在这里。</li>
+    <li><b>看成交流水</b>：成交理由里写清了依据，例如 <code>利好:标题…(消息+4信号+1|评议3:0)</code> 或 <code>专家团评审:BUY信心6/10</code>。</li>
+  </ol>
+  <div class="tip ok">✅ 平时什么都不用点，工具会自己跑。想干预时再读第 6 节「按钮与操作」。</div>
+</section>
+
+<!-- ================= 3 ================= -->
+<section id="s3">
+  <h2>3. 界面导览</h2>
+  <table>
+    <tr><th style="width:130px">区域</th><th>内容</th></tr>
+    <tr><td><b>顶栏</b></td><td>工具名 + 运行状态药丸（运行中/已暂停、下次扫描时间）。</td></tr>
+    <tr><td><b>左栏 · 操作区</b></td><td>
+      ① <b>运行控制</b>：总开关、立即扫描/强制下单/召集开会、投喂消息演练、当前策略摘要；<br>
+      ② <b>持仓</b>：每只的成本、现价、浮动盈亏（<span style="color:var(--up)">红涨</span>/<span style="color:var(--down)">绿跌</span>）；<br>
+      ③ <b>自选池</b>：15 只股票的实时价、涨跌幅、信号分（悬停看四路信号明细 + 评议团倾向，⛔ = 被估值过滤禁买）；<br>
+      ④ <b>手动交易</b>：输入代码/数量直接买卖；<br>
+      ⑤ <b>净值曲线</b>：账户总资产走势（起点 = 100 点）；<br>
+      ⑥ <b>每日盈亏</b>：每个交易日的盈亏与大盘对比；<br>
+      ⑦ <b>高级设置</b>（折叠区）：全部策略参数，见第 5 节。</td></tr>
+    <tr><td><b>右栏 · 信息区</b></td><td>
+      ① <b>实时行情</b>：上证指数与账户概览；<br>
+      ② <b>消息流</b>：最新财经快讯 + 系统打分与命中股票；<br>
+      ③ <b>专家评议团</b>：顶部是「⏳ 待评审队列」，下方是历史合议记录（四位分析师 + 风控官的逐角色意见、票数条）；<br>
+      ④ <b>成交流水</b>：每笔成交的时间、方向、价格、数量、理由。</td></tr>
+  </table>
+</section>
+
+<!-- ================= 4 ================= -->
+<section id="s4">
+  <h2>4. 自动交易怎么运转</h2>
+  <p>整套系统是一条流水线，<b>云端服务</b>与 <b>LLM 专家团</b>分工协作：</p>
+  <div class="flow">
+    <span class="node">每 10 分钟<br>刷资讯/行情</span><span class="arr">→</span>
+    <span class="node">消息打分<br>+ 四路信号</span><span class="arr">→</span>
+    <span class="node gate">候选股入队<br>（门控）</span><span class="arr">→</span>
+    <span class="node ai">LLM 专家团<br>快速合议评审</span><span class="arr">→</span>
+    <span class="node">通过则代下单<br>留档复盘</span>
+  </div>
+  <table>
+    <tr><th style="width:150px">环节</th><th>频率</th><th>谁在做</th></tr>
+    <tr><td>资讯/行情/信号刷新</td><td><b>每 10 分钟</b></td><td>云端服务（7×24，含周末）</td></tr>
+    <tr><td>候选股筛选入队</td><td>实时（随每次刷新）</td><td>云端服务（规则：新闻分 ≥2 或 信号分 ≥4）</td></tr>
+    <tr><td>专家团评审 + 代下单</td><td><b>每小时一轮</b>，仅工作日 <b>9:30–15:00</b></td><td>LLM 专家团（交易分析团队 · 快速合议模式）</td></tr>
+    <tr><td>每日结算</td><td>每交易日 15:10 前后自动</td><td>云端服务（记录当日盈亏与净值）</td></tr>
+  </table>
+  <div class="tip warn">⚠️ <b>为什么买入是每小时而不是更快？</b>评审由真正的 AI 专家团执行（每只 3~5 分钟深度研判），
+  不像规则引擎可以每 30 分钟跑；每小时一轮是「评审质量」和「反应速度」的平衡点。盘后和周末不评审，避免拿过期行情做决策。</div>
+
+  <h3 id="s41">4.1 消息打分与四路信号</h3>
+  <p>每条快讯先经过<b>关键词词库</b>打分（如「预增/回购/中标」加分，「减持/立案/预亏」减分），再叠加四路独立信号：</p>
+  <table>
+    <tr><th>信号源</th><th>内容</th><th>典型规则</th></tr>
+    <tr><td><b>技术面</b></td><td>日 K 线（前复权）</td><td>MA5&gt;MA20 多头 +1；20 日新高 +1 / 新低 -1；放量涨 +1 / 放量跌 -1</td></tr>
+    <tr><td><b>龙虎榜</b></td><td>东财营业部席位</td><td>净买入 &gt;5000 万 +2，&gt;1000 万 +1；净卖出对称减分</td></tr>
+    <tr><td><b>公司公告</b></td><td>巨潮资讯</td><td>减持/立案/预增/回购等强词权重 2，封顶 ±3</td></tr>
+    <tr><td><b>估值过滤</b></td><td>PE / 换手率</td><td>亏损、PE&gt;80、换手&gt;12% → ⛔ 直接禁买（不进入候选）</td></tr>
+  </table>
+  <p>四路加总为「信号分」（封顶 ±6）。<b>决策分 = 新闻分 + 信号分</b>，达到门槛（默认 2 分）才触发后续流程；
+  没有新闻时，信号分 ≥4 也能独立触发。</p>
+
+  <h3 id="s42">4.2 内置专家评议团（规则版，毫秒级）</h3>
+  <p>服务端内置一个规则化评议团：<b>技术面 / 资金面 / 消息面 / 估值</b>四位分析师独立出意见（互不可见），
+  加权投票（资金面权重 1.2、估值 0.8），默认 <b>≥2 票同意且同意 &gt; 反对</b>才形成买入/卖出决议，
+  最后由<b>风控官</b>逐项审查（仓位上限、冷却期、浮亏 -8% 禁止加仓摊平等），可一票否决。</p>
+  <p class="sub">点「召集开会」可随时让它对全池 15 只股票做一次只出意见、不下单的研判会——这是观察它思路的最好方式。</p>
+
+  <h3 id="s43">4.3 LLM 专家团门控（当前默认模式）</h3>
+  <p>当前工具处于<b>门控模式</b>：服务端<b>不自行下单</b>，只负责发现和排队。每个交易时段整点，
+  交易分析专家团对队列里的候选（每轮最多 3 只，按信号强度排序）做<b>快速合议评审</b>：</p>
+  <div class="flow">
+    <span class="node ai">四位分析师<br>独立意见</span><span class="arr">→</span>
+    <span class="node ai">多空研究员<br>辩论</span><span class="arr">→</span>
+    <span class="node ai">研究主管<br>三选一裁决</span><span class="arr">→</span>
+    <span class="node ai">风险主管<br>复核仓位</span><span class="arr">→</span>
+    <span class="node">VERDICT<br>BUY / SELL / HOLD</span>
+  </div>
+  <ul>
+    <li><b>裁决 BUY</b> → 按仓位规则自动买入（单次 20% 现金、单票 ≤30% 总资产、整手），理由记为 <code>专家团评审:BUY信心X/10</code>。</li>
+    <li><b>裁决 SELL</b>（针对持仓股的卖出候选）→ 自动卖出持仓的 50%。</li>
+    <li><b>裁决 HOLD</b> → 不交易，候选出队，同一股票 60 分钟内不会重复排队。</li>
+  </ul>
+  <div class="tip info">💡 想深度研究某一只股票（完整五阶段 12 角色、约 30 分钟、产出 HTML 图文报告），随时在对话里跟我说「用专家团完整分析 XX」。</div>
+</section>
+
+<!-- ================= 5 ================= -->
+<section id="s5">
+  <h2>5. 参数对照表（高级设置）</h2>
+  <table>
+    <tr><th>参数</th><th>默认</th><th>含义</th></tr>
+    <tr><td>消息驱动自动买卖</td><td><b>关（门控）</b></td><td>打开 = 服务端按内置评议团自主交易；<b>关闭 = 候选股送 LLM 专家团评审</b>（当前模式）</td></tr>
+    <tr><td>扫描间隔 scanMin</td><td>10 分钟</td><td>资讯/行情/信号刷新频率</td></tr>
+    <tr><td>触发分 minScore</td><td>2 分</td><td>决策分（新闻+信号）达到才触发</td></tr>
+    <tr><td>单次买入 buyPct</td><td>20%</td><td>每次买入动用现金的比例</td></tr>
+    <tr><td>单票仓位 maxPosPct</td><td>30%</td><td>单只股票市值占总资产上限</td></tr>
+    <tr><td>卖出比例 sellPct</td><td>50%</td><td>触发卖出时卖出持仓的比例</td></tr>
+    <tr><td>每轮笔数 maxPerRound</td><td>3 笔</td><td>一轮最多成交笔数</td></tr>
+    <tr><td>每日笔数 maxPerDay</td><td>12 笔</td><td>全天成交总笔数兜底</td></tr>
+    <tr><td>冷却 cooldownMin</td><td>30 分钟</td><td>同一只股票两次交易的最小间隔</td></tr>
+    <tr><td>评审冷却</td><td>60 分钟</td><td>专家团评审过的股票多久内不再排队</td></tr>
+    <tr><td>最大持仓 maxHold</td><td>8 只</td><td>同时持有股票数量上限</td></tr>
+    <tr><td>总仓位 maxTotalPos</td><td>92%</td><td>持仓市值占总资产上限（保留现金）</td></tr>
+    <tr><td>浮亏禁加仓 stopLossPct</td><td>-8%</td><td>持仓浮亏超过该比例后禁止加仓摊平</td></tr>
+    <tr><td>评议团投票 minAgree</td><td>2 票</td><td>内置评议团通过所需最少同意票</td></tr>
+    <tr><td>四路信号开关</td><td>全开</td><td>技术面 / 龙虎榜 / 公告 / 估值过滤，可单独关闭</td></tr>
+    <tr><td>价格模式</td><td>真实</td><td>真实 = 实时行情；演练 = 内置波动模型（离线演示用）</td></tr>
+  </table>
+</section>
+
+<!-- ================= 6 ================= -->
+<section id="s6">
+  <h2>6. 按钮与操作</h2>
+  <table>
+    <tr><th style="width:150px">操作</th><th>作用</th><th>何时用</th></tr>
+    <tr><td><b>立即扫描</b></td><td>立刻抓一轮快讯 + 刷新行情与候选队列</td><td>不想等 10 分钟时</td></tr>
+    <tr><td><b>强制下单</b></td><td>扫描并允许内置评议团<b>直接成交</b>（绕过 LLM 门控）</td><td>想让规则引擎立刻执行时</td></tr>
+    <tr><td><b>召集开会</b></td><td>内置评议团对全池 15 只逐一表决，<b>只出意见不下单</b></td><td>想看看系统对每只股票的看法</td></tr>
+    <tr><td><b>投喂消息</b></td><td>手动输入一条消息（可带标题），走完整打分与决策链路</td><td>盘后演练、测试反应</td></tr>
+    <tr><td><b>手动交易</b></td><td>指定股票、数量直接买/卖</td><td>自己拿主意时</td></tr>
+    <tr><td><b>每日结算</b></td><td>记录当日净值与盈亏（15:10 自动做，一般不用手点）</td><td>—</td></tr>
+    <tr><td><b>重置账户</b></td><td>清空一切回到 10 万初始（<b>不可恢复</b>）</td><td>想重新开始时</td></tr>
+  </table>
+</section>
+
+<!-- ================= 7 ================= -->
+<section id="s7">
+  <h2>7. 评审留档在哪里看</h2>
+  <ul>
+    <li><b>工具内</b>：成交流水的理由列、评议团面板的合议记录（最近 24 条）。</li>
+    <li><b>本地留档</b>：每轮专家团评审的完整结论（四位分析师意见、多空辩论、裁决与信心分、执行结果）
+      按日期保存在工作目录 <code>deliverables\auto-trade\review-YYYY-MM-DD.md</code>，直接在对话里让我「打开今天的评审留档」即可。</li>
+    <li><b>深度报告</b>：对个股做完整五阶段分析时，会另外产出全自包含的 HTML 图文报告（如之前的招商银行分析报告）。</li>
+  </ul>
+</section>
+
+<!-- ================= 8 ================= -->
+<section id="s8">
+  <h2>8. 常见问题</h2>
+  <h3>Q：为什么队列里的股票过了很久还没买？</h3>
+  <p>A：检查三点：① 现在是否工作日 9:30–15:00（盘后/周末不评审）；② 专家团可能裁决了 HOLD（不成交流水，但留档里有记录）；③ 每轮最多评审 3 只，排队靠后的要等下一轮。</p>
+  <h3>Q：门控模式和「消息驱动自动买卖」开关是什么关系？</h3>
+  <p>A：开关<b>关闭</b> = 门控模式（当前默认）：候选股全部送 LLM 专家团评审。开关<b>打开</b> = 服务端自主模式：内置规则评议团直接决策下单，速度更快但不经过 LLM 深度评审。两者二选一。</p>
+  <h3>Q：周末页面上数据不动是坏了吗？</h3>
+  <p>A：不是。A 股休市，价格停在周五收盘；资讯仍在每 10 分钟刷新（周末消息少），评审等周一 9:30 后自动恢复。</p>
+  <h3>Q：云端服务会丢数据吗？</h3>
+  <p>A：账户、持仓、流水持久化在云端，重新部署/刷新页面都不丢。只有点「重置账户」才会清空（不可恢复）。</p>
+  <h3>Q：买卖的是真钱吗？</h3>
+  <p>A：不是。这是 100% 模拟盘，行情与新闻是真实的，资金与成交是虚拟的，不涉及任何真实交易。</p>
+</section>
+
+<!-- ================= 9 ================= -->
+<section id="s9">
+  <h2>9. 免责声明</h2>
+  <p class="sub">本工具为技术演示与学习用途的模拟系统。所有打分、评议、评审结论（包括 LLM 专家团的意见）均由算法与 AI 生成，
+  不构成任何投资建议，不可作为真实证券交易依据。股市有风险，投资需谨慎。</p>
+  <p class="foot">模拟炒股工具 · 使用说明书 · 2026-09-13 · 由 WorkBuddy 生成</p>
+</section>
+
+</main>
+</div>
+</body>
+</html>
