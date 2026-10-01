@@ -1287,7 +1287,7 @@ def expire_stale_reviews(s):
         exp.append({"code": p.get("code"), "name": p.get("name"),
                     "direction": p.get("direction"), "state": p.get("state") or "waiting",
                     "waitedH": round(aged, 1), "why": "TTL 超时未评审", "time": now_str()})
-        reviewed[p["code"]] = now_str()   # 记冷却，避免同一条信号立刻又被塞回来
+        reviewed[(p.get("code") or "").lower()] = now_str()   # 记冷却（key 统一小写），避免同一条信号立刻又被塞回来
     s["expiredReviews"] = exp[-100:]
     log("评审队列 TTL 作废 %d 只：%s"
         % (len(dropped), "、".join((p.get("name") or p.get("code")) for p, _ in dropped)))
@@ -1298,7 +1298,7 @@ def _link_review_log(s, code, price, action):
     """成交后把成交价/动作回写到评审台账对应条目，实现「评审→成交→结果」可追溯。"""
     rl = s.get("reviewLog") or []
     for r in reversed(rl):
-        if r.get("code") == code and r.get("fillPrice") is None:
+        if (r.get("code") or "").lower() == (code or "").lower() and r.get("fillPrice") is None:
             r["fillPrice"] = price
             r["fillTime"] = now_str()
             r["outcome"] = action
@@ -1506,7 +1506,7 @@ def enqueue_review_candidates(s, fresh):
     cool = int(cfg.get("reviewCooldownMin", 60)) * 60
 
     def recently(code):
-        ts = reviewed.get(code)
+        ts = reviewed.get((code or "").lower())   # reviewed key 统一小写（美股 code 为大写）
         if not ts:
             return False
         try:
@@ -1791,7 +1791,7 @@ class Handler(BaseHTTPRequestHandler):
                     pend = s.get("pendingReview") or []
                     hit = None
                     for p in pend:
-                        if p["code"] == code:
+                        if (p.get("code") or "").lower() == code:
                             hit = p
                             break
                     reviewed_at = now_str()
@@ -1815,7 +1815,7 @@ class Handler(BaseHTTPRequestHandler):
                         outcome = "HOLD，出队"
                     # 评审历史台账：完整留存结论，独立于队列生命周期，供事后对账审计
                     rl = s.setdefault("reviewLog", [])
-                    rl.append({"code": code, "name": hit.get("name"),
+                    rl.append({"code": hit.get("code"), "name": hit.get("name"),
                                "verdict": verdict, "confidence": conf, "note": note,
                                "reviewedAt": reviewed_at, "outcome": outcome,
                                "queued": verdict in ("BUY", "SELL"),

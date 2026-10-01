@@ -71,10 +71,10 @@ chk("估值被 block 的不入队", len(s["pendingReview"]) == 0)
 
 # 5. reviewed 冷却
 s = fresh_state()
-s["reviewed"]["usAAPL"] = srv.now_str()
+s["reviewed"]["usaapl"] = srv.now_str()
 srv.enqueue_review_candidates(s, [news_item("苹果", 5)])
 chk("评审冷却期内不入队", len(s["pendingReview"]) == 0)
-s["reviewed"]["usAAPL"] = "2020-01-01 00:00:00"
+s["reviewed"]["usaapl"] = "2020-01-01 00:00:00"
 srv.enqueue_review_candidates(s, [news_item("苹果", 5)])
 chk("冷却期外正常入队", len(s["pendingReview"]) == 1)
 
@@ -155,7 +155,7 @@ chk("过期原因写入 expiredReviews（供复盘归因）",
     s["expiredReviews"][0]["why"].startswith("TTL") and
     s["expiredReviews"][0]["waitedH"] >= 24,
     str((s.get("expiredReviews") or [{}])[0])[:90])
-chk("过期后写冷却，避免同一条信号立刻被塞回来", "usAAPL" in (s.get("reviewed") or {}))
+chk("过期后写冷却，避免同一条信号立刻被塞回来", "usaapl" in (s.get("reviewed") or {}))
 srv.enqueue_review_candidates(s, [news_item("苹果", 5)])
 chk("过期冷却期内不会重新入队", len(s["pendingReview"]) == 0)
 
