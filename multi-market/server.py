@@ -498,6 +498,11 @@ CN_CONSERVATIVE_CONFIG = {
     "rebalanceMaxAdd": 6,        # 每轮最多建议选入只数
     "rebalanceMaxRemove": 6,     # 每轮最多建议淘汰只数
     "rebalanceCooldownDays": 21, # 同股被调池建议后 N 天内不重复建议
+    # ---- 市场择时（借鉴 QuantsPlaybook：RSRS 阻力支撑强度 + 扩散指标 + 均线动量） ----
+    "useRegime": True,           # 启用大盘择时温度计，防守档收紧买入、进攻档放宽
+    "regimeBuyFloor": 2,         # 防守档把买入信号分下限上浮的幅度（buySigFloor 基础上加）
+    "regimeBuyPctScale": 0.5,    # 防守档单笔买入比例缩放系数（buyPct * 此值）
+    "regimePosCap": 70,          # 防守档总仓位上限%（覆盖 maxTotalPos，保留弹药）
 }
 
 
@@ -536,6 +541,11 @@ CN_AGGRESSIVE_CONFIG = {
     "rebalanceMaxAdd": 8,
     "rebalanceMaxRemove": 8,
     "rebalanceCooldownDays": 14,
+    # ---- 市场择时（激进版：防守时仍保留稍高仓位，但同样收紧买入） ----
+    "useRegime": True,
+    "regimeBuyFloor": 1,
+    "regimeBuyPctScale": 0.6,
+    "regimePosCap": 80,
 }
 
 
@@ -572,6 +582,11 @@ US_CONFIG = {
     "rebalanceMaxAdd": 6,
     "rebalanceMaxRemove": 6,
     "rebalanceCooldownDays": 21,
+    # ---- 市场择时（美股：用标普500 usINX 做 RSRS/动量，同样启用） ----
+    "useRegime": True,
+    "regimeBuyFloor": 2,
+    "regimeBuyPctScale": 0.5,
+    "regimePosCap": 70,
 }
 
 
@@ -629,6 +644,7 @@ def default_state(account=None):
         "poolChanges": [],      # 待 LLM 评审的调池建议（淘汰/选入候选，门控确认后生效）
         "poolChangeLog": [],    # 调池历史台账（最近 100 条：code/name/direction/result/时间/理由）
         "lastRebalance": "",    # 最近一次生成调池建议的日期（按 rebalanceIntervalDays 节流）
+        "regime": None,         # 市场环境温度计（RSRS+扩散指标+动量，进攻/中性/防守）
         "config": dict(acc["config"]),
     }
 
@@ -938,6 +954,166 @@ def tech_score(s, code):
         score -= 1; notes.append("流动性差-1")
 
     return max(-3, min(3, score)), notes[:8]
+
+
+def _linreg(xs, ys):
+    """最小二乘线性回归，返回 (斜率 beta, 截距 alpha)。数据不足返回 (None, None)。"""
+    n = len(xs)
+    if n < 5:
+        return None, None
+    mx = sum(xs) / n
+    my = sum(ys) / n
+    sxy = sum((x - mx) * (y - my) for x, y in zip(xs, ys))
+    sxx = sum((x - mx) ** 2 for x in xs)
+    if sxx == 0:
+        return None, None
+    beta = sxy / sxx
+    alpha = my - beta * mx
+    return beta, alpha
+
+
+def _rsrs(kl, n=18):
+    """RSRS 阻力支撑相对强度（光大证券择时系列）。
+
+    用最近 n 根日 K 的 high 对 low 做 OLS 回归，斜率 beta 衡量「上涨时低点
+    抬升 vs 高点抬升」的相对强度：beta 明显 >1 表示阻力小、趋势强；<1 表示
+    下跌趋势。返回 (beta, beta 的标准化 z-score, 明细文字)。
+    """
+    if len(kl) < n + 5:
+        return None, None, "K线不足"
+    highs = [k[3] for k in kl[-n:]]
+    lows = [k[4] for k in kl[-n:]]
+    beta, alpha = _linreg(highs, lows)
+    if beta is None:
+        return None, None, "回归失败"
+    # 滚动 beta 序列求 z-score（用于判断 beta 处于自身历史的高/低位）
+    betas = []
+    for i in range(n, len(kl)):
+        hh = [k[3] for k in kl[i - n:i]]
+        ll = [k[4] for k in kl[i - n:i]]
+        b, _ = _linreg(hh, ll)
+        if b is not None:
+            betas.append(b)
+    z = 0.0
+    if len(betas) >= 5:
+        mb = sum(betas) / len(betas)
+        sd = (sum((b - mb) ** 2 for b in betas) / len(betas)) ** 0.5
+        if sd > 0:
+            z = (beta - mb) / sd
+    return beta, z, "beta=%.3f" % beta
+
+
+def _regime_rsrs_score(kl):
+    """把 RSRS 转成 [-1, 1] 的择时分。beta 明显 >1 且 z 为高位 → 强；<1 → 弱。"""
+    beta, z, note = _rsrs(kl)
+    if beta is None:
+        return 0, note
+    score = 0
+    if beta >= 1.03:
+        score += 0.6
+    elif beta >= 1.0:
+        score += 0.25
+    elif beta <= 0.96:
+        score -= 0.6
+    elif beta <= 0.99:
+        score -= 0.25
+    # z-score 高位/低位增强：beta 处于自身历史高位则趋势可靠，低位则趋势反转
+    if z > 0.8:
+        score += 0.4 if beta >= 1.0 else -0.2
+    elif z < -0.8:
+        score += -0.4 if beta < 1.0 else 0.2
+    return max(-1.0, min(1.0, score)), "%s z=%.2f" % (note, z)
+
+
+def _regime_momentum_score(kl):
+    """指数均线动量：MA5/MA20/MA60 多空排列 + 20 日涨幅。返回 [-1, 1]。"""
+    if len(kl) < 60:
+        return 0, "K线不足"
+    closes = [k[2] for k in kl]
+    ma5 = sum(closes[-5:]) / 5.0
+    ma20 = sum(closes[-20:]) / 20.0
+    ma60 = sum(closes[-60:]) / 60.0
+    c = closes[-1]
+    score = 0
+    if ma5 > ma20 > ma60:
+        score += 0.6
+    elif ma5 < ma20 < ma60:
+        score -= 0.6
+    r20 = (c / closes[-21] - 1) * 100 if closes[-21] else 0
+    if r20 > 8:
+        score += 0.4
+    elif r20 < -8:
+        score -= 0.4
+    return max(-1.0, min(1.0, score)), "MA%s 20日%+.1f%%" % (
+        "多头" if ma5 > ma20 > ma60 else ("空头" if ma5 < ma20 < ma60 else "缠绕"), r20)
+
+
+def _regime_breadth_score(s):
+    """市场宽度（扩散指标，东北证券 NH-NL 思路）：自选池内 20 日新高占比 - 新低占比。
+
+    用自选池（约 100 只跨行业龙头）作为全市场宽度的代理。返回 [-1, 1]。
+    """
+    sig = s.get("signals") or {}
+    new_high = new_low = total = 0
+    for item in s["pool"]:
+        code = item["code"]
+        notes = (sig.get(code) or {}).get("notes") or []
+        joined = " ".join(notes)
+        if "20日新高" in joined:
+            new_high += 1
+        if "20日新低" in joined:
+            new_low += 1
+        total += 1
+    if total == 0:
+        return 0, "无数据"
+    nh_pct = new_high / total
+    nl_pct = new_low / total
+    diff = nh_pct - nl_pct
+    score = max(-1.0, min(1.0, diff * 4.0))  # 差 ±25% 映射到 ±1
+    return score, "新高%.0f%%/新低%.0f%%" % (nh_pct * 100, nl_pct * 100)
+
+
+def market_regime(s):
+    """市场环境温度计（借鉴 QuantsPlaybook 的 RSRS + 扩散指标 + 均线动量）。
+
+    合成 [-3, 3] 的 regime 分，映射三档：>=1 进攻 / -1~1 中性 / <=-1 防守。
+    结果写入 s["regime"]，供买卖决策与风控读取。
+    """
+    cfg = s["config"]
+    if not cfg.get("useRegime"):
+        s["regime"] = {"enabled": False, "score": 0, "tier": "neutral"}
+        return s["regime"]
+    idx = cfg.get("indexCode", "sh000001")
+    detail = {}
+    total = 0.0
+    try:
+        kl = fetch_kline(idx, 80)
+        r, rnote = _regime_rsrs_score(kl)
+        m, mnote = _regime_momentum_score(kl)
+        detail["rsrs"] = rnote
+        detail["momentum"] = mnote
+        total += r + m
+    except Exception as exc:
+        detail["rsrs"] = "不可用: %s" % exc
+        detail["momentum"] = "不可用"
+        r = m = 0.0
+    try:
+        b, bnote = _regime_breadth_score(s)
+        detail["breadth"] = bnote
+        total += b
+    except Exception as exc:
+        detail["breadth"] = "不可用: %s" % exc
+        b = 0.0
+    score = max(-3.0, min(3.0, total))
+    if score >= 1.0:
+        tier = "attack"
+    elif score <= -1.0:
+        tier = "defense"
+    else:
+        tier = "neutral"
+    s["regime"] = {"enabled": True, "score": round(score, 2), "tier": tier,
+                   "detail": detail, "time": now_str()}
+    return s["regime"]
 
 
 def fetch_lhb():
@@ -1582,6 +1758,14 @@ def _stance(x):
     return "看多" if x > 0 else ("看空" if x < 0 else "中性")
 
 
+def _regime_tier(s):
+    """当前市场环境档位：attack / neutral / defense。regime 未启用或未算过则视为 neutral。"""
+    reg = s.get("regime") or {}
+    if not reg.get("enabled"):
+        return "neutral"
+    return reg.get("tier") or "neutral"
+
+
 def _val_opinion(s, code):
     """估值分析师的独立意见：低估值给买入倾向，高估值/亏损给卖出倾向。"""
     q = (s.get("poolQuote") or {}).get(code) or {}
@@ -1666,8 +1850,12 @@ def _risk_check(s, item, code, direction, price, advisory=False):
         if h and h["shares"] > 0 and (h["price"] * h["shares"]) / total * 100.0 >= cfg["maxPosPct"]:
             return "单票仓位已达%.0f%%上限" % cfg["maxPosPct"]
         mv = sum(x["price"] * x["shares"] for x in s["holdings"])
-        if mv / total * 100.0 >= cfg.get("maxTotalPos", 92):
-            return "总仓位超%.0f%%，保留弹药" % cfg.get("maxTotalPos", 92)
+        # 大盘择时：防守档收紧总仓位上限，保留弹药
+        pos_cap = cfg.get("maxTotalPos", 92)
+        if _regime_tier(s) == "defense":
+            pos_cap = min(pos_cap, cfg.get("regimePosCap", 70))
+        if mv / total * 100.0 >= pos_cap:
+            return "总仓位超%.0f%%（防守档收紧），保留弹药" % pos_cap
         if s["cash"] < price * 1:
             return "现金不足一手"
     else:
@@ -2103,6 +2291,12 @@ def scan(s, force_trade=False):
     except Exception as exc:
         log("信号计算异常: %s" % exc)
 
+    # 市场环境温度计：大盘择时（RSRS + 扩散指标 + 动量），供买卖决策/风控收紧用
+    try:
+        market_regime(s)
+    except Exception as exc:
+        log("市场择时异常: %s" % exc)
+
     try:
         news = fetch_news(40)
     except Exception as exc:
@@ -2199,8 +2393,13 @@ def enqueue_review_candidates(s, fresh):
             h = find_holding(s, code)
             if not h or h["shares"] <= 0:
                 return
-        elif int(sig.get("delta", 0) or 0) < cfg.get("buySigFloor", -6):
-            return   # 信号分低于买入下限，不入队（同 execute 的买入门槛）
+        else:
+            floor = int(cfg.get("buySigFloor", -6))
+            # 大盘择时：防守档上浮买入信号分下限，减少弱市里的低质候选进评审
+            if _regime_tier(s) == "defense":
+                floor += int(cfg.get("regimeBuyFloor", 0))
+            if int(sig.get("delta", 0) or 0) < floor:
+                return   # 信号分低于买入下限，不入队（同 execute 的买入门槛）
         pend.append({"code": code, "name": item["name"], "direction": direction,
                      "score": score, "delta": sig.get("delta", 0),
                      "reason": reason[:60], "time": now_str(),
@@ -2295,6 +2494,9 @@ def execute(s, n, hits, score, apply_delta=True):
                 acts.append("%s被估值过滤" % name)
                 continue
             floor = cfg.get("buySigFloor", -6)
+            # 大盘择时：防守档上浮买入信号分下限（宁缺毋滥）
+            if _regime_tier(s) == "defense":
+                floor += int(cfg.get("regimeBuyFloor", 0))
             if int(sd) < floor:
                 acts.append("%s信号分%+d<下限%+d" % (name, int(sd), floor))
                 continue
@@ -2307,7 +2509,11 @@ def execute(s, n, hits, score, apply_delta=True):
             h = find_holding(s, code)
             if h:
                 room -= h["price"] * h["shares"]
-            budget = min(s["cash"] * cfg["buyPct"] / 100.0, room, s["cash"] * 0.98)
+            # 大盘择时：防守档缩小单笔买入比例
+            buy_pct = cfg["buyPct"]
+            if _regime_tier(s) == "defense":
+                buy_pct = buy_pct * float(cfg.get("regimeBuyPctScale", 0.5))
+            budget = min(s["cash"] * buy_pct / 100.0, room, s["cash"] * 0.98)
             qty = int(budget / price) if price > 0 else 0
             qty = int(qty)          # 美股 1 股起
             if qty < 1:
