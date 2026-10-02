@@ -900,9 +900,13 @@ def tech_score(s, code):
     highs = [k[3] for k in kl]
     vols = [k[5] for k in kl]
     score, notes = 0, []
-    c = closes[-1]
-    o = opens[-1]
     q = (s.get("poolQuote") or {}).get(code) or {}
+    # 盘中实时价优先：日 K 最后一根是「昨天收盘」，用它判「20日新高/突破」会漏掉
+    # 当天盘中创新高的强势股（实测英伟达盘中创历史新高，日 K 收盘价却未更新）。
+    live = q.get("price") or 0
+    c = live if live > 0 else closes[-1]
+    o = opens[-1]
+    live_up = (q.get("pct") or 0) >= 0  # 盘中实时是否上涨（替代「是否收阳」）
 
     # 1. 均线多头/空头排列（MA5 > MA20 > MA60）
     ma5 = sum(closes[-5:]) / 5.0
@@ -922,7 +926,7 @@ def tech_score(s, code):
         elif ma5_p >= ma20_p and ma5 < ma20:
             score -= 1; notes.append("死叉-1")
 
-    # 3. 20 日新高 / 新低
+    # 3. 20 日新高 / 新低（用实时价，能捕捉盘中突破）
     if c >= max(highs[-20:]):
         score += 1; notes.append("20日新高+1")
     elif c <= min(closes[-20:]):
@@ -936,11 +940,11 @@ def tech_score(s, code):
         else:
             score -= 1; notes.append("放量下跌-1")
 
-    # 5. 阳线确认（防诱多）：创 20 日新高且当日收阳，才是有效突破
-    if c >= max(highs[-20:]) and c > o:
+    # 5. 阳线/突破确认（防诱多）：创 20 日新高且盘中上涨，才是有效突破
+    if c >= max(highs[-20:]) and (live_up if live > 0 else c > o):
         score += 1; notes.append("阳线突破+1")
 
-    # 6. 相对强度 RPS（欧奈尔）：20 日 / 60 日涨幅
+    # 6. 相对强度 RPS（欧奈尔）：20 日 / 60 日涨幅（用实时价）
     r20 = (c / closes[-21] - 1) * 100 if len(closes) > 21 and closes[-21] else 0
     r60 = (c / closes[-61] - 1) * 100 if len(closes) > 61 and closes[-61] else 0
     if r20 > 15 and r60 > 5:
