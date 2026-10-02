@@ -1,6 +1,7 @@
 # 运行时状态文件（服务运行后由 worker 生成，不进版本管理）
 data.json
-*.local-polluted
+data-multi.json
+logs/
 
 # Python 缓存
 __pycache__/

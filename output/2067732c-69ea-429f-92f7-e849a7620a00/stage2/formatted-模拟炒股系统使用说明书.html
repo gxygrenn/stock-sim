@@ -1,0 +1,651 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="docx-page-size" content="A4">
+  <title>模拟炒股系统使用说明书</title>
+  <style>
+  :root {
+    /* Page layout */
+    --page-content-width: var(--layout-contentWidth, 15.6cm);
+    /* Typography */
+    --fs-title: var(--typography-fontSize-title, 24pt);
+    --fs-h1: var(--typography-fontSize-h1, 18pt);
+    --fs-h2: var(--typography-fontSize-h2, 15pt);
+    --fs-h3: var(--typography-fontSize-h3, 13pt);
+    --fs-h4: var(--typography-fontSize-h4, 12pt);
+    --fs-body: var(--typography-fontSize-body, 11pt);
+    --fs-small: var(--typography-fontSize-small, 9pt);
+    --ff-heading: var(--typography-fontFamily-heading, "PingFang SC", "微软雅黑", sans-serif);
+    --ff-body: var(--typography-fontFamily-body, "PingFang SC", "微软雅黑", sans-serif);
+    --ff-mono: var(--typography-fontFamily-code, Consolas, monospace);
+    --lh-body: var(--typography-lineHeight-body, 1.7);
+    --lh-heading: var(--typography-lineHeight-heading, 1.3);
+    --fw-bold: var(--typography-fontWeight-heading, 600);
+    --fw-normal: var(--typography-fontWeight-body, 400);
+    /* Color */
+    --color-primary: var(--color-primary, #2563EB);
+    --color-text: var(--color-text, #111827);
+    --color-muted: var(--color-textSecondary, #6B7280);
+    --color-border: var(--color-border, #E5E7EB);
+    --color-bg: var(--color-background, #FFFFFF);
+    --color-highlight: var(--color-divider, #F3F4F6);
+    --color-codebg: var(--color-codeBackground, #F9FAFB);
+    /* Spacing */
+    --spacing-paragraph: var(--spacing-paragraph, 0.5em);
+    --spacing-section: var(--spacing-sectionGap, 2em);
+    --spacing-block: var(--spacing-listItemGap, 0.4em);
+    --margin-page: var(--layout-marginTop, 2.5cm);
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: var(--ff-body);
+    font-size: var(--fs-body);
+    line-height: var(--lh-body);
+    color: var(--color-text);
+    background: var(--color-bg);
+    max-width: var(--page-content-width);
+    margin-left: auto;
+    margin-right: auto;
+    padding: var(--margin-page) 0;
+  }
+
+  h1, h2, h3, h4 {
+    font-family: var(--ff-heading);
+    line-height: var(--lh-heading);
+    font-weight: var(--fw-bold);
+    margin-top: var(--spacing-section);
+    margin-bottom: var(--spacing-paragraph);
+  }
+  h1 { font-size: var(--fs-h1); }
+  h2 { font-size: var(--fs-h2); color: var(--color-heading, var(--color-text)); border-bottom: 1px solid var(--color-border); padding-bottom: var(--spacing-block); }
+  h3 { font-size: var(--fs-h3); }
+
+  p { margin-bottom: var(--spacing-paragraph); }
+
+  ul, ol { padding-left: var(--spacing-section); margin-bottom: var(--spacing-paragraph); }
+  li { margin-bottom: var(--spacing-block); }
+
+  code {
+    font-family: var(--ff-mono);
+    font-size: var(--fs-small);
+    background: var(--color-codebg);
+    padding: 0 var(--spacing-block);
+  }
+
+  table { border-collapse: collapse; width: 100%; margin-bottom: var(--spacing-paragraph); }
+  th, td { padding: var(--spacing-block) var(--spacing-paragraph); border: 1px solid var(--color-border); text-align: left; vertical-align: top; }
+  th { font-weight: var(--fw-bold); background: var(--color-highlight); }
+  table.dense { font-size: var(--fs-small); }
+  caption { font-size: var(--fs-small); color: var(--color-muted); margin-bottom: var(--spacing-block); text-align: left; }
+
+  /* TOC */
+  .doc-toc { margin-bottom: var(--spacing-section); padding: var(--spacing-paragraph) var(--spacing-paragraph) var(--spacing-paragraph) var(--spacing-section); background: var(--color-highlight); }
+  .toc-title { font-weight: var(--fw-bold); margin-bottom: var(--spacing-block); font-size: var(--fs-h3); }
+  .toc-list, .toc-list ol, .toc-list ul { list-style: none; list-style-type: none; padding-left: 0; }
+  .toc-list li { margin-bottom: var(--spacing-block); }
+  .toc-list a { color: var(--color-primary); text-decoration: none; }
+
+  /* Cover */
+  .cover-eyebrow { text-align: center; color: var(--color-primary); font-size: var(--fs-small); font-weight: 700; letter-spacing: 2px; margin-top: calc(var(--spacing-section) * 2); }
+  section[role="cover"] > h1 { text-align: center; font-size: var(--fs-title); margin-top: var(--spacing-section); }
+  .cover-subtitle { text-align: center; color: var(--color-muted); font-size: var(--fs-h3); margin-bottom: var(--spacing-section); }
+  table.cover-meta { width: 70%; margin-left: auto; margin-right: auto; margin-top: calc(var(--spacing-section) * 3); }
+  table.cover-meta td:first-child { width: 30%; font-weight: var(--fw-bold); background: var(--color-highlight); }
+
+  /* Callout: single-paragraph emphasis with left border */
+  .callout-info { border-left: 3px solid var(--color-primary); background: var(--color-codebg); padding: var(--spacing-block) var(--spacing-paragraph); margin-bottom: var(--spacing-paragraph); }
+  .callout-warn { border-left: 3px solid var(--color-primary); background: var(--color-highlight); padding: var(--spacing-block) var(--spacing-paragraph); margin-bottom: var(--spacing-paragraph); }
+
+  .muted { color: var(--color-muted); font-size: var(--fs-small); }
+  .faq-q { font-weight: var(--fw-bold); margin-top: var(--spacing-block); }
+  .flow-note { color: var(--color-muted); font-size: var(--fs-small); }
+  </style>
+</head>
+<body>
+  <section role="cover">
+    <p class="cover-eyebrow">系统文档 · USER MANUAL</p>
+    <h1>模拟炒股系统使用说明书</h1>
+    <p class="cover-subtitle">LLM 评审驱动的多市场模拟炒股平台 · V3.1 新增动态调池与市场择时</p>
+    <table class="cover-meta">
+      <thead><tr><th>项目</th><th>内容</th></tr></thead>
+      <tbody>
+      <tr><td>文档版本</td><td>V3.1（多市场合并版）</td></tr>
+      <tr><td>更新日期</td><td>2026 年 10 月 2 日</td></tr>
+      <tr><td>适用部署</td><td>multi-market（三账户合并服务）</td></tr>
+      <tr><td>访问地址</td><td>https://stock-sim-us.app.workbuddy.host/</td></tr>
+      <tr><td>文档性质</td><td>纯模拟盘 · 不涉及真实资金 · 不构成投资建议</td></tr>
+      </tbody>
+    </table>
+  </section>
+  <section role="body" data-page-restart="1">
+    <nav class="doc-toc" aria-label="文档目录">
+      <p class="toc-title">目录</p>
+      <ol class="toc-list">
+        <li><a href="#section-1">文档说明</a></li>
+        <li><a href="#section-2">1. 系统概述</a></li>
+        <li><a href="#section-3">2. 快速上手</a></li>
+        <li><a href="#section-4">3. 系统如何工作（决策流水线）</a></li>
+        <li><a href="#section-5">4. 术语详解（按主题分组）</a></li>
+        <li><a href="#section-6">5. 三账户参数对照速查</a></li>
+        <li><a href="#section-7">6. 网页界面使用指南</a></li>
+        <li><a href="#section-8">7. 交易时段说明</a></li>
+        <li><a href="#section-9">8. 接口参考（API）</a></li>
+        <li><a href="#section-10">9. 风控机制汇总</a></li>
+        <li><a href="#section-11">10. 常见问题（FAQ）</a></li>
+        <li><a href="#section-12">11. 已知局限与注意事项</a></li>
+        <li><a href="#section-13">12. 智能进化模块（V3.1 新增）</a></li>
+      </ol>
+    </nav>
+
+    <h2 id="section-1">文档说明</h2>
+    <p>本说明书面向系统的使用与观察者，完整介绍这套「LLM 评审驱动的多市场模拟炒股系统」的工作原理、全部术语、界面操作、接口与风控机制。</p>
+    <ul>
+      <li><strong>目标读者</strong>：希望理解或接管本系统运行的非技术/技术用户，无需编程基础即可读懂正文。</li>
+      <li><strong>前置知识</strong>：无。正文对每个专业术语都给出解释；想深入了解可再查「术语详解」章节。</li>
+    </ul>
+    <p class="callout-warn">&nbsp;&nbsp;<strong>重要声明</strong>：本系统为纯模拟盘，所有资金、持仓、成交均为虚拟数据，不涉及任何真实证券交易，也不构成任何投资建议。</p>
+
+    <h2 id="section-2">1. 系统概述</h2>
+    <p>本章回答三个问题：这个系统是什么、它同时管理哪些账户、它凭什么值得信任地自动运转。</p>
+    <h3>1.1 这是什么</h3>
+    <p>本系统是一个全自动运行的<strong>模拟炒股实验平台</strong>：它像一位不知疲倦的虚拟操盘手，7×24 小时监控股市新闻与个股技术信号，通过一套「初筛 → LLM 专家评审 → 交易时段执行」的流水线，在模拟账户中自动买卖股票，并完整记录每一笔决策的来龙去脉。</p>
+    <p class="callout-info">&nbsp;&nbsp;一句话概括它每天在做的事：抓新闻、算信号 → 把够格的候选股送交 LLM 专家团评审 → 评审通过的结论在交易时段按真实行情价模拟成交 → 收盘后结算记账、复盘归档。</p>
+    <h3>1.2 三个模拟账户</h3>
+    <p>系统在一个网址内同时运行三个相互独立的模拟账户，通过网页左侧标签切换：</p>
+    <table>
+      <thead><tr><th>账户标识</th><th>名称</th><th>市场</th><th>股票池规模</th><th>风格定位</th></tr></thead>
+      <tbody>
+        <tr><td>us</td><td>美股</td><td>美股</td><td>102 只 + 标普500指数</td><td>技术面 + 新闻双驱动</td></tr>
+        <tr><td>cn_conservative</td><td>A股稳健</td><td>A股</td><td>100 只</td><td>高门槛低频，重风控</td></tr>
+        <tr><td>cn_aggressive</td><td>A股激进</td><td>A股</td><td>100 只</td><td>低门槛高频，重进攻</td></tr>
+      </tbody>
+    </table>
+    <p>三个账户要点：</p>
+    <ul>
+      <li>每个账户独立核算：初始模拟资金均为 <strong>10 万元</strong>，持仓、现金、流水、评审队列互不干扰。</li>
+      <li>A股两个账户共用同一份 100 只股票池，但策略参数不同（详见第 5 章参数对照表）。</li>
+      <li>美股账户的信号源只有「技术面 + 新闻」；龙虎榜、公告、估值过滤是 A 股专属数据源，对美股自动关闭。</li>
+      <li>访问地址：<code>https://stock-sim-us.app.workbuddy.host/</code>（历史原因域名带 us，实际为三账户合并版）。</li>
+    </ul>
+    <h3>1.3 核心特点</h3>
+    <ol>
+      <li><strong>评审与执行解耦</strong>：LLM 只负责「给出结论」，服务端负责「何时成交」，两者通过队列衔接，互不阻塞。</li>
+      <li><strong>双人交叉验证</strong>：重要决策由主评审与独立复核两轮 LLM 各审一次，结论一致才放行，分歧一律观望。</li>
+      <li><strong>全链路留痕</strong>：每条新闻、每个信号、每次评审、每笔成交都有台账可查，事后可追溯「当时为什么买」。</li>
+      <li><strong>多级风控</strong>：仓位上限、持仓数上限、冷却时间、总仓位红线、浮亏禁加仓等约 10 项硬约束兜底。</li>
+      <li><strong>动态调池</strong>：定期自动淘汰「没前景」的股票、选入「后续发展好」的强势股，股票池不再一成不变（A 股账户启用，见第 12.1 节）。</li>
+      <li><strong>市场择时</strong>：内置「大盘温度计」，用 RSRS 阻力支撑强度 + 扩散指标判断大盘冷热，走弱时自动勒紧仓位、保留弹药（见第 12.2 节）。</li>
+    </ol>
+
+    <h2 id="section-3">2. 快速上手</h2>
+    <ol>
+      <li><strong>打开网址</strong>，页面左侧有三个竖排标签（美股 / A股稳健 / A股激进），点击即切换账户；选择会被浏览器记住，下次打开自动恢复上次查看的账户。</li>
+      <li><strong>看总览</strong>：顶部显示现金、持仓市值、总资产、今日盈亏与大盘指数。</li>
+      <li><strong>看信号</strong>：自选池列表中每只股票都有「综合信号分」（delta），正分看涨、负分看跌，旁边的小字是该分数的构成明细（例如「多头排列+1 金叉+1」）。</li>
+      <li><strong>看评审</strong>：待评审队列展示当前等待 LLM 裁决的候选（最多 6 只）；评审台账展示历史评审结论与成交结果。</li>
+      <li><strong>手动操作（可选）</strong>：在交易面板可以手动买入/卖出、手动触发一轮扫描、投喂一条模拟新闻做决策演练。</li>
+      <li><strong>什么都不做也行</strong>：四个定时自动化任务会自动唤醒服务、执行扫描与评审、对账和每日推送，系统无人值守即可运转。</li>
+    </ol>
+
+    <h2 id="section-4">3. 系统如何工作（决策流水线）</h2>
+    <p>从一条新闻出现到一笔模拟成交落地，中间要经过七个环节。本章按执行顺序逐一拆解，所有参数均可在第 4 章术语表中查到定义。</p>
+    <h3>3.1 全流程七步</h3>
+    <table>
+      <thead><tr><th>步骤</th><th>环节</th><th>做什么</th></tr></thead>
+      <tbody>
+        <tr><td>①</td><td>行情/K线获取</td><td>拉取指数、全池现价与个股日 K 线（美股自动补交易所后缀），K 线缓存 5 分钟。</td></tr>
+        <tr><td>②</td><td>综合信号计算</td><td>为池内每只股票算出综合信号分 delta（[-6,+6]）与技术面明细。</td></tr>
+        <tr><td>③</td><td>全网快讯扫描</td><td>抓最新财经快讯，用利好/利空词库打分（标题命中权重×2），匹配到具体个股。</td></tr>
+        <tr><td>④</td><td>候选入队</td><td>够格的候选进入「待评审队列」（上限 6 只，同股冷却，24 小时超时作废）。</td></tr>
+        <tr><td>⑤</td><td>LLM 专家团评审</td><td>主审 + 独立复核双人交叉验证，写回结论 BUY / SELL / HOLD。</td></tr>
+        <tr><td>⑥</td><td>交易时段执行</td><td>已批准（approved）的结论在交易时段内按最新真实价模拟成交，全程过风控闸门。</td></tr>
+        <tr><td>⑦</td><td>收盘结算复盘</td><td>收盘后自动结算当日快照，评审台账与成交回写归档，复盘结论入库。</td></tr>
+      </tbody>
+    </table>
+    <p class="flow-note">注：评审可以 7×24 小时进行，但成交只发生在对应市场的交易时段内；盘后评审出的结论自动挂起到下一个盘中时点执行。</p>
+    <h3>3.2 第一步：行情与 K 线获取</h3>
+    <ul>
+      <li><strong>实时行情</strong>：来自腾讯行情接口，覆盖指数、全池现价、涨跌幅、市盈率、换手率、成交额等字段。</li>
+      <li><strong>日 K 线</strong>：来自腾讯 K 线接口，用于技术面计算；一次取 65 根，含开、收、高、低、量。</li>
+      <li><strong>美股代码后缀</strong>：腾讯日 K 接口对美股股票必须带交易所后缀才能返回完整历史——纳斯达克股票加 <code>.OQ</code>、纽交所股票加 <code>.N</code>。系统会自动先试 <code>.OQ</code> 再退回 <code>.N</code>；若不带后缀，美股只能取到 2 根 K 线，所有技术信号都会失效（这是一个曾实际发生过并已修复的重大坑）。</li>
+      <li><strong>K 线缓存</strong>：同一只股票的 K 线在内存中缓存 5 分钟，避免短时间重复请求同一个源；多主机兜底，主源故障自动切换备用源。</li>
+    </ul>
+    <h3>3.3 第二步：综合信号计算（delta）</h3>
+    <p>系统为股票池中<strong>每一只</strong>股票计算一个「综合信号分」，记作 <strong>delta</strong>，范围 [-6, +6]，由四个维度相加后截断得到：</p>
+    <p class="callout-info">&nbsp;&nbsp;delta = 技术面分 + 龙虎榜分 + 公告分 + 估值修正分（各项范围见 3.5，美股账户后三项为 0）</p>
+    <p>同时若某股命中「禁买」条件（如亏损股、PE 过高、换手过热——仅稳健版启用），会打上 <strong>block</strong> 标记，禁止买入，也不进入评审队列。</p>
+    <h3>3.4 第三步：快讯扫描与词库打分</h3>
+    <ul>
+      <li>每轮扫描抓取最新财经快讯（最多 40 条，每轮最多消化 25 条），已处理过的新闻用 ID 去重（保留最近 2000 条）。</li>
+      <li>对每条快讯标题和正文做<strong>利好/利空词库</strong>匹配：词库各约 60 个关键词（如「超预期」「中标」「预亏」「立案」），<strong>标题命中权重×2</strong>，利好命中数减利空命中数得到消息分。</li>
+      <li>消息再与股票池匹配定位相关个股：<strong>股票名称/简称/代码在全文匹配</strong>（自己的名字出现在哪都是强信号），<strong>板块主题词只在标题里认</strong>（避免「金融」这类常见词在无关正文中误命中）。</li>
+    </ul>
+    <h3>3.5 第四步：候选入队（待评审队列规则）</h3>
+    <p>自动交易处于关闭状态（门控模式，见术语表）时，扫描不下单，而是把够格的候选写入待评审队列。入队规则：</p>
+    <ol>
+      <li>新闻触发的「待执行」消息：正分 → 买入候选；负分且已持仓 → 卖出候选。</li>
+      <li>无新闻但 |delta| ≥ sigScore（独立信号门槛）的股票，按方向入队。</li>
+      <li>被估值过滤 block 的不入队；买入方向信号分低于 buySigFloor 的不入队。</li>
+      <li><strong>队列上限 6 只</strong>（避免一轮评审拖太久）；<strong>同股评审冷却</strong> 60 分钟（激进版 30 分钟）内不重复入队。</li>
+      <li>等待超过 <strong>24 小时</strong>（reviewTTLHours）仍未评审的候选作废出队，释放坑位。</li>
+    </ol>
+    <h3>3.6 第五步：LLM 专家团评审（核心环节）</h3>
+    <p>由外部定时自动化任务充当 LLM 专家团，读取队列中候选的完整档案（当前价、综合信号明细、触发原因、持仓情况），做出裁决后调用 <code>/api/review_done</code> 写回结论：</p>
+    <ul>
+      <li><strong>verdict（裁决）</strong>：BUY（买入）/ SELL（卖出）/ HOLD（观望）。</li>
+      <li><strong>confidence（置信度）</strong>：0–100 的整数，表示专家对结论的把握。</li>
+      <li><strong>note（评审意见）</strong>：一句话理由，最长 120 字，存档展示。</li>
+    </ul>
+    <p><strong>双人交叉验证机制</strong>：主评审给出结论后，独立的复核 LLM 再审同一只股票；两者结论一致才标记为 approved（批准），分歧一律按 HOLD 处理——宁可错过，不可做错。</p>
+    <p><strong>评审台账（reviewLog）</strong>：每条评审结论（含 verdict、置信度、意见、成交价、成交结果）永久留档（最近 200 条），实现「评审 → 成交 → 结果」全程可追溯。成交后系统会把成交价与动作<strong>回写</strong>到台账对应条目。</p>
+    <h3>3.7 第六步：交易时段内执行成交</h3>
+    <ul>
+      <li>只有「已批准（approved）」的结论才会成交，且<strong>只在对应市场的交易时段内</strong>执行，一律按<strong>当前最新真实价</strong>成交；盘后评审出的结论自动挂起到下一个盘中时点。</li>
+      <li>批准结论<strong>不因 24 小时 TTL 作废</strong>（已过专家评审属于有效决策），只会因业务原因（信号跌破买入下限、资金不足、持仓已满）被放弃出队并记录原因。</li>
+      <li>每笔成交遵守全部风控参数：单次买入金额 = 可用现金 × buyPct，同时受单只持仓上限、持仓数上限、总仓位红线、同股冷却时间、每轮/每日成交笔数限制。</li>
+    </ul>
+    <h3>3.8 第七步：收盘结算与复盘</h3>
+    <ul>
+      <li><strong>A股账户</strong>：每个工作日 15:10 之后自动结算当日。</li>
+      <li><strong>美股账户</strong>：按北京时间，夏令时次日 04:10、冬令时次日 05:10 之后自动结算。</li>
+      <li>结算记录当日快照：总资产、当日盈亏（含手续费）、大盘涨跌，形成净值曲线；每日复盘结论由复盘自动化写入，前端展示。</li>
+    </ul>
+    <h3>3.9 后台 worker 与运行频率</h3>
+    <p>服务内置后台线程（worker），每 30 秒检查一次各账户是否到期需要扫描：</p>
+    <ul>
+      <li><strong>盘中</strong>：按各账户 scanMin 频率扫描（A股激进 10 分钟 / A股稳健 30 分钟 / 美股 30 分钟）。</li>
+      <li><strong>休市</strong>：自动降频到至少 4 小时一次，节约资源（「开市多跑、休市少跑」）。</li>
+    </ul>
+    <p>线上另配 6 个定时自动化任务配合运转：</p>
+    <ul>
+      <li><strong>定时唤醒</strong>（防止沙箱休眠，每日 12 次）。</li>
+      <li><strong>评审自动化</strong>（加密到每日 8 次：10:10 / 14:10 覆盖 A 股，22:10 / 23:10 / 0:10 / 1:10 / 2:10 / 3:10 覆盖美股时段，读取队列并交叉评审）。</li>
+      <li><strong>美股盘中唤醒扫描</strong>（美股交易时段内每半小时唤醒并触发美股账户扫描，防止凌晨休眠错过交易窗口）。</li>
+      <li><strong>调池门控评审</strong>（每日 9:00 评审 A 股两账户的调池建议并写回 approve/reject）。</li>
+      <li><strong>对账自动化</strong>（每日 1 次核对持仓与净值）。</li>
+      <li><strong>每日推送</strong>（每天早上推送前日战报）。</li>
+    </ul>
+
+    <h2 id="section-5">4. 术语详解（按主题分组）</h2>
+    <p>本章是全书的查询手册：每个术语给出<strong>一句话定义 + 在本系统中的具体含义</strong>。</p>
+
+    <h3>4.1 账户与资金类术语</h3>
+    <table>
+      <thead><tr><th>术语</th><th>解释</th></tr></thead>
+      <tbody>
+        <tr><td>模拟盘</td><td>用虚拟资金做股票买卖演练，成交价用真实行情，但钱是假的。本系统全部账户均为模拟盘。</td></tr>
+        <tr><td>初始资金</td><td>账户建立时注入的虚拟本金，本系统每个账户 100,000 元（美股账户计价单位同为数值 100,000）。</td></tr>
+        <tr><td>现金（cash）</td><td>账户当前可用的虚拟资金余额，买入扣减、卖出回补。</td></tr>
+        <tr><td>持仓（holdings）</td><td>当前持有的股票列表，每条含代码、股数、成本价、现价、浮动盈亏。</td></tr>
+        <tr><td>持仓市值（total_mv）</td><td>所有持仓的「现价 × 股数」之和。</td></tr>
+        <tr><td>总资产（total_asset）</td><td>现金 + 持仓市值，衡量账户整体表现的核心指标。</td></tr>
+        <tr><td>成本价（cost）</td><td>多次买入同一股票后的加权平均买入价，用于计算盈亏。</td></tr>
+        <tr><td>浮动盈亏（浮盈/浮亏）</td><td>持仓按现价估算、尚未卖出落袋的盈亏 =（现价 − 成本价）× 股数。</td></tr>
+        <tr><td>已实现盈亏（realized）</td><td>卖出成交后真正落袋的盈亏，与浮动盈亏相对。</td></tr>
+        <tr><td>手续费（fees）</td><td>模拟交易成本。本系统买入免佣金；卖出按成交金额的 0.0023% 计提（模拟美国 SEC 交易费率）。</td></tr>
+        <tr><td>净值曲线（history）</td><td>每日结算后记录的总资产快照序列，画出来就是账户的「成绩单曲线」。</td></tr>
+        <tr><td>结算（settle）</td><td>每个交易日收盘后对账户做的日终记账：记录当日总资产、盈亏与大盘对比。</td></tr>
+        <tr><td>重置（reset）</td><td>把账户恢复到初始状态（10 万现金、无持仓、清空流水），用于重新实验。</td></tr>
+      </tbody>
+    </table>
+
+    <h3>4.2 行情与数据类术语</h3>
+    <table>
+      <thead><tr><th>术语</th><th>解释</th></tr></thead>
+      <tbody>
+        <tr><td>股票池 / 自选池（pool）</td><td>系统只监控池内股票。美股池 102 只、A股池 100 只，可通过界面或 /api/pool 增删。</td></tr>
+        <tr><td>指数（index）</td><td>反映市场整体涨跌的指标。A股账户看上证指数，美股账户看标普500，用于「跑赢大盘吗」的对比。</td></tr>
+        <tr><td>标普500（S&amp;P 500，代码 usINX）</td><td>美国500家大公司股价的加权指数，美股账户的基准指数。</td></tr>
+        <tr><td>K 线（蜡烛图）</td><td>一根蜡烛代表一天的价格：开盘价、收盘价、最高价、最低价；收盘高于开盘称阳线，反之为阴线。</td></tr>
+        <tr><td>日 K</td><td>以一天为周期的 K 线。本系统技术面计算取最近 65 根日 K。</td></tr>
+        <tr><td>前复权（qfq）</td><td>把历史价格按分红送股调整到与当前可比的口径，保证均线计算不被除权跳空干扰。系统优先取前复权数据。</td></tr>
+        <tr><td>交易所后缀（.OQ / .N）</td><td>腾讯 K 线接口区分美股交易所的方式：.OQ = 纳斯达克，.N = 纽交所。缺失会导致美股 K 线只返回 2 根、信号全废。</td></tr>
+        <tr><td>现价 / 最新价（price）</td><td>最近一笔成交的价格。系统所有模拟成交一律按当时最新价执行。</td></tr>
+        <tr><td>涨跌幅（pct）</td><td>相对昨日收盘价的变化百分比。</td></tr>
+        <tr><td>成交量（vol）</td><td>当日成交的股数。</td></tr>
+        <tr><td>成交额（amount）</td><td>当日成交的金额（股数 × 价格），用于流动性判断（低于 1 亿视为流动性差）。</td></tr>
+        <tr><td>量比</td><td>当日成交量相对近期平均水平的倍数。系统以「当日量 &gt; 前 5 日均量 2 倍」为放量标准。</td></tr>
+        <tr><td>换手率（turn）</td><td>当日成交股数占流通股本的比例，越高说明交易越活跃（投机性越强）。</td></tr>
+        <tr><td>市盈率（PE）</td><td>股价 ÷ 每股盈利，衡量估值贵贱；为负代表公司亏损。系统 PE&lt;0 或 &gt;80 触发禁买（稳健版）。</td></tr>
+        <tr><td>beta（贝塔）</td><td>个股相对大盘的波动倍数，1.5 意味着大盘涨 1% 它平均涨 1.5%。股票池中每只股票标注了 beta。</td></tr>
+        <tr><td>K 线缓存</td><td>内存中暂存 5 分钟内的 K 线数据，避免重复请求外部接口。</td></tr>
+        <tr><td>行情缓存（poolQuote）</td><td>上一次刷新得到的整池行情快照，供信号计算与入队留档使用，不发网络请求即可读取。</td></tr>
+        <tr><td>强势榜</td><td>东财公开排行榜接口，含全市场涨幅榜与主力资金净流入榜，是动态调池「选入新股票」的候选来源。</td></tr>
+        <tr><td>主力净流入（netIn）</td><td>当日大单/主力资金的净买入额，正数代表资金流入，是判断「后续发展好」的候选指标之一。</td></tr>
+        <tr><td>龙虎榜净买（兜底候选源）</td><td>当强势榜接口被限流时，调池候选自动降级改用东财龙虎榜净买额排序，两者互为兜底。</td></tr>
+      </tbody>
+    </table>
+
+    <h3>4.3 技术分析类术语</h3>
+    <table>
+      <thead><tr><th>术语</th><th>解释</th></tr></thead>
+      <tbody>
+        <tr><td>技术分析</td><td>只看价格与成交量的历史数据来研判走势的方法，与「基本面分析」相对。</td></tr>
+        <tr><td>均线（MA，Moving Average）</td><td>最近 N 天收盘价的平均值连成的线。MA5/MA20/MA60 即 5日/20日/60日均线，分别代表短/中/长期趋势。</td></tr>
+        <tr><td>多头排列</td><td>MA5 &gt; MA20 &gt; MA60，三根均线从上到下依次排开，代表短中长期趋势全部向上，是强势形态（+1分）。</td></tr>
+        <tr><td>空头排列</td><td>MA5 &lt; MA20 &lt; MA60，与多头排列相反，代表趋势全线下行（−1分）。</td></tr>
+        <tr><td>金叉</td><td>短期均线自下而上穿越长期均线（本系统指 MA5 上穿 MA20 且发生在最近 3 日内），传统上是买入信号（+1分）。</td></tr>
+        <tr><td>死叉</td><td>短期均线自上而下穿越长期均线，传统卖出信号（−1分）。</td></tr>
+        <tr><td>20日新高</td><td>收盘价创最近 20 个交易日新高，代表突破形态（+1分）。</td></tr>
+        <tr><td>20日新低</td><td>收盘价创最近 20 个交易日新低（−1分）。</td></tr>
+        <tr><td>海龟突破</td><td>源自著名「海龟交易法则」的策略：突破近期高点才入场追涨。系统的 20 日新高 + 阳线确认即借鉴此思路。</td></tr>
+        <tr><td>阳线 / 阴线</td><td>收盘价高于开盘价为阳线（红），低于为阴线（绿）。</td></tr>
+        <tr><td>诱多</td><td>主力用假突破诱使散户追高后反手砸盘的骗线行为。系统的防线：创 20 日新高且当日收阳才算有效突破（阳线确认 +1分），光创新高但收阴不加分。</td></tr>
+        <tr><td>RPS（相对强度）</td><td>欧奈尔 CANSLIM 体系指标：个股涨幅在全市场中的相对排名。系统简化为绝对门槛：20日涨幅&gt;15% 且 60日涨幅&gt;5% 记 +1（相对强度高）；20日涨幅&lt;−15% 记 −1（相对强度弱）。</td></tr>
+        <tr><td>龙虎榜</td><td>A股交易所每日公布的异动股票买卖席位榜，能看到机构/游资的净买入净卖出（美股无此概念）。</td></tr>
+        <tr><td>净买额</td><td>龙虎榜上买入金额减卖出金额。系统阈值：净买 &gt;5000万 +2分、&gt;1000万 +1分；净卖同理记负分。</td></tr>
+        <tr><td>流动性</td><td>一只股票能否快速买卖而不冲击价格的能力。成交额持续低于 1 亿元视为流动性差，影响进出，记 −1分。</td></tr>
+        <tr><td>RSRS（阻力支撑相对强度）</td><td>光大证券提出的择时指标：对指数最近一段日 K 的「最高价」与「最低价」做线性回归求斜率 beta。beta &gt; 1 说明低点抬升快于高点、上涨阻力小、趋势强；beta &lt; 1 说明下跌趋势。配合滚动 z-score 判断趋势可靠性，是「市场温度计」的核心输入之一。</td></tr>
+        <tr><td>扩散指标（净新高占比 NH-NL%）</td><td>东北证券提出的市场宽度指标：创新高个股占比减去创新低个股占比。&gt;0 表示普涨（市场健康），&lt;0 表示普跌（市场走弱）。本系统用自选池内「20日新高占比 − 20日新低占比」作为全市场宽度的代理。</td></tr>
+        <tr><td>市场环境温度计（regime）</td><td>系统综合 RSRS + 扩散指标 + 均线动量合成的大盘冷热评分，范围 [-3, +3]，映射成进攻 / 中性 / 防守三档，用于自动调节买卖力度（见第 12.2 节）。</td></tr>
+      </tbody>
+    </table>
+
+    <h3>4.4 系统信号类术语</h3>
+    <table>
+      <thead><tr><th>术语</th><th>解释</th></tr></thead>
+      <tbody>
+        <tr><td>综合信号（delta）</td><td>每只股票的总评分 = 技术面 + 龙虎榜 + 公告 + 估值修正，截断在 [-6, +6]。正数偏多（利于买入），负数偏空。</td></tr>
+        <tr><td>技术面分（tech）</td><td>由 4.3 节 7 个维度累加（每个 ±1），范围 [-3, +3]：多头/空头排列、金叉/死叉、20日新高/新低、放量上涨/放量下跌、阳线突破确认、相对强度、流动性过滤。</td></tr>
+        <tr><td>龙虎榜分（lhb）</td><td>按净买额给分，范围 [-2, +2]，仅 A 股启用。</td></tr>
+        <tr><td>公告分（ann）</td><td>按公司公告标题的利好/利空关键词给分，范围 [-3, +3]，仅 A 股启用（数据源：巨潮资讯）。</td></tr>
+        <tr><td>估值过滤（val_filter）</td><td>亏损股、PE&gt;80、换手率&gt;12% 三种情况判「禁买」（block）并各记 −1 修正分，仅 A 股稳健版启用。</td></tr>
+        <tr><td>block（禁买标记）</td><td>该股当前被估值过滤拦截，禁止买入、也不进入评审队列。</td></tr>
+        <tr><td>信号明细（notes）</td><td>信号分的构成说明，如「多头排列+1 金叉+1 放量上涨+1」，前端逐条展示，让每个分数可解释。</td></tr>
+        <tr><td>综合信号触发（sigFired）</td><td>无新闻时，|delta| ≥ sigScore 也可独立触发交易；同一只股票每天每方向最多触发一次，防止重复。</td></tr>
+        <tr><td>消息分（news score）</td><td>快讯经词库打分得到的分值：标题命中权重×2，利好减利空。</td></tr>
+      </tbody>
+    </table>
+
+    <h3>4.5 策略配置类术语（参数逐个解释）</h3>
+    <table class="dense">
+      <thead><tr><th>参数</th><th>含义</th><th>美股</th><th>A股稳健</th><th>A股激进</th></tr></thead>
+      <tbody>
+        <tr><td>autoTrade</td><td>自动交易开关。False = 门控模式：不下单，候选送 LLM 评审后代为执行；True = 全自动按分数直接成交。三账户均为 False。</td><td>False</td><td>False</td><td>False</td></tr>
+        <tr><td>scanMin</td><td>扫描间隔（分钟）：多久抓一轮快讯、算一轮信号。</td><td>30</td><td>30</td><td>10</td></tr>
+        <tr><td>buyPct</td><td>单次买入动用可用现金的百分比。</td><td>20</td><td>20</td><td>35</td></tr>
+        <tr><td>sellPct</td><td>单次卖出当前持仓的百分比。</td><td>50</td><td>50</td><td>60</td></tr>
+        <tr><td>maxPerRound</td><td>每轮扫描（一轮 = 一次扫描到下一轮）最多成交笔数。</td><td>3</td><td>3</td><td>5</td></tr>
+        <tr><td>maxPerDay</td><td>当日最多成交笔数（兜底，防整天连续成交）。</td><td>12</td><td>12</td><td>20</td></tr>
+        <tr><td>minScore</td><td>触发交易的最低消息分绝对值——新闻打分必须达到此值才够格触发。美股提至 4 以挡掉低分噪音新闻误命中。</td><td>4</td><td>4</td><td>2</td></tr>
+        <tr><td>maxPosPct</td><td>单只个股市值占总资产的上限百分比。</td><td>30</td><td>30</td><td>45</td></tr>
+        <tr><td>cooldownMin</td><td>同一只股票两次交易之间的最小间隔（分钟）。</td><td>30</td><td>30</td><td>10</td></tr>
+        <tr><td>maxHold</td><td>最多同时持有的股票只数。</td><td>8</td><td>8</td><td>12</td></tr>
+        <tr><td>indexCode</td><td>账户基准指数代码。</td><td>usINX</td><td>sh000001</td><td>sh000001</td></tr>
+        <tr><td>sigScore</td><td>无新闻时综合信号 delta 独立触发交易的门槛（绝对值）。</td><td>3</td><td>4</td><td>3</td></tr>
+        <tr><td>buySigFloor</td><td>买入时该股 delta 的下限：−6 = 不限制；0 = 要求信号非负。</td><td>−6</td><td>−6</td><td>−2</td></tr>
+        <tr><td>useTech</td><td>是否启用技术面信号。</td><td>开</td><td>开</td><td>开</td></tr>
+        <tr><td>useLhb</td><td>是否启用龙虎榜信号（A股专属）。</td><td>关</td><td>开</td><td>开</td></tr>
+        <tr><td>useAnn</td><td>是否启用公司公告信号（A股专属，巨潮源）。</td><td>关</td><td>开</td><td>开</td></tr>
+        <tr><td>useVal</td><td>是否启用估值/换手禁买过滤（A股专属）。</td><td>关</td><td>开</td><td>关</td></tr>
+        <tr><td>reviewCooldownMin</td><td>同一只股票评审后多少分钟内不再进入待评审队列（评审冷却）。</td><td>60</td><td>60</td><td>30</td></tr>
+        <tr><td>reviewTTLHours</td><td>候选在待评审队列最长等待时间（小时），超时作废出队。</td><td>24</td><td>24</td><td>24</td></tr>
+        <tr><td>minAgree</td><td>内置评议团通过所需的最少同意票数。</td><td>2</td><td>2</td><td>1</td></tr>
+        <tr><td>useRisk</td><td>是否启用风控官一票否决权。</td><td>开</td><td>开</td><td>开</td></tr>
+        <tr><td>maxTotalPos</td><td>总仓位红线（%）：持仓市值占总资产超过此值禁止再买。</td><td>92</td><td>92</td><td>98</td></tr>
+        <tr><td>stopLossPct</td><td>浮亏禁加仓线：个股浮亏超过此比例，禁止再买入摊平。</td><td>−8%</td><td>−8%</td><td>−15%</td></tr>
+        <tr><td>priceMode</td><td>价格模式：real = 用真实行情价成交。</td><td>real</td><td>real</td><td>real</td></tr>
+      </tbody>
+    </table>
+    <p><strong>动态调池参数（第 12.1 节）</strong>：</p>
+    <table class="dense">
+      <thead><tr><th>参数</th><th>含义</th><th>美股</th><th>A股稳健</th><th>A股激进</th></tr></thead>
+      <tbody>
+        <tr><td>useRebalance</td><td>是否启用股票池自动轮动。</td><td>关</td><td>开</td><td>开</td></tr>
+        <tr><td>rebalanceIntervalDays</td><td>每 N 天生成一轮调池建议。</td><td>7</td><td>7</td><td>5</td></tr>
+        <tr><td>rebalanceMaxAdd</td><td>每轮最多建议选入只数。</td><td>6</td><td>6</td><td>8</td></tr>
+        <tr><td>rebalanceMaxRemove</td><td>每轮最多建议淘汰只数。</td><td>6</td><td>6</td><td>8</td></tr>
+        <tr><td>rebalanceCooldownDays</td><td>同股被调池建议后 N 天内不重复建议。</td><td>21</td><td>21</td><td>14</td></tr>
+      </tbody>
+    </table>
+    <p><strong>市场择时参数（第 12.2 节）</strong>：</p>
+    <table class="dense">
+      <thead><tr><th>参数</th><th>含义</th><th>美股</th><th>A股稳健</th><th>A股激进</th></tr></thead>
+      <tbody>
+        <tr><td>useRegime</td><td>是否启用大盘择时温度计。</td><td>开</td><td>开</td><td>开</td></tr>
+        <tr><td>regimeBuyFloor</td><td>防守档把买入信号分下限（buySigFloor）上浮的幅度。</td><td>+2</td><td>+2</td><td>+1</td></tr>
+        <tr><td>regimeBuyPctScale</td><td>防守档单笔买入比例的缩放系数（buyPct × 此值）。</td><td>0.5</td><td>0.5</td><td>0.6</td></tr>
+        <tr><td>regimePosCap</td><td>防守档总仓位上限%（覆盖 maxTotalPos，保留弹药）。</td><td>70</td><td>70</td><td>80</td></tr>
+      </tbody>
+    </table>
+
+    <h3>4.6 评审机制类术语</h3>
+    <table>
+      <thead><tr><th>术语</th><th>解释</th></tr></thead>
+      <tbody>
+        <tr><td>门控模式（gated mode）</td><td>autoTrade=False 的运行形态：服务端只负责筛选与执行，买卖决策权交给 LLM 专家团，相当于「AI 提名、专家拍板」。</td></tr>
+        <tr><td>待评审队列（pendingReview）</td><td>等待 LLM 裁决的候选列表，上限 6 只，每条记录股票、方向（买入/卖出）、触发原因、入队时间、信号快照价。状态流转：waiting → approved / rejected。</td></tr>
+        <tr><td>坑位</td><td>对队列名额的形象说法。6 个坑位被占满后新候选无法入队，靠成交、否决或 TTL 超时释放。</td></tr>
+        <tr><td>verdict（裁决）</td><td>LLM 评审结论：BUY / SELL / HOLD（大小写不敏感）。</td></tr>
+        <tr><td>confidence（置信度）</td><td>0–100 整数，专家对结论的把握程度，随结论一起存档。</td></tr>
+        <tr><td>HOLD（观望）</td><td>不买不卖的裁决。交叉验证分歧时也统一按 HOLD 处理。</td></tr>
+        <tr><td>双人交叉验证</td><td>主评审 + 独立复核两轮 LLM 各自独立审同一只股票，结论一致才执行、分歧判 HOLD，用于压制单一 LLM 的幻觉与误判。</td></tr>
+        <tr><td>评审冷却（reviewed）</td><td>同一只股票评审过后 60/30 分钟内不再重复入队，防止同一信号反复占用评审资源。</td></tr>
+        <tr><td>TTL（存活时间）</td><td>候选在队列里的最长等待时间（24 小时）。超时未评审的 waiting 候选作废出队并记入作废记录；approved 候选不受 TTL 限制。</td></tr>
+        <tr><td>评审台账（reviewLog）</td><td>全部评审历史的永久档案（最近 200 条）：谁、何时、对哪只股票、给出什么结论、最后成交价与结果。</td></tr>
+        <tr><td>成交回写</td><td>成交发生后，系统自动把成交价、成交时间、成交动作回填到评审台账对应条目，闭环追溯（内部由 _link_review_log 完成，按代码小写匹配）。</td></tr>
+        <tr><td>作废记录（expiredReviews）</td><td>TTL 超时作废或业务原因放弃的候选存档（最近 100 条），含放弃原因，便于统计「漏掉的机会」。</td></tr>
+        <tr><td>/api/review_done</td><td>LLM 专家团写回评审结论的接口，入参 {code, verdict, confidence, note}；只写队列不直接成交。</td></tr>
+        <tr><td>调池建议队列（poolChanges）</td><td>等待 LLM 评审的「调池建议」列表，每条含方向（remove 淘汰 / add 选入）、代码、理由、状态。状态流转：waiting → approved / rejected，与交易候选评审同款门控逻辑。</td></tr>
+        <tr><td>/api/pool_change_done</td><td>LLM 专家团写回调池评审结论的接口，入参 {code, action(approve/reject), note}；批准的调池才落地。</td></tr>
+        <tr><td>调池台账（poolChangeLog）</td><td>全部调池历史的永久档案（最近 100 条）：何时、对哪只股票、淘汰还是选入、结果与理由。</td></tr>
+      </tbody>
+    </table>
+
+    <h3>4.7 内置评议团类术语</h3>
+    <table>
+      <thead><tr><th>术语</th><th>解释</th></tr></thead>
+      <tbody>
+        <tr><td>专家评议团（council）</td><td>服务端内置的一套规则化多角色研判机制（非 LLM）：四位分析师独立出意见 → 加权合议 → 风控官否决。与外部 LLM 专家团是两套独立机制。</td></tr>
+        <tr><td>四位分析师</td><td>技术分析师（权重1.0，看技术面分）、资金面分析师（1.2，看龙虎榜）、消息面分析师（1.0，看消息分）、估值分析师（0.8，看估值过滤）。</td></tr>
+        <tr><td>加权合议</td><td>各分析师按权重投票汇总成分数，达到 minAgree 票同意才形成「买入/卖出」结论。</td></tr>
+        <tr><td>风控官一票否决（useRisk）</td><td>无论合议结果如何，触发风控硬条件（如总仓位超限、浮亏加仓）时直接否决交易。</td></tr>
+        <tr><td>研判会（advisory）</td><td>「只出意见不下单」的评议团模式，信号面板中的评议团预览即来自它。</td></tr>
+      </tbody>
+    </table>
+
+    <h3>4.8 运行与自动化类术语</h3>
+    <table>
+      <thead><tr><th>术语</th><th>解释</th></tr></thead>
+      <tbody>
+        <tr><td>worker</td><td>服务内置的后台循环线程：每 30 秒巡检三个账户，到期则扫描行情、执行评审落地、收盘结算。</td></tr>
+        <tr><td>扫描（scan）</td><td>一轮完整处理：刷新行情 → 算全池信号 → 抓快讯 → 打分匹配 → 维护评审队列 → 落地已批准订单。</td></tr>
+        <tr><td>扫描轮次（round）</td><td>从一次扫描到下一次扫描之间算一轮，maxPerRound 限制每轮成交笔数。</td></tr>
+        <tr><td>交易时段（trading hours）</td><td>允许成交的时间窗口（详见第 7 章）。评审可以 7×24 进行，但成交只发生在时段内。</td></tr>
+        <tr><td>休市降频</td><td>非交易时段 worker 把扫描间隔自动放大到至少 240 分钟，节约算力。</td></tr>
+        <tr><td>唤醒自动化</td><td>定时访问服务使其保持活跃（沙箱服务可能休眠），每日 12 次。</td></tr>
+        <tr><td>评审自动化</td><td>充当 LLM 专家团的定时任务：读队列 → 主审 + 独立复核 → 写回结论，每日 8 次（加密覆盖美股时段）。</td></tr>
+        <tr><td>美股盘中唤醒扫描</td><td>美股交易时段内每半小时唤醒并触发美股账户扫描，防止凌晨休眠错过交易窗口。</td></tr>
+        <tr><td>调池门控评审</td><td>每日 9:00 评审 A 股两账户 poolChanges 中的 waiting 调池建议，逐条写回 approve/reject。</td></tr>
+        <tr><td>对账自动化</td><td>每日 1 次：核对持仓、现金、净值的账实一致性，发现异常写日志。</td></tr>
+        <tr><td>每日推送</td><td>每天早上把前一交易日的战报（盈亏、持仓、评审摘要）推送给用户。</td></tr>
+        <tr><td>数据文件（data-multi.json）</td><td>三个账户全部状态（配置、持仓、队列、台账）的持久化文件，服务重启后由此恢复。</td></tr>
+      </tbody>
+    </table>
+
+    <h2 id="section-6">5. 三账户参数对照速查</h2>
+    <p>只列三账户<strong>不同</strong>的参数（相同的见 4.5 节）：</p>
+    <table class="dense">
+      <thead><tr><th>参数</th><th>美股</th><th>A股稳健</th><th>A股激进</th></tr></thead>
+      <tbody>
+        <tr><td>信号源</td><td>技术+新闻</td><td>技术+新闻+龙虎榜+公告+估值</td><td>技术+新闻+龙虎榜+公告</td></tr>
+        <tr><td>scanMin</td><td>30</td><td>30</td><td>10</td></tr>
+        <tr><td>minScore</td><td>4</td><td>4</td><td>2</td></tr>
+        <tr><td>buyPct / sellPct</td><td>20 / 50</td><td>20 / 50</td><td>35 / 60</td></tr>
+        <tr><td>maxPerRound / maxPerDay</td><td>3 / 12</td><td>3 / 12</td><td>5 / 20</td></tr>
+        <tr><td>maxHold</td><td>8</td><td>8</td><td>12</td></tr>
+        <tr><td>maxPosPct</td><td>30</td><td>30</td><td>45</td></tr>
+        <tr><td>cooldownMin</td><td>30</td><td>30</td><td>10</td></tr>
+        <tr><td>sigScore</td><td>3</td><td>4</td><td>3</td></tr>
+        <tr><td>buySigFloor</td><td>−6</td><td>−6</td><td>−2</td></tr>
+        <tr><td>minAgree</td><td>2</td><td>2</td><td>1</td></tr>
+        <tr><td>maxTotalPos</td><td>92</td><td>92</td><td>98</td></tr>
+        <tr><td>stopLossPct</td><td>−8%</td><td>−8%</td><td>−15%</td></tr>
+        <tr><td>useRebalance</td><td>关</td><td>开</td><td>开</td></tr>
+        <tr><td>rebalanceIntervalDays</td><td>—</td><td>7</td><td>5</td></tr>
+        <tr><td>rebalanceMaxAdd/Remove</td><td>—</td><td>6 / 6</td><td>8 / 8</td></tr>
+        <tr><td>regimeBuyFloor</td><td>+2</td><td>+2</td><td>+1</td></tr>
+        <tr><td>regimeBuyPctScale</td><td>0.5</td><td>0.5</td><td>0.6</td></tr>
+        <tr><td>regimePosCap</td><td>70</td><td>70</td><td>80</td></tr>
+      </tbody>
+    </table>
+    <p>设计意图：稳健版用高门槛（minScore=4）+ 多重过滤换取低换手、低回撤；激进版放宽一切门槛换取更多交易机会；美股版介于两者之间但信号源最少（仅技术+新闻，且新闻仅认公司名、不认宽泛主题词）。调池仅 A 股启用（强势榜为 A 股专属数据源）；择时三账户全开，稳健版防守最狠（仓位上限压到 70%）。</p>
+
+    <h2 id="section-7">6. 网页界面使用指南</h2>
+    <table>
+      <thead><tr><th>区域</th><th>功能</th></tr></thead>
+      <tbody>
+        <tr><td>左侧竖排标签</td><td>三账户切换（美股 / A股稳健 / A股激进），选择存入浏览器本地存储，下次自动恢复。</td></tr>
+        <tr><td>顶部资产栏</td><td>现金、持仓市值、总资产、累计盈亏、当前基准指数与涨跌幅。</td></tr>
+        <tr><td>自选池列表</td><td>全部池内股票的现价、涨跌幅、综合信号 delta、信号明细、评议团预览倾向。</td></tr>
+        <tr><td>持仓面板</td><td>当前持仓的成本、现价、浮盈亏、仓位占比；可手动卖出。</td></tr>
+        <tr><td>交易面板</td><td>手动买入/卖出（输入代码、价格、股数）；手动触发扫描、刷新行情。</td></tr>
+        <tr><td>待评审队列</td><td>6 个坑位的实时状态：waiting（等待评审）/ approved（已批准待成交）/ rejected（已否决）。</td></tr>
+        <tr><td>评审台账</td><td>历史评审结论与成交回写结果，逐条可查。</td></tr>
+        <tr><td>快讯流</td><td>最近处理的新闻及打分、命中个股。</td></tr>
+        <tr><td>市场环境温度计</td><td>展示当前大盘冷热：档位（进攻/中性/防守）、综合评分、RSRS/动量/扩散指标明细（第 12.2 节）。</td></tr>
+        <tr><td>自动调池面板</td><td>展示待评审的调池建议（淘汰/选入候选及理由），提供「自动调池」按钮手动触发一轮调池分析。</td></tr>
+        <tr><td>复盘卡片</td><td>每日复盘自动化写入的结论与市场环境播报。</td></tr>
+        <tr><td>演练投喂</td><td>手动输入一条新闻文本，走完整决策链路，用于验证行为（门控模式下进入评审队列，不直接下单）。</td></tr>
+      </tbody>
+    </table>
+
+    <h2 id="section-8">7. 交易时段说明</h2>
+    <p>所有时间均为<strong>北京时间</strong>：</p>
+    <table>
+      <thead><tr><th>市场</th><th>交易时段</th><th>收盘结算时点</th></tr></thead>
+      <tbody>
+        <tr><td>A股</td><td>周一至周五 09:30–11:30、13:00–15:00</td><td>每日 15:10 之后</td></tr>
+        <tr><td>美股（夏令时，约3月中–11月初）</td><td>周一至周五 21:30 – 次日 04:00</td><td>次日 04:10 之后</td></tr>
+        <tr><td>美股（冬令时，约11月初–3月中）</td><td>周一至周五 22:30 – 次日 05:00</td><td>次日 05:10 之后</td></tr>
+      </tbody>
+    </table>
+    <p>要点：</p>
+    <ul>
+      <li>美股时段<strong>跨午夜</strong>，晚间开盘、凌晨收盘，属于「当天」的判定按自然日处理。</li>
+      <li>周六周日及法定节假日（如国庆、春节 A 股休市；美国节假日美股休市）不交易；评审结论会挂起至下一时段执行。</li>
+      <li>系统的节假日是按「周末 + 时段」判断的，不含农历/美国法定节假日的精确日历——休市日 worker 照常降频巡检，但不会成交，属正常现象。</li>
+    </ul>
+
+    <h2 id="section-9">8. 接口参考（API）</h2>
+    <p>所有接口支持 <code>?account=</code> 参数指定账户（us / cn_conservative / cn_aggressive），缺省为 cn_conservative。</p>
+    <table>
+      <thead><tr><th>接口</th><th>方法</th><th>作用</th></tr></thead>
+      <tbody>
+        <tr><td>/api/state</td><td>GET</td><td>读取该账户完整状态（资产、持仓、池、信号、队列、台账）。</td></tr>
+        <tr><td>/api/scan</td><td>POST</td><td>立即执行一轮扫描。</td></tr>
+        <tr><td>/api/refresh</td><td>POST</td><td>刷新行情（指数 + 全池 + 持仓现价）。</td></tr>
+        <tr><td>/api/trade</td><td>POST</td><td>手动买卖 {side, code, price, qty}。</td></tr>
+        <tr><td>/api/settle</td><td>POST</td><td>手动结算 {pct}。</td></tr>
+        <tr><td>/api/council</td><td>POST</td><td>召集内置评议团对全池开会（只出意见不下单）。</td></tr>
+        <tr><td>/api/review_done</td><td>POST</td><td>LLM 专家团写回评审结论 {code, verdict, confidence, note}。</td></tr>
+        <tr><td>/api/inject</td><td>POST</td><td>手动投喂一条消息 {text, score?} 走完整决策链路（演练）。</td></tr>
+        <tr><td>/api/pool</td><td>POST</td><td>自选池增删 {action, item}。</td></tr>
+        <tr><td>/api/rebalance</td><td>POST</td><td>手动触发一轮动态调池分析，生成淘汰/选入建议入 poolChanges 队列。</td></tr>
+        <tr><td>/api/pool_change_done</td><td>POST</td><td>LLM 专家团写回调池评审结论 {code, action(approve/reject), note}。</td></tr>
+        <tr><td>/api/config</td><td>POST</td><td>更新策略配置（对应 4.5 节参数）。</td></tr>
+        <tr><td>/api/reset</td><td>POST</td><td>重置账户到初始态。</td></tr>
+        <tr><td>/api/mode</td><td>POST</td><td>切换价格模式 {priceMode}。</td></tr>
+        <tr><td>/api/daily_review</td><td>POST</td><td>写入每日复盘结论（复盘自动化调用）。</td></tr>
+        <tr><td>/api/market_context</td><td>POST</td><td>写入市场环境播报 {date, intl, sentiment}（播报自动化调用）。</td></tr>
+      </tbody>
+    </table>
+
+    <h2 id="section-10">9. 风控机制汇总</h2>
+    <p>系统在「评审通过」与「真正成交」之间设有多道闸门，任何一道不满足都会放弃或推迟交易：</p>
+    <ol>
+      <li><strong>时段闸门</strong>：只在交易时段成交。</li>
+      <li><strong>信号闸门</strong>：执行时重新校验信号分，跌破 buySigFloor 的批准单放弃。</li>
+      <li><strong>资金闸门</strong>：单次买入 ≤ 可用现金 × buyPct，且现金留 2% 余量。</li>
+      <li><strong>集中度闸门</strong>：单只持仓 ≤ maxPosPct；总仓位 ≤ maxTotalPos。</li>
+      <li><strong>节奏闸门</strong>：maxPerRound / maxPerDay 限笔数；cooldownMin 限同股频率。</li>
+      <li><strong>摊平闸门</strong>：个股浮亏超 stopLossPct 禁止加仓。</li>
+      <li><strong>估值闸门</strong>（稳健版）：亏损股、高 PE、高换手直接禁买。</li>
+      <li><strong>决策闸门</strong>：双人交叉验证分歧判 HOLD；批准结论可挂起但不会带病执行。</li>
+      <li><strong>择时闸门</strong>（第 12.2 节）：大盘走弱（防守档）时，买入信号分下限上浮、单笔买入比例缩水、总仓位上限收紧，强制「弱市少买、保留弹药」。</li>
+    </ol>
+
+    <h2 id="section-11">10. 常见问题（FAQ）</h2>
+    <p class="faq-q">Q1：评审显示 BUY 了，为什么没成交？</p>
+    <p>最常见的三个原因：① 当前不在该市场的交易时段（尤其美股跨午夜），结论挂起到下一盘中时点；② 执行时信号跌破买入下限或资金/仓位不满足闸门，被放弃并记入作废记录；③ 队列里的候选还没走完双人交叉验证。</p>
+    <p class="faq-q">Q2：为什么有的股票一直不进入评审队列？</p>
+    <p>队列上限 6 只 + 同股冷却（60/30 分钟）+ TTL 24 小时，三重机制保证只有「当下最够格」的候选占用评审资源；被估值过滤 block 的股票永远不入队。</p>
+    <p class="faq-q">Q3：美股页面信号经常是 0 分？</p>
+    <p>先检查 K 线是否正常（历史坑：美股代码缺交易所后缀 .OQ/.N 时只能取到 2 根 K 线，技术面全废）。当前版本已内置自动补后缀与多主机兜底。</p>
+    <p class="faq-q">Q4：国庆/春节为什么完全没动静？</p>
+    <p>A 股法定长假休市，worker 自动进入 4 小时一次的休市降频模式；美股国庆期间正常（这是当初把美股纳入的原因之一）。</p>
+    <p class="faq-q">Q5：三个账户的钱会互相影响吗？</p>
+    <p>不会。三账户完全独立核算，切到哪个标签看到的就是哪个账户的数据。</p>
+    <p class="faq-q">Q6：想让它直接按分数自动交易、不要评审，可以吗？</p>
+    <p>可以，把对应账户的 autoTrade 配置改为 True 即可回到全自动模式；但当前三账户刻意保持门控模式，让 LLM 专家团把关。</p>
+    <p class="faq-q">Q7：数据存在哪？重启会丢吗？</p>
+    <p>全部状态持久化在服务目录的 data-multi.json，重启自动恢复。</p>
+    <p class="faq-q">Q8：股票池会自己变吗？</p>
+    <p>A 股两账户会（useRebalance 开启）：每 5~7 天自动生成一轮「淘汰没前景 + 选入强势股」的建议，经 LLM 门控评审批准后才落地。美股池暂不启用调池（强势榜为 A 股专属数据源）。</p>
+    <p class="faq-q">Q9：为什么大盘很差时系统买得少？</p>
+    <p>这是「市场择时温度计」在起作用：大盘走弱时温度计判为防守档，自动上浮买入门槛、缩水单笔买入比例、收紧总仓位上限。属于设计行为，不是故障。</p>
+    <p class="faq-q">Q10：美股为什么经常不买？</p>
+    <p>三层原因叠加（已针对修复）：① 美股交易时段在北京时间凌晨，历史上评审自动化时段错配导致强信号干等（现已加密到每半小时唤醒 + 8 个评审点）；② 美股快讯多是「某机构调目标价」这类弱关联内容，交叉验证严格（现已把主题词匹配对美股禁用、只认公司名）；③ 技术面曾用「昨日收盘价」漏判盘中突破（现已改为实时价喂入）。即便全部修复，门控模式仍以「宁可不买」为原则。</p>
+
+    <h2 id="section-12">11. 已知局限与注意事项</h2>
+    <ol>
+      <li><strong>纯模拟实验</strong>：所有结果仅用于观察策略与 LLM 决策行为，不构成投资建议，亦不代表真实可得收益。</li>
+      <li><strong>数据源依赖</strong>：行情、K 线、快讯、公告均来自公开免费接口，接口波动时信号可能短暂缺失（系统会记日志并显式提示「技术面数据不可用」，不会静默记 0）。</li>
+      <li><strong>节假日日历简化</strong>：只按周末 + 交易时段判断，不含精确的节假日日历。</li>
+      <li><strong>LLM 决策的固有局限</strong>：评审依赖 LLM 对文本的理解，存在误读与漏判可能；双人交叉验证是缓解手段而非消除。</li>
+      <li><strong>费用模型简化</strong>：买入零佣金、卖出按 0.0023% 计提，未模拟滑点与税费差异。</li>
+      <li><strong>调池候选源波动</strong>：强势榜接口可能被限流，系统会降级用龙虎榜净买兜底，极端情况下候选质量可能下降。</li>
+    </ol>
+
+    <h2 id="section-13">12. 智能进化模块（V3.1 新增）</h2>
+    <h3>12.1 动态调池：自动淘汰 + 自动选入</h3>
+    <p>传统做法是股票池写死、永不变化。V3.1 引入<strong>动态调池</strong>，让池子像基金一样定期「换血」：</p>
+    <p><strong>淘汰（踢出没前景的）</strong>——命中任一即建议淘汰：</p>
+    <ul>
+      <li>亏损（PE &lt; 0）、估值过热（PE &gt; 80）</li>
+      <li>流动性枯竭（成交额 &lt; 1 亿）</li>
+      <li>60 日暴跌（跌幅 &lt; −30%）</li>
+      <li>60 日跌幅 &lt; −20% 且均线空头排列</li>
+    </ul>
+    <p><strong>选入（纳入后续发展好的）</strong>——从强势榜抓候选，全过才入选：</p>
+    <ul>
+      <li>来源：东财涨幅榜 + 主力资金净流入榜（限流时降级用龙虎榜净买兜底）</li>
+      <li>过滤：排除 ST/次新/未盈利、成交额 ≥ 1 亿、换手率 3~20%、PE 0~80、上市 &gt; 60 日、60 日涨幅 &gt; 5%</li>
+      <li>按「主力净流入 + 涨幅」综合评分择优</li>
+    </ul>
+    <p><strong>门控执行</strong>（与交易评审同款机制）：</p>
+    <p class="callout-info">&nbsp;&nbsp;每 5~7 天自动分析 → 生成「淘汰 N 只 / 选入 N 只」建议 → 写入 poolChanges 待审队列 → LLM 专家团逐条 approve/reject（每日 9:00 调池门控评审自动化）→ 批准的才落地；淘汰仅移出监控池、不强制平仓已持仓；选入自动补全字段入池。</p>
+    <ul>
+      <li>每轮上限：稳健版淘汰/选入各 6 只、激进版各 8 只。</li>
+      <li>同股冷却：被建议后 14~21 天内不重复建议，防止频繁翻来覆去。</li>
+      <li>全程留痕：poolChangeLog 记录每笔调池的来龙去脉。</li>
+    </ul>
+    <h3>12.2 市场择时温度计（大盘 RSRS + 扩散指标）</h3>
+    <p>V3.1 之前，系统「不管大盘多差都照常买」。温度计补上了这个最大的缺口——先看大盘脸色，再决定买多少。</p>
+    <p><strong>三个输入合成一个评分（[-3, +3]）：</strong></p>
+    <table>
+      <thead><tr><th>输入</th><th>来源</th><th>说明</th></tr></thead>
+      <tbody>
+        <tr><td>RSRS 阻力支撑强度</td><td>光大证券</td><td>指数日 K「最高价对最低价」线性回归斜率 beta，beta &gt; 1 趋势强、阻力小</td></tr>
+        <tr><td>扩散指标（净新高占比）</td><td>东北证券</td><td>自选池「20日新高占比 − 20日新低占比」，判断普涨还是普跌</td></tr>
+        <tr><td>均线动量</td><td>通用</td><td>MA5/20/60 多空排列 + 20日涨幅</td></tr>
+      </tbody>
+    </table>
+    <p><strong>评分映射三档，自动调节买卖力度：</strong></p>
+    <table>
+      <thead><tr><th>档位</th><th>阈值</th><th>行为</th></tr></thead>
+      <tbody>
+        <tr><td>进攻档</td><td>≥ +1</td><td>正常买入，趋势向好</td></tr>
+        <tr><td>中性档</td><td>−1 ~ +1</td><td>观望，按默认规则</td></tr>
+        <tr><td>防守档</td><td>≤ −1</td><td>收紧：买入门槛上浮 + 单笔买入比例缩水 + 总仓位上限收紧</td></tr>
+      </tbody>
+    </table>
+    <p>防守档具体参数（三账户略有差异）：买入信号分下限上浮（稳健/美股 +2、激进 +1）、单笔买入比例 ×（稳健/美股 0.5、激进 0.6）、总仓位上限压到（稳健/美股 70%、激进 80%）。</p>
+    <p>温度计每轮扫描自动计算，写入账户状态，前端「市场环境温度计」面板实时展示。</p>
+  </section>
+</body>
+</html>
