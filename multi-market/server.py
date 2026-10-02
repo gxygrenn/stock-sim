@@ -503,6 +503,8 @@ CN_CONSERVATIVE_CONFIG = {
     "regimeBuyFloor": 2,         # 防守档把买入信号分下限上浮的幅度（buySigFloor 基础上加）
     "regimeBuyPctScale": 0.5,    # 防守档单笔买入比例缩放系数（buyPct * 此值）
     "regimePosCap": 70,          # 防守档总仓位上限%（覆盖 maxTotalPos，保留弹药）
+    # ---- 波动率自适应仓位（借鉴 QuantsPlaybook：时变夏普 / 波动率目标） ----
+    "useVolTarget": True,        # 高波动自动降仓、低波动可加仓（方向分之外的独立维度）
 }
 
 
@@ -546,6 +548,8 @@ CN_AGGRESSIVE_CONFIG = {
     "regimeBuyFloor": 1,
     "regimeBuyPctScale": 0.6,
     "regimePosCap": 80,
+    # ---- 波动率自适应仓位（激进版：波动收紧更温和，但仍响应高波动） ----
+    "useVolTarget": True,
 }
 
 
@@ -587,6 +591,8 @@ US_CONFIG = {
     "regimeBuyFloor": 2,
     "regimeBuyPctScale": 0.5,
     "regimePosCap": 70,
+    # ---- 波动率自适应仓位（美股：用标普500 usINX 波动率，同样启用） ----
+    "useVolTarget": True,
 }
 
 
@@ -863,7 +869,11 @@ def fetch_kline(code, n=32):
 
     cands = [code]
     if code.startswith("us"):
-        cands = [code + ".OQ", code + ".N"]
+        # 美股指数：标普500 在腾讯源的正确代码是 us.INX（带点号），纳指 us.IXIC
+        if code == "usINX":
+            cands = ["us.INX"]
+        else:
+            cands = [code + ".OQ", code + ".N"]
 
     last = None
     for try_code in cands:
@@ -1117,7 +1127,81 @@ def market_regime(s):
         tier = "neutral"
     s["regime"] = {"enabled": True, "score": round(score, 2), "tier": tier,
                    "detail": detail, "time": now_str()}
+    # 波动率维度：与方向分独立计算，合成到 regime 的 vol 字段（供仓位缩放读取）
+    if cfg.get("useVolTarget"):
+        try:
+            _vol_scale(s)
+        except Exception as exc:
+            (s.get("regime") or {})["vol"] = {"enabled": True, "scale": 1.0,
+                                              "note": "不可用: %s" % exc}
     return s["regime"]
+
+
+def _volatility_profile(kl):
+    """波动率画像（借鉴 QuantsPlaybook 的「时变夏普 / 波动率目标」思想）。
+
+    用指数日 K 计算：
+      - 年化波动率：最近 20 日日收益率标准差 × sqrt(252)
+      - 时变夏普：最近 60 日日收益均值 / 标准差（短期风险调整后收益）
+    返回 (ann_vol_pct, sharpe, note)。数据不足返回 (0, 0, "K线不足")。
+    """
+    if len(kl) < 22:
+        return 0.0, 0.0, "K线不足"
+    closes = [k[2] for k in kl]
+    rets = [(closes[i] / closes[i - 1] - 1) for i in range(1, len(closes)) if closes[i - 1] > 0]
+    if len(rets) < 20:
+        return 0.0, 0.0, "收益率不足"
+    r20 = rets[-20:]
+    mean = sum(r20) / len(r20)
+    var = sum((r - mean) ** 2 for r in r20) / len(r20)
+    std = var ** 0.5
+    ann_vol = std * (252 ** 0.5) * 100.0
+    # 时变夏普：用更长窗口（60 日）均值 / 20 日波动，捕捉「短期风险调整后收益」
+    if len(rets) >= 60:
+        m60 = sum(rets[-60:]) / len(rets[-60:])
+    else:
+        m60 = sum(rets) / len(rets)
+    sharpe = (m60 / std) if std > 0 else 0.0
+    return ann_vol, sharpe, "年化波动%.0f%% 夏普%.2f" % (ann_vol, sharpe)
+
+
+def _vol_scale(s):
+    """波动率自适应仓位系数（0.5 ~ 1.2）。
+
+    年化波动越高、时变夏普越低 → 系数越小（降仓）；低波动 + 正夏普 → 放大仓位。
+    结果写入 s["regime"]["vol"]，供买入仓位与总仓位上限读取。
+    """
+    cfg = s["config"]
+    if not cfg.get("useVolTarget"):
+        return 1.0
+    idx = cfg.get("indexCode", "sh000001")
+    try:
+        kl = fetch_kline(idx, 80)
+        ann_vol, sharpe, note = _volatility_profile(kl)
+    except Exception as exc:
+        note = "不可用: %s" % exc
+        ann_vol = sharpe = 0.0
+    # 映射：年化波动 15% 以下低波、15~30% 中波、30% 以上高波
+    if ann_vol <= 0:
+        scale = 1.0
+        tier = "neutral"
+    elif ann_vol < 15:
+        scale = 1.0 + min(0.2, sharpe * 0.1 if sharpe > 0 else 0.0)
+        tier = "low"      # 低波动：可小幅加仓（正夏普时）
+    elif ann_vol <= 30:
+        scale = 1.0
+        tier = "mid"
+    else:
+        # 高波动：线性收缩，最高降 50%；时变夏普为负进一步收紧
+        scale = max(0.5, 1.0 - (ann_vol - 30) / 60.0 - (0.1 if sharpe < 0 else 0.0))
+        tier = "high"
+    scale = round(max(0.5, min(1.2, scale)), 2)
+    reg = s.get("regime") or {}
+    reg["vol"] = {"enabled": True, "annVol": round(ann_vol, 1),
+                  "sharpe": round(sharpe, 2), "scale": scale, "tier": tier,
+                  "note": note, "time": now_str()}
+    s["regime"] = reg
+    return scale
 
 
 def fetch_lhb():
@@ -1858,6 +1942,14 @@ def _risk_check(s, item, code, direction, price, advisory=False):
         pos_cap = cfg.get("maxTotalPos", 92)
         if _regime_tier(s) == "defense":
             pos_cap = min(pos_cap, cfg.get("regimePosCap", 70))
+        # 波动率自适应：高波动降仓位上限、低波动可放宽（乘 volScale）
+        if cfg.get("useVolTarget"):
+            vs = (s.get("regime") or {}).get("vol") or {}
+            vol_scale = float(vs.get("scale", 1.0) or 1.0)
+            if vol_scale < 1.0:
+                pos_cap = min(pos_cap, max(40.0, pos_cap * vol_scale))
+            elif vol_scale > 1.0:
+                pos_cap = min(cfg.get("maxTotalPos", 92) + 6, pos_cap * vol_scale)
         if mv / total * 100.0 >= pos_cap:
             return "总仓位超%.0f%%（防守档收紧），保留弹药" % pos_cap
         if s["cash"] < price * 1:
@@ -2517,6 +2609,10 @@ def execute(s, n, hits, score, apply_delta=True):
             buy_pct = cfg["buyPct"]
             if _regime_tier(s) == "defense":
                 buy_pct = buy_pct * float(cfg.get("regimeBuyPctScale", 0.5))
+            # 波动率自适应：高波动缩小单笔、低波动放大单笔（乘 volScale）
+            if cfg.get("useVolTarget"):
+                vs = (s.get("regime") or {}).get("vol") or {}
+                buy_pct = buy_pct * float(vs.get("scale", 1.0) or 1.0)
             budget = min(s["cash"] * buy_pct / 100.0, room, s["cash"] * 0.98)
             qty = int(budget / price) if price > 0 else 0
             qty = int(qty)          # 美股 1 股起

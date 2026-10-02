@@ -1057,6 +1057,14 @@ function renderRegime(){
   if(d.rsrs) items.push({name:"RSRS 阻力支撑", value:"", note:d.rsrs});
   if(d.momentum) items.push({name:"均线动量", value:"", note:d.momentum});
   if(d.breadth) items.push({name:"扩散指标", value:"", note:d.breadth});
+  // 波动率维度（时变夏普 / 波动率目标）：展示年化波动、夏普、仓位缩放系数
+  var v = r.vol || {};
+  if(v && v.enabled && v.note){
+    var vTierCn = {low:"低波动", mid:"中波动", high:"高波动"}[v.tier] || "";
+    var vCls = v.scale < 1.0 ? "b-sell" : (v.scale > 1.0 ? "b-buy" : "b-flat");
+    items.push({name:"波动率仓位", value:"", note:(vTierCn?"["+vTierCn+"] ":"")+
+      "年化波动"+v.annVol+"% 夏普"+v.sharpe+" → 仓位×"+v.scale});
+  }
   box.innerHTML =
     "<div style='display:flex;gap:6px;align-items:center;margin-bottom:5px'>"+sc+
     "<span style='margin-left:auto;color:#b6bdc9;font-size:12px'>"+esc(scoreTxt)+"</span></div>"+
