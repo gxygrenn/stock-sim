@@ -546,7 +546,7 @@ US_CONFIG = {
     "sellPct": 50,       # 单次卖出持仓的比例
     "maxPerRound": 3,    # 每轮最多成交笔数（每轮 = 一次扫描，到下一轮才重置）
     "maxPerDay": 12,     # 当日最多成交笔数（兜底，防止整天连续成交）
-    "minScore": 2,       # 触发交易的最低分数（绝对值）
+    "minScore": 4,       # 触发交易的最低分数（绝对值）。美股提至 4，挡掉低分噪音新闻误命中
     "maxPosPct": 30,     # 单只个股占总资产上限
     "cooldownMin": 30,   # 同一只股票两次交易的最小间隔
     "maxHold": 8,        # 最多同时持有几只
@@ -1396,9 +1396,14 @@ def match_pool(text, pool, title=None):
     板块主题词只在**标题**里认。否则像「金融」这种常见词，在一篇毫不相关
     的稿件正文里被顺带提一句就会误命中（实测：讲加拿大加入欧盟的稿子因为
     写了「一批来自金融与政界的非正式顾问」，一次命中招行+平安+东财）。
+
+    美股账户特殊处理：主题词（tags）过于宽泛（AI/半导体/消费/通信…），
+    中文快讯里 A股/港股/日股新闻动辄命中导致「张冠李戴」，故美股只认
+    名称/别名/代码，不认主题词，宁可少抓也要抓准。
     """
     hits, keys = [], []
     head = text if title is None else title
+    is_us = bool(pool) and str(pool[0].get("code", "")).startswith("us")
     for item in pool:
         name = item.get("name", "")
         num = re.sub(r"\D", "", item.get("code", ""))
@@ -1412,6 +1417,8 @@ def match_pool(text, pool, title=None):
                 keys.append(k)
                 break
         else:
+            if is_us:
+                continue          # 美股不靠主题词匹配，杜绝 A股/港股/日股新闻误命中
             for k in tags:
                 if k and k in head:
                     hits.append(name)
