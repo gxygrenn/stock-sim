@@ -808,58 +808,115 @@ KLINE_HOSTS = [
 _kline_ok = 0      # 当前生效的源下标，成功即复用，避免每次都去撞被拦的主源
 
 
-def fetch_kline(code, n=32):
-    """腾讯日K（多主机兜底）。返回 [(date, open, close, high, low, vol), ...] 旧->新。
+_kline_cache = {}      # code -> (fetch_ts, klines)，日K历史盘中不变，缓存避免多轮重复拉取
+_kline_ttl = 300       # K线缓存 5 分钟
 
-    主源 web.ifzq.gtimg.cn 可能被出口网络策略拦掉（返回 501），
-    同一份接口在另两个主机上同样可用，逐个退避并在切换时记日志。
+
+def fetch_kline(code, n=32):
+    """腾讯日K（多主机兜底 + 内存缓存 + 美股交易所后缀 fallback）。
+
+    返回 [(date, open, close, high, low, vol), ...] 旧->新。
+    美股代码需带交易所后缀才能拿到完整历史：纳斯达克 .OQ、纽交所 .N。
     """
     global _kline_ok
-    order = [_kline_ok] + [i for i in range(len(KLINE_HOSTS)) if i != _kline_ok]
+    now = time.time()
+    hit = _kline_cache.get(code)
+    if hit and hit[0] + _kline_ttl > now and len(hit[1]) >= n:
+        return hit[1][-n:]
+
+    cands = [code]
+    if code.startswith("us"):
+        cands = [code + ".OQ", code + ".N"]
+
     last = None
-    for i in order:
-        try:
-            d = json.loads(http_get(KLINE_HOSTS[i] % (code, n)))["data"][code]
-            rows = d.get("qfqday") or d.get("day") or []
-            if not rows:
-                raise RuntimeError("K线为空")
-            if i != _kline_ok:
-                log("K线源切换 -> %s" % KLINE_HOSTS[i].split("/")[2])
-                _kline_ok = i
-            return [(r[0], float(r[1]), float(r[2]), float(r[3]), float(r[4]), float(r[5]))
-                    for r in rows]
-        except Exception as exc:
-            last = exc
+    for try_code in cands:
+        order = [_kline_ok] + [i for i in range(len(KLINE_HOSTS)) if i != _kline_ok]
+        for i in order:
+            try:
+                d = json.loads(http_get(KLINE_HOSTS[i] % (try_code, n)))["data"].get(try_code)
+                rows = (d or {}).get("qfqday") or (d or {}).get("day") or []
+                if len(rows) < 20:
+                    raise RuntimeError("K线不足(%d根)" % len(rows))
+                if i != _kline_ok:
+                    log("K线源切换 -> %s" % KLINE_HOSTS[i].split("/")[2])
+                    _kline_ok = i
+                klines = [(r[0], float(r[1]), float(r[2]), float(r[3]), float(r[4]), float(r[5]))
+                          for r in rows]
+                _kline_cache[code] = (now, klines)
+                return klines
+            except Exception as exc:
+                last = exc
     raise RuntimeError("K线全部源不可用: %s" % last)
 
 
 def tech_score(s, code):
-    """技术面：均线多空 / 20日新高新低 / 量比异动。返回 (分数[-3,3], 明细)。"""
-    kl = fetch_kline(code, 32)
+    """技术面信号（借鉴 Sequoia-X 的形态识别：海龟突破 / 均线放量 / RPS 相对强度）。
+
+    维度：多头排列、金叉死叉、20日新高新低、量比异动、阳线确认（防诱多）、
+          相对强度 RPS、流动性过滤。返回 (分数[-3,3], 明细)。
+    """
+    kl = fetch_kline(code, 65)
     if len(kl) < 20:
         return 0, []
     closes = [k[2] for k in kl]
+    opens = [k[1] for k in kl]
+    highs = [k[3] for k in kl]
     vols = [k[5] for k in kl]
     score, notes = 0, []
+    c = closes[-1]
+    o = opens[-1]
+    q = (s.get("poolQuote") or {}).get(code) or {}
+
+    # 1. 均线多头/空头排列（MA5 > MA20 > MA60）
     ma5 = sum(closes[-5:]) / 5.0
     ma20 = sum(closes[-20:]) / 20.0
-    if ma5 > ma20:
-        score += 1; notes.append("均线多头+1")
-    else:
-        score -= 1; notes.append("均线空头-1")
-    c = closes[-1]
-    if c >= max(closes[-20:]):
+    ma60 = sum(closes[-60:]) / 60.0 if len(closes) >= 60 else ma20
+    if ma5 > ma20 > ma60:
+        score += 1; notes.append("多头排列+1")
+    elif ma5 < ma20 < ma60:
+        score -= 1; notes.append("空头排列-1")
+
+    # 2. 金叉 / 死叉（MA5 上穿/下穿 MA20，最近 3 日内）
+    if len(closes) >= 21:
+        ma5_p = sum(closes[-6:-1]) / 5.0
+        ma20_p = sum(closes[-21:-1]) / 20.0
+        if ma5_p <= ma20_p and ma5 > ma20:
+            score += 1; notes.append("金叉+1")
+        elif ma5_p >= ma20_p and ma5 < ma20:
+            score -= 1; notes.append("死叉-1")
+
+    # 3. 20 日新高 / 新低
+    if c >= max(highs[-20:]):
         score += 1; notes.append("20日新高+1")
     elif c <= min(closes[-20:]):
         score -= 1; notes.append("20日新低-1")
+
+    # 4. 量比异动
     base = sum(vols[-6:-1]) / 5.0
-    q = (s.get("poolQuote") or {}).get(code) or {}
     if base > 0 and vols[-1] > 2 * base:
         if q.get("pct", 0) >= 0:
             score += 1; notes.append("放量上涨+1")
         else:
             score -= 1; notes.append("放量下跌-1")
-    return max(-3, min(3, score)), notes
+
+    # 5. 阳线确认（防诱多）：创 20 日新高且当日收阳，才是有效突破
+    if c >= max(highs[-20:]) and c > o:
+        score += 1; notes.append("阳线突破+1")
+
+    # 6. 相对强度 RPS（欧奈尔）：20 日 / 60 日涨幅
+    r20 = (c / closes[-21] - 1) * 100 if len(closes) > 21 and closes[-21] else 0
+    r60 = (c / closes[-61] - 1) * 100 if len(closes) > 61 and closes[-61] else 0
+    if r20 > 15 and r60 > 5:
+        score += 1; notes.append("相对强度高+1")
+    elif r20 < -15:
+        score -= 1; notes.append("相对强度弱-1")
+
+    # 7. 流动性过滤：成交额不足（A股/美股均按元计，低于 1 亿视为流动性差）
+    amount = q.get("amount", 0) or 0
+    if amount > 0 and amount < 1e8:
+        score -= 1; notes.append("流动性差-1")
+
+    return max(-3, min(3, score)), notes[:8]
 
 
 def fetch_lhb():
