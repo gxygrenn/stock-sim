@@ -32,7 +32,7 @@ from datetime import datetime, timedelta
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
 BASE = os.path.dirname(os.path.abspath(__file__))
-DATA_FILE = os.path.join(BASE, "data.json")
+DATA_FILE = os.path.join(BASE, "data-multi.json")   # 独立数据文件，避免读到旧单账户版残留的 data.json
 UA = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"}
 
 # ---------------------------------------------------------------- 词库
