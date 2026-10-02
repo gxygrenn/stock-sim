@@ -492,6 +492,12 @@ CN_CONSERVATIVE_CONFIG = {
     "useRisk": True,     # 风控官一票否决权
     "maxTotalPos": 92,   # 总仓位上限%，超过则禁止再买
     "stopLossPct": -8,   # 个股浮亏超过该比例，禁止加仓摊平
+    # ---- 动态调池：自动淘汰没前景 + 选入强势股（LLM 门控确认后生效） ----
+    "useRebalance": True,        # 启用股票池自动轮动
+    "rebalanceIntervalDays": 7,  # 每 N 天生成一轮调池建议
+    "rebalanceMaxAdd": 6,        # 每轮最多建议选入只数
+    "rebalanceMaxRemove": 6,     # 每轮最多建议淘汰只数
+    "rebalanceCooldownDays": 21, # 同股被调池建议后 N 天内不重复建议
 }
 
 
@@ -524,6 +530,12 @@ CN_AGGRESSIVE_CONFIG = {
     "useRisk": True,     # 风控官保留否决权（激进但仍守底线）
     "maxTotalPos": 98,   # 总仓位上限%（稳健版 92）
     "stopLossPct": -15,  # 浮亏禁加仓线放宽（稳健版 -8）
+    # ---- 动态调池：激进版换得更勤 ----
+    "useRebalance": True,
+    "rebalanceIntervalDays": 5,
+    "rebalanceMaxAdd": 8,
+    "rebalanceMaxRemove": 8,
+    "rebalanceCooldownDays": 14,
 }
 
 
@@ -554,6 +566,12 @@ US_CONFIG = {
     "useRisk": True,     # 风控官一票否决权
     "maxTotalPos": 92,   # 总仓位上限%，超过则禁止再买
     "stopLossPct": -8,   # 个股浮亏超过该比例，禁止加仓摊平
+    # ---- 动态调池：候选强势榜为 A 股专属接口，美股暂不启用 ----
+    "useRebalance": False,
+    "rebalanceIntervalDays": 7,
+    "rebalanceMaxAdd": 6,
+    "rebalanceMaxRemove": 6,
+    "rebalanceCooldownDays": 21,
 }
 
 
@@ -608,6 +626,9 @@ def default_state(account=None):
         "expiredReviews": [],  # 队列 TTL 超时作废 / 已批准未成交的候选（最近 100 条）
         "dailyReviews": [],  # 每日复盘存档（最近 30 天，由复盘自动化写入）
         "marketContext": None,  # 最近一次市场环境播报（国际因素 + 市场情绪，由播报自动化写入）
+        "poolChanges": [],      # 待 LLM 评审的调池建议（淘汰/选入候选，门控确认后生效）
+        "poolChangeLog": [],    # 调池历史台账（最近 100 条：code/name/direction/result/时间/理由）
+        "lastRebalance": "",    # 最近一次生成调池建议的日期（按 rebalanceIntervalDays 节流）
         "config": dict(acc["config"]),
     }
 
@@ -950,6 +971,288 @@ def lhb_score(net):
     if net < -1e7:
         return -1, "龙虎榜净卖%.2f亿-1" % abs(yi)
     return 0, ""
+
+
+# ---------------------------------------------------------------- 动态调池
+def _cn_code_prefix(f12, f13):
+    """东财 6 位代码 -> 带交易所前缀的完整代码（sh/sz）。f13: 1=沪 0=深。"""
+    f12 = str(f12)
+    if f12[:2] in ("60", "68", "90"):
+        return "sh" + f12
+    if f12[:2] in ("00", "30", "20", "12"):
+        return "sz" + f12
+    return ("sh" if str(f13) == "1" else "sz") + f12
+
+
+_RANK_CACHE = {}      # "cn" -> (fetch_ts, cands)，候选缓存，避免 30s 循环反复撞接口
+_RANK_TTL = 900       # 候选缓存 15 分钟
+
+
+def _rank_get(url):
+    hdrs = {"User-Agent": UA["User-Agent"],
+            "Accept": "application/json, text/plain, */*",
+            "Accept-Language": "zh-CN,zh;q=0.9",
+            "Connection": "keep-alive"}
+    req = urllib.request.Request(url, headers=hdrs)
+    with urllib.request.urlopen(req, timeout=12) as resp:
+        return resp.read().decode("utf-8", "ignore")
+
+
+def fetch_strength_candidates(limit=40):
+    """强势股候选：东财 push2 涨幅榜(f3)+主力净流入榜(f62)为主，龙虎榜净买兜底。
+
+    返回统一结构 [{code(带sh/sz), name, industry, pct, amount, turn, pe, netIn, volRatio}]。
+    amount/netIn 单位元。带重试 + 15 分钟内存缓存 + 优雅降级。
+    """
+    now = time.time()
+    hit = _RANK_CACHE.get("cn")
+    if hit and hit[0] + _RANK_TTL > now:
+        return hit[1]
+
+    cands, seen = [], set()
+    for fid in ("f3", "f62"):
+        url = ("https://push2.eastmoney.com/api/qt/clist/get?pn=1&pz=%d&po=1&np=1"
+               "&ut=bd1d9ddb04089700cf9c27f6f7426281&fltt=2&invt=2&fid=%s"
+               "&fs=m:0+t:6,m:0+t:80,m:1+t:2,m:1+t:23"
+               "&fields=f2,f3,f5,f6,f8,f9,f10,f12,f13,f14,f20,f62,f100" % (limit, fid))
+        d = None
+        for _ in range(2):
+            try:
+                d = json.loads(_rank_get(url))
+                break
+            except Exception:
+                time.sleep(1)
+        if not d:
+            continue
+        for r in ((d.get("data") or {}).get("diff") or []):
+            f12 = str(r.get("f12") or "")
+            if not f12 or f12 in seen:
+                continue
+            seen.add(f12)
+            try:
+                pct = float(r.get("f3") or 0)
+                amount = float(r.get("f6") or 0)
+                turn = float(r.get("f8") or 0)
+                pe = float(r.get("f9") or 0)
+                net_in = float(r.get("f62") or 0)
+                volr = float(r.get("f10") or 0) or 0.0
+            except Exception:
+                continue
+            cands.append({"code": _cn_code_prefix(f12, r.get("f13")),
+                          "name": str(r.get("f14") or "").strip(),
+                          "industry": str(r.get("f100") or "").strip(),
+                          "pct": pct, "amount": amount, "turn": turn,
+                          "pe": pe, "netIn": net_in, "volRatio": volr})
+
+    if len(cands) < 5:
+        # 兜底：龙虎榜净买为正的票（datacenter 域，比 push2 稳），补腾讯行情字段
+        try:
+            lhb = fetch_lhb()
+        except Exception:
+            lhb = {}
+        top = sorted(lhb.items(), key=lambda kv: kv[1], reverse=True)[:limit]
+        codes = []
+        for c6, net in top:
+            if net <= 0:
+                continue
+            full = ("sh" if c6[:1] in ("6", "9") else "sz") + c6
+            codes.append((full, net))
+        if codes:
+            quotes = fetch_prices([c for c, _ in codes])
+            for full, net in codes:
+                q = quotes.get(full) or {}
+                if not q.get("price"):
+                    continue
+                cands.append({"code": full, "name": q.get("name", full),
+                              "industry": "", "pct": q.get("pct", 0),
+                              "amount": q.get("amount", 0), "turn": q.get("turn", 0),
+                              "pe": q.get("pe", 0), "netIn": net, "volRatio": 0.0})
+
+    _RANK_CACHE["cn"] = (now, cands)
+    return cands
+
+
+def _is_bad_name(name):
+    """ST / 上市首日(N) / 次新(C) / 未盈利(-U) / 同股不同权(-W) 不纳入候选。"""
+    n = (name or "").upper()
+    return (n.startswith(("N", "C")) or "ST" in n or "-U" in n or "-W" in n)
+
+
+def pool_remove_candidates(s):
+    """分析当前自选池，找出「没前景」应淘汰的股票。
+
+    命中任一即建议淘汰（理由按优先级）：
+      - PE < 0：亏损
+      - PE > 80：估值过热
+      - 成交额 < 1 亿：流动性枯竭
+      - 60 日跌幅 < -30%：长期走弱
+      - 60 日跌幅 < -20% 且空头排列：趋势崩溃
+    """
+    out = []
+    for item in s["pool"]:
+        code = item["code"]
+        if code.startswith("us"):
+            continue
+        q = (s.get("poolQuote") or {}).get(code) or {}
+        reasons = []
+        pe = q.get("pe", 0) or 0
+        if pe < 0:
+            reasons.append("亏损(PE为负)")
+        elif pe > 80:
+            reasons.append("PE%.0f 估值过热" % pe)
+        amount = q.get("amount", 0) or 0
+        if amount > 0 and amount < 1e8:
+            reasons.append("成交额%.0f万 流动性枯竭" % (amount / 1e4))
+        try:
+            kl = fetch_kline(code, 61)
+        except Exception:
+            kl = []
+        if len(kl) >= 61:
+            closes = [k[2] for k in kl]
+            r60 = (closes[-1] / closes[-61] - 1) * 100 if closes[-61] else 0
+            ma5 = sum(closes[-5:]) / 5.0
+            ma20 = sum(closes[-20:]) / 20.0
+            ma60 = sum(closes[-60:]) / 60.0
+            if r60 < -30:
+                reasons.append("60日跌幅%.0f%%" % r60)
+            elif r60 < -20 and ma5 < ma20 < ma60:
+                reasons.append("60日跌幅%.0f%% 且空头排列" % r60)
+        if not reasons:
+            continue
+        out.append({"code": code, "name": item["name"], "reasons": reasons[:3],
+                    "pe": pe, "amount": amount})
+    return out
+
+
+def build_rebalance(s):
+    """生成一轮调池建议写入 s['poolChanges']（门控：等 LLM 评审确认后落地）。"""
+    cfg = s["config"]
+    if not cfg.get("useRebalance"):
+        return {"generated": 0, "msg": "调池未启用"}
+    if not (s.get("poolQuote")):
+        try:
+            refresh_prices(s)
+        except Exception:
+            pass
+    existing = {p["code"] for p in s["pool"]}
+    pend = s.setdefault("poolChanges", [])
+    pend_codes = {p["code"] for p in pend}
+    logbook = {r.get("code"): r for r in (s.get("poolChangeLog") or [])}
+    cool_days = int(cfg.get("rebalanceCooldownDays", 21))
+    now = datetime.now()
+
+    def cooled(code):
+        r = logbook.get(code)
+        if not r or not r.get("time"):
+            return True
+        try:
+            return (now - datetime.strptime(r["time"][:10], "%Y-%m-%d")).days >= cool_days
+        except Exception:
+            return True
+
+    max_add = int(cfg.get("rebalanceMaxAdd", 6))
+    max_remove = int(cfg.get("rebalanceMaxRemove", 6))
+
+    # ---- 淘汰建议 ----
+    n_remove = 0
+    for r in pool_remove_candidates(s):
+        if r["code"] in pend_codes or not cooled(r["code"]):
+            continue
+        if n_remove >= max_remove:
+            break
+        pend.append({"code": r["code"], "name": r["name"], "direction": "remove",
+                     "reason": "；".join(r["reasons"]), "score": 0,
+                     "queuedAt": now_str(), "state": "waiting"})
+        pend_codes.add(r["code"])
+        n_remove += 1
+
+    # ---- 选入建议 ----
+    try:
+        cands = fetch_strength_candidates(40)
+    except Exception as exc:
+        log("强势榜抓取失败: %s" % exc)
+        cands = []
+    n_add = 0
+    for c in cands:
+        if c["code"] in existing or c["code"] in pend_codes:
+            continue
+        if not cooled(c["code"]) or _is_bad_name(c["name"]):
+            continue
+        if c["amount"] < 1e8:                # 流动性
+            continue
+        if not (3 <= c["turn"] <= 20):       # 活跃但不爆炒
+            continue
+        if c["pe"] <= 0 or c["pe"] > 80:     # 盈利且不过热
+            continue
+        try:
+            kl = fetch_kline(c["code"], 61)
+        except Exception:
+            kl = []
+        if len(kl) < 61:
+            continue                          # 上市不足 60 日，剔除次新
+        closes = [k[2] for k in kl]
+        r60 = (closes[-1] / closes[-61] - 1) * 100 if closes[-61] else 0
+        if r60 < 5:
+            continue                          # 60 日趋势未走强
+        if n_add >= max_add:
+            break
+        score = c["netIn"] / 1e8 * 1.0 + c["pct"] * 0.3
+        pend.append({"code": c["code"], "name": c["name"], "direction": "add",
+                     "reason": "主力净流入%.2f亿 60日%.0f%% 行业%s"
+                               % (c["netIn"] / 1e8, r60, c["industry"] or "?"),
+                     "score": round(score, 2),
+                     "meta": {"industry": c["industry"], "pct": c["pct"],
+                              "turn": c["turn"], "pe": c["pe"]},
+                     "queuedAt": now_str(), "state": "waiting"})
+        pend_codes.add(c["code"])
+        n_add += 1
+
+    s["lastRebalance"] = today_str()
+    save_state()
+    log("生成调池建议：淘汰 %d 只 / 选入 %d 只（待 LLM 门控确认）" % (n_remove, n_add))
+    return {"generated": n_remove + n_add, "remove": n_remove, "add": n_add}
+
+
+def execute_approved_pool_changes(s):
+    """落地 LLM 已批准的调池建议：remove 移出监控池（不强制平仓）、add 补全字段入池。"""
+    pend = s.get("poolChanges") or []
+    if not pend:
+        return 0
+    logbook = s.setdefault("poolChangeLog", [])
+    done = 0
+    keep = []
+    for p in pend:
+        if (p.get("state") or "") != "approved":
+            keep.append(p)
+            continue
+        code, name, direction = p["code"], p["name"], p["direction"]
+        if direction == "remove":
+            before = len(s["pool"])
+            s["pool"] = [x for x in s["pool"] if x["code"] != code]
+            removed = len(s["pool"]) < before
+            logbook.append({"code": code, "name": name, "direction": "remove",
+                            "result": "removed" if removed else "not_in_pool",
+                            "time": now_str(), "note": p.get("reason", "")})
+            if removed:
+                log("调池落地：淘汰 %s(%s)（%s）" % (name, code, p.get("reason", "")))
+        else:
+            if any(x["code"] == code for x in s["pool"]):
+                logbook.append({"code": code, "name": name, "direction": "add",
+                                "result": "already_in_pool", "time": now_str(),
+                                "note": p.get("reason", "")})
+            else:
+                meta = p.get("meta") or {}
+                s["pool"].append({"name": name, "code": code, "alias": name,
+                                  "beta": 1.0,
+                                  "tags": "%s,热点,强势" % (meta.get("industry") or "")})
+                logbook.append({"code": code, "name": name, "direction": "add",
+                                "result": "added", "time": now_str(),
+                                "note": p.get("reason", "")})
+                log("调池落地：选入 %s(%s)（%s）" % (name, code, p.get("reason", "")))
+        done += 1
+    s["poolChanges"] = keep
+    s["poolChangeLog"] = logbook[-100:]
+    return done
 
 
 def fetch_announcements(pages=3):
@@ -2397,6 +2700,46 @@ class Handler(BaseHTTPRequestHandler):
                     self._json({"ok": True, "pool": s["pool"]})
                     return
 
+                if path == "/api/rebalance":
+                    # 立即生成一轮调池建议（抓强势榜 + 分析淘汰），写入待评审队列
+                    res = build_rebalance(s)
+                    self._json({"ok": True, "remove": res.get("remove", 0),
+                                "add": res.get("add", 0),
+                                "poolChanges": s.get("poolChanges") or []})
+                    return
+
+                if path == "/api/pool_change_done":
+                    # LLM 门控：写回调池建议结论 {code, action: approve|reject, note}
+                    code = (req.get("code") or "").strip().lower()
+                    action = (req.get("action") or "").strip().lower()
+                    note = (req.get("note") or "")[:120]
+                    pend = s.get("poolChanges") or []
+                    hit = None
+                    for p in pend:
+                        if (p.get("code") or "").lower() == code:
+                            hit = p
+                            break
+                    if hit is None:
+                        save_state()
+                        self._json({"ok": True, "queued": False, "pending": len(pend),
+                                    "msg": "pool change item gone"})
+                        return
+                    if action == "approve":
+                        hit["state"] = "approved"
+                    else:
+                        hit["state"] = "rejected"
+                    hit["note"] = note
+                    log("调池门控：%s %s %s(%s)（%s）"
+                        % ("批准" if action == "approve" else "否决",
+                           "淘汰" if hit["direction"] == "remove" else "选入",
+                           hit["name"], code, note[:30]))
+                    save_state()
+                    done = execute_approved_pool_changes(s)   # 纯改池不涉及下单，盘内盘外均可
+                    self._json({"ok": True, "approved": action == "approve",
+                                "executedNow": done,
+                                "pending": len(s.get("poolChanges") or [])})
+                    return
+
                 if path == "/api/config":
                     for k, v in (req.get("config") or {}).items():
                         if k in s["config"]:
@@ -2451,6 +2794,18 @@ def worker():
                         refresh_prices(s)
                     # autoTrade 关闭时 scan 只刷新资讯/信号并维护待评审队列，不会下单
                     scan(s)
+                    # 动态调池：按周期生成建议（门控待评审）+ 落地已批准的调池
+                    if s["config"].get("useRebalance"):
+                        try:
+                            last = s.get("lastRebalance", "")
+                            due = (not last) or (
+                                (datetime.now() - datetime.strptime(last, "%Y-%m-%d")).days
+                                >= int(s["config"].get("rebalanceIntervalDays", 7)))
+                            if due:
+                                build_rebalance(s)
+                            execute_approved_pool_changes(s)
+                        except Exception as exc:
+                            log("动态调池异常[%s]: %s" % (account, exc))
                     # 收盘后自动结算当天（按账户市场区分结算时间）
                     if s["priceMode"] == "real" and s["nextDate"] <= today_str():
                         now = datetime.now()

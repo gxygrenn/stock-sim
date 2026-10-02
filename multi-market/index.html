@@ -383,6 +383,13 @@
           <button class="btn" id="btnPoolAdd">加入池子</button>
         </div>
         <div class="hint">消息里出现名称、别名或板块标签（如「白酒」「人工智能」「算力」）即命中该股；<b>信号</b>列是技术面+龙虎榜+公告+估值的综合分，悬停看明细，⛔ 表示被估值过滤禁止追买。沪市 sh、深市 sz。</div>
+        <div class="divider"></div>
+        <div class="row">
+          <button class="btn" id="btnRebalance">自动调池 · 生成建议</button>
+          <span class="status" id="rebalanceStatus" style="margin-left:8px">—</span>
+        </div>
+        <div id="poolChangeBox"></div>
+        <div class="hint">调池：系统按周期自动分析——<b>淘汰</b>没前景的（亏损／流动性枯竭／60日暴跌／估值过热），<b>选入</b>强势股（主力净流入榜 + 涨幅榜）。建议生成后需 LLM 专家团门控确认才生效；淘汰仅移出监控池，已持仓继续管理、不强制平仓。</div>
       </div>
 
       <div class="panel">
@@ -1021,6 +1028,26 @@ function renderSent(){
     (d.summary?"<div style='margin-top:6px;font-size:12.5px;color:#3a4252'>"+esc(d.summary)+"</div>":"");
 }
 
+function renderPoolChanges(){
+  var box = $("poolChangeBox");
+  if(!box) return;
+  var pc = S.poolChanges||[];
+  if(!pc.length){ box.innerHTML = ""; return; }
+  box.innerHTML = "<div style='border:1px dashed #d8b13c;border-radius:8px;padding:8px 10px;background:#fffbe8'>"+
+    "<div style='font-weight:600;color:#8a6d1a;margin-bottom:4px'>🔄 待评审调池建议（"+pc.length+"）</div>"+
+    pc.map(function(p){
+      var isAdd = p.direction==="add";
+      var badge = isAdd ? "<span class='badge b-buy'>选入</span>" : "<span class='badge b-sell'>淘汰</span>";
+      var state = p.state==="approved" ? "<span class='badge b-buy'>已批准</span>"
+                : (p.state==="rejected" ? "<span class='badge b-bad'>已否决</span>" : "");
+      return "<div style='display:flex;gap:6px;align-items:center;font-size:12px;padding:2px 0;flex-wrap:wrap'>"+
+        badge+"<b>"+esc(p.name)+"</b><span class='small'>"+esc(p.code)+"</span>"+
+        "<span style='color:#8a93a5'>"+esc(p.reason||"")+"</span>"+
+        "<span style='margin-left:auto'>"+state+"</span></div>";
+    }).join("")+
+    "<div style='color:#8a6d1a;font-size:11.5px;margin-top:4px'>需 LLM 专家团门控确认后生效；淘汰仅移出监控池，已持仓继续管理、不强制平仓。</div></div>";
+}
+
 function renderDailyReview(){
   var box = $("dailyReviewBox"), rs = S.dailyReviews||[];
   $("drTag").textContent = rs.length ? (rs.length+" 天") : "";
@@ -1051,7 +1078,7 @@ function render(){
   if(!S) return;
   renderCards(); renderHoldings(); renderPool(); renderNews();
   renderTrades(); renderHistory(); renderLive(); renderScan(); renderCouncil();
-  renderDailyReview(); renderChart(); renderIntl(); renderSent();
+  renderDailyReview(); renderChart(); renderIntl(); renderSent(); renderPoolChanges();
   var sel = $("tSel"), cur = sel.value;
   sel.innerHTML = (S.pool||[]).length ? "" : '<option value="">（池子为空）</option>';
   (S.pool||[]).forEach(function(p){
@@ -1186,6 +1213,15 @@ $("btnSaveCfg2").onclick = function(){
 $("btnReset").onclick = function(){
   if(!confirm("确认清空账户？（自选池保留）")) return;
   act("/api/reset", {}, "已重置");
+};
+$("btnRebalance").onclick = function(){
+  var st = $("rebalanceStatus");
+  st.className = "status"; st.textContent = "正在抓强势榜并分析…";
+  api("/api/rebalance", {}).then(function(r){
+    if(r && r.ok === false){ st.textContent = r.msg || "失败"; return; }
+    st.textContent = "淘汰 "+(r.remove||0)+" 只 / 选入 "+(r.add||0)+" 只（待 LLM 门控确认）";
+    return reload();
+  }).catch(function(e){ st.className = "status err"; st.textContent = "失败: " + e.message; });
 };
 
 function schedulePoll(){
