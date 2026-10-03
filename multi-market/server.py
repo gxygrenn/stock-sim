@@ -509,6 +509,8 @@ CN_CONSERVATIVE_CONFIG = {
     "useStops": True,            # 启用固定止损 + 移动止盈 + 目标止盈
     "trailPct": 15,              # 移动止盈：从历史峰值回撤超过该%则卖出锁利润
     "takeProfitPct": 30,         # 目标止盈：浮盈达到该%则分批落袋（先卖一半）
+    # ---- 行业轮动 RRG（相对旋转图，识别强势行业，供进攻档聚焦强势行业） ----
+    "useSectorRotation": True,   # 每轮扫描算行业相对强弱，进攻档聚焦领先/转强行业
 }
 
 
@@ -558,6 +560,8 @@ CN_AGGRESSIVE_CONFIG = {
     "useStops": True,
     "trailPct": 20,              # 移动止盈回撤线放宽（激进版 20）
     "takeProfitPct": 40,         # 目标止盈位抬高（激进版 40）
+    # ---- 行业轮动 RRG（激进版：更强调强势行业聚焦，加成更大） ----
+    "useSectorRotation": True,
 }
 
 
@@ -605,6 +609,8 @@ US_CONFIG = {
     "useStops": True,
     "trailPct": 15,
     "takeProfitPct": 30,
+    # ---- 行业轮动 RRG（美股：用标普500做基准，识别强势行业） ----
+    "useSectorRotation": True,
 }
 
 
@@ -663,6 +669,7 @@ def default_state(account=None):
         "poolChangeLog": [],    # 调池历史台账（最近 100 条：code/name/direction/result/时间/理由）
         "lastRebalance": "",    # 最近一次生成调池建议的日期（按 rebalanceIntervalDays 节流）
         "regime": None,         # 市场环境温度计（RSRS+扩散指标+动量，进攻/中性/防守）
+        "sectors": None,        # 行业轮动 RRG 结果（相对旋转图，领先/转强/转弱/落后行业）
         "config": dict(acc["config"]),
     }
 
@@ -1146,6 +1153,12 @@ def market_regime(s):
         except Exception as exc:
             (s.get("regime") or {})["vol"] = {"enabled": True, "scale": 1.0,
                                               "note": "不可用: %s" % exc}
+    # 行业轮动 RRG：识别强势行业，供进攻档聚焦强势行业（独立于方向分）
+    if cfg.get("useSectorRotation"):
+        try:
+            sector_rotation(s)
+        except Exception as exc:
+            log("行业轮动异常: %s" % exc)
     return s["regime"]
 
 
@@ -1247,6 +1260,187 @@ def lhb_score(net):
     if net < -1e7:
         return -1, "龙虎榜净卖%.2f亿-1" % abs(yi)
     return 0, ""
+
+
+# ---------------------------------------------------------------- 量价因子 + 行业轮动
+def price_volume_factors(code):
+    """量价微观结构因子（借鉴 QuantsPlaybook 的买卖压力/振幅/凸显性因子）。
+
+    在 tech_score 的「形态」之上，补足「资金质量」维度，用于让动态调池候选更挑剔。
+    返回 (质量分[-3,3], 明细[], 因子dict)。三个因子：
+      1. 买卖压力（Money Flow）：上涨日量能 vs 下跌日量能失衡度。上涨日放量、下跌日缩量
+         = 资金持续净流入（压力为正）；反之资金在出逃。
+      2. 振幅因子（Amplitude）：近20日 (high-low)/prev_close 均值。适度振幅(2%~6%)+上涨
+         才是健康换手；过低(死水)或过高(剧烈博弈)都扣分。
+      3. 凸显性因子（Salience/特质）：20日超额收益的「稳定性」——用日均收益/波动(类信息比)，
+         衡量这只票在大盘之外「独立走强」的质量，剔掉靠单日脉冲撑起来的伪强势。
+    """
+    kl = fetch_kline(code, 65)
+    if len(kl) < 22:
+        return 0, ["K线不足"], {}
+    closes = [k[2] for k in kl]
+    opens = [k[1] for k in kl]
+    highs = [k[3] for k in kl]
+    lows = [k[4] for k in kl]
+    vols = [k[5] for k in kl]
+    score, notes = 0, []
+
+    # ---- 因子1：买卖压力（近20日） ----
+    up_vol = 0.0
+    down_vol = 0.0
+    for i in range(-20, 0):
+        chg = closes[i] - closes[i - 1]
+        v = vols[i] or 0
+        if chg >= 0:
+            up_vol += v
+        else:
+            down_vol += v
+    if (up_vol + down_vol) > 0:
+        # 买卖压力比：上涨日量能占比，>0.5 表示资金偏多
+        pressure = up_vol / (up_vol + down_vol)
+    else:
+        pressure = 0.5
+    if pressure >= 0.60:
+        score += 1; notes.append("买压偏强+1")
+    elif pressure <= 0.42:
+        score -= 1; notes.append("卖压偏强-1")
+
+    # ---- 因子2：振幅因子（近20日平均日内振幅） ----
+    amps = []
+    for i in range(-20, 0):
+        if closes[i - 1] > 0:
+            amps.append((highs[i] - lows[i]) / closes[i - 1] * 100)
+    avg_amp = sum(amps) / len(amps) if amps else 0
+    if 2.0 <= avg_amp <= 6.0:
+        score += 1; notes.append("振幅健康+1")
+    elif avg_amp < 1.2:
+        score -= 1; notes.append("振幅过低(死水)-1")
+    elif avg_amp > 9.0:
+        score -= 1; notes.append("振幅过高(剧烈博弈)-1")
+
+    # ---- 因子3：凸显性（20日信息比：日均收益/收益波动） ----
+    rets = []
+    for i in range(-20, 0):
+        if closes[i - 1] > 0:
+            rets.append(closes[i] / closes[i - 1] - 1)
+    if len(rets) >= 5:
+        mean_r = sum(rets) / len(rets)
+        var_r = sum((r - mean_r) ** 2 for r in rets) / len(rets)
+        sd = var_r ** 0.5
+        ir = mean_r / sd if sd > 0 else 0
+        # 信息比(日频)年化放大约 sqrt(252)，用阈值判断：稳且强 > 0.3 算强
+        if mean_r > 0 and ir > 0.3:
+            score += 1; notes.append("凸显性强(稳定跑赢)+1")
+        elif mean_r > 0 and ir <= 0.1:
+            # 涨但波动极大 = 靠脉冲，扣分
+            score -= 1; notes.append("脉冲式上涨(不稳)-1")
+        elif mean_r < 0:
+            score -= 1; notes.append("超额收益为负-1")
+
+    return max(-3, min(3, score)), notes[:6], {
+        "pressure": round(pressure, 3), "avgAmp": round(avg_amp, 2),
+        "infoRatio": round(ir, 3), "meanRet": round(mean_r * 100, 2)}
+
+
+# 行业归类：tags 首个关键词 -> 一级行业（用于 RRG 行业轮动）
+_SECTOR_MAP = {
+    "银行": "银行", "保险": "非银金融", "券商": "非银金融",
+    "白酒": "食品饮料", "调味品": "食品饮料", "乳制品": "食品饮料", "粮油": "食品饮料",
+    "啤酒": "食品饮料", "食品": "食品饮料", "饮料": "食品饮料",
+    "半导体": "电子", "消费电子": "电子", "面板": "电子", "安防": "电子",
+    "军工": "国防军工", "光伏": "电力设备", "锂电池": "电力设备", "新能源车": "电力设备",
+    "风电": "电力设备", "储能": "电力设备", "电力": "公用事业",
+    "医药": "医药生物", "中药": "医药生物", "创新药": "医药生物", "医疗": "医药生物",
+    "地产": "房地产", "房地产": "房地产",
+    "服务器": "计算机", "软件": "计算机", "云计算": "计算机", "算力": "计算机",
+    "传媒": "传媒", "游戏": "传媒",
+    "煤炭": "煤炭", "化工": "基础化工", "建材": "建筑材料", "水泥": "建筑材料",
+    "工程机械": "机械设备", "汽车零部件": "汽车", "汽车": "汽车",
+    "家电": "家用电器", "航空": "交通运输", "机场": "交通运输", "物流": "交通运输",
+    "通信": "通信", "电信": "通信", "运营商": "通信", "5G": "通信",
+    "养殖": "农林牧渔", "农业": "农林牧渔", "钢铁": "钢铁", "有色": "有色金属",
+    "机械": "机械设备", "机器人": "机械设备",
+}
+
+
+def sector_of(item):
+    """从股票 tags 推断一级行业。返回行业名，无法归类返回 '其他'。"""
+    tags = (item.get("tags") or "").split(",")
+    for t in tags:
+        t = t.strip()
+        if t in _SECTOR_MAP:
+            return _SECTOR_MAP[t]
+    return "其他"
+
+
+def sector_rotation(s):
+    """行业轮动 RRG（相对旋转图）：算各行业相对大盘的强度与动能，识别强势行业。
+
+    思路（借鉴 QuantsPlaybook 的 RRG / 行业量价因子）：
+      - 对自选池按行业归类，取行业内股票的平均 20日/60日涨幅作为行业表现。
+      - 大盘用 indexCode 的同期涨幅做基准。
+      - RS-Ratio（横轴）= 行业20日涨幅 - 大盘20日涨幅（相对强度）
+      - RS-Momentum（纵轴）= 行业20日涨幅 - 行业60日涨幅（动能，加速/减速）
+      - 四象限：领先(强+加速) / 转强(弱但加速) / 转弱(强但减速) / 落后(弱+减速)
+    返回 {sectors: [{name, ratio, momentum, tier, n}], leading: [行业名...], time}。
+    """
+    cfg = s["config"]
+    idx_code = cfg.get("indexCode", "sh000001")
+    try:
+        idx_kl = fetch_kline(idx_code, 65)
+    except Exception:
+        idx_kl = []
+    if len(idx_kl) < 62:
+        return None
+    idx_c = [k[2] for k in idx_kl]
+    idx20 = (idx_c[-1] / idx_c[-21] - 1) * 100 if idx_c[-21] else 0
+    idx60 = (idx_c[-1] / idx_c[-61] - 1) * 100 if idx_c[-61] else 0
+
+    groups = {}
+    for item in s["pool"]:
+        sec = sector_of(item)
+        groups.setdefault(sec, []).append(item["code"])
+
+    sectors = []
+    for sec, codes in groups.items():
+        r20s, r_prev20 = [], []   # r20s=近20日涨幅，r_prev20=前20日(21-40日)涨幅，同窗口比"加速度"
+        for code in codes:
+            try:
+                kl = fetch_kline(code, 65)
+            except Exception:
+                kl = []
+            if len(kl) < 41:
+                continue
+            c = [k[2] for k in kl]
+            if c[-21]:
+                r20s.append((c[-1] / c[-21] - 1) * 100)
+            if c[-41] and c[-21]:
+                # 前20日区间：从 -41 到 -21 的涨幅（同20天窗口，比近期是否加速）
+                r_prev20.append((c[-21] / c[-41] - 1) * 100)
+        if not r20s:
+            continue
+        sec20 = sum(r20s) / len(r20s)
+        sec_prev = sum(r_prev20) / len(r_prev20) if r_prev20 else 0.0
+        ratio = round(sec20 - idx20, 2)          # 相对强度（近20日 vs 大盘近20日）
+        momentum = round(sec20 - sec_prev, 2)    # 动能：近20日涨幅 - 前20日涨幅（加速为正）
+        if ratio >= 0 and momentum >= 0:
+            tier = "leading"      # 领先：强且加速
+        elif ratio < 0 and momentum >= 0:
+            tier = "improving"    # 转强：弱但加速
+        elif ratio >= 0 and momentum < 0:
+            tier = "weakening"    # 转弱：强但减速
+        else:
+            tier = "lagging"      # 落后：弱且减速
+        sectors.append({"name": sec, "ratio": ratio, "momentum": momentum,
+                        "tier": tier, "n": len(codes)})
+
+    sectors.sort(key=lambda x: (x["ratio"] + x["momentum"]), reverse=True)
+    leading = [x["name"] for x in sectors if x["tier"] == "leading"]
+    improving = [x["name"] for x in sectors if x["tier"] == "improving"]
+    result = {"sectors": sectors, "leading": leading, "improving": improving,
+              "time": now_str()}
+    s["sectors"] = result
+    return result
 
 
 # ---------------------------------------------------------------- 动态调池
@@ -1472,13 +1666,32 @@ def build_rebalance(s):
             continue                          # 60 日趋势未走强
         if n_add >= max_add:
             break
-        score = c["netIn"] / 1e8 * 1.0 + c["pct"] * 0.3
+        # ---- 量价因子增强：候选除资金流向外，量价微观结构也必须健康 ----
+        try:
+            pvf, pvf_notes, pvf_meta = price_volume_factors(c["code"])
+        except Exception:
+            pvf, pvf_notes, pvf_meta = 0, [], {}
+        # 行业轮动：进攻档聚焦强势行业，弱势行业候选降权（可选）
+        sector_bonus = 0.0
+        if cfg.get("useSectorRotation"):
+            sec = c.get("industry") or "?"
+            if sec and sec in (s.get("sectors") or {}).get("leading", []):
+                sector_bonus = 0.6
+            elif sec and sec in (s.get("sectors") or {}).get("improving", []):
+                sector_bonus = 0.3
+        # 量价质量分作为硬门槛：pvf < 0 的候选（微观结构差）直接剔除
+        if pvf < 0:
+            continue
+        score = (c["netIn"] / 1e8 * 1.0 + c["pct"] * 0.3
+                 + pvf * 0.5 + sector_bonus)
         pend.append({"code": c["code"], "name": c["name"], "direction": "add",
-                     "reason": "主力净流入%.2f亿 60日%.0f%% 行业%s"
-                               % (c["netIn"] / 1e8, r60, c["industry"] or "?"),
+                     "reason": "主力净流入%.2f亿 60日%.0f%% 量价%d分%s"
+                               % (c["netIn"] / 1e8, r60, pvf,
+                                  (" 行业%s" % c["industry"]) if c.get("industry") else ""),
                      "score": round(score, 2),
                      "meta": {"industry": c["industry"], "pct": c["pct"],
-                              "turn": c["turn"], "pe": c["pe"]},
+                              "turn": c["turn"], "pe": c["pe"],
+                              "pvf": pvf, "pvfNotes": pvf_notes},
                      "queuedAt": now_str(), "state": "waiting"})
         pend_codes.add(c["code"])
         n_add += 1

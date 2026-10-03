@@ -1072,10 +1072,25 @@ function renderRegime(){
     items.push({name:"波动率仓位", value:"", note:(vTierCn?"["+vTierCn+"] ":"")+
       "年化波动"+v.annVol+"% 夏普"+v.sharpe+" → 仓位×"+v.scale});
   }
+  // 行业轮动 RRG：展示领先/转强行业（供进攻档聚焦强势行业）
+  var sec = S.sectors || {};
+  if(sec && (sec.leading||[]).length){
+    var leadTxt = sec.leading.map(function(n){
+      return "<span class='badge b-buy'>"+esc(n)+"</span>"; }).join(" ");
+    items.push({name:"行业轮动·领先", value:"", note:"强势且加速：", html:leadTxt});
+  }
+  if(sec && (sec.improving||[]).length){
+    var impTxt = sec.improving.map(function(n){
+      return "<span class='badge b-flat'>"+esc(n)+"</span>"; }).join(" ");
+    items.push({name:"行业轮动·转强", value:"", note:"由弱转强：", html:impTxt});
+  }
   box.innerHTML =
     "<div style='display:flex;gap:6px;align-items:center;margin-bottom:5px'>"+sc+
     "<span style='margin-left:auto;color:#b6bdc9;font-size:12px'>"+esc(scoreTxt)+"</span></div>"+
-    items.map(mcItem).join("")+hint;
+    items.map(function(it){
+      if(it.html) return "<div style='font-size:12px;padding:3px 0'><span style='color:#8a93a5'>"+esc(it.name)+"</span> "+it.html+"</div>";
+      return mcItem(it);
+    }).join("")+hint;
 }
 
 
