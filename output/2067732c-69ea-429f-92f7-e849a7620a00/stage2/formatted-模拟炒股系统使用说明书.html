@@ -109,11 +109,11 @@
   <section role="cover">
     <p class="cover-eyebrow">系统文档 · USER MANUAL</p>
     <h1>模拟炒股系统使用说明书</h1>
-    <p class="cover-subtitle">LLM 评审驱动的多市场模拟炒股平台 · V3.2 新增波动率自适应仓位</p>
+    <p class="cover-subtitle">LLM 评审驱动的多市场模拟炒股平台 · V3.3 新增持仓级止损止盈纪律</p>
     <table class="cover-meta">
       <thead><tr><th>项目</th><th>内容</th></tr></thead>
       <tbody>
-      <tr><td>文档版本</td><td>V3.2（多市场合并版）</td></tr>
+      <tr><td>文档版本</td><td>V3.3（多市场合并版）</td></tr>
       <tr><td>更新日期</td><td>2026 年 10 月 2 日</td></tr>
       <tr><td>适用部署</td><td>multi-market（三账户合并服务）</td></tr>
       <tr><td>访问地址</td><td>https://stock-sim-us.app.workbuddy.host/</td></tr>
@@ -149,6 +149,7 @@
     </ul>
     <p class="callout-warn">&nbsp;&nbsp;<strong>重要声明</strong>：本系统为纯模拟盘，所有资金、持仓、成交均为虚拟数据，不涉及任何真实证券交易，也不构成任何投资建议。</p>
     <p class="callout-info">&nbsp;&nbsp;<strong>V3.2 新增</strong>：波动率自适应仓位（借鉴券商金工的「时变夏普 / 波动率目标」，高波动自动降仓、低波动可加仓），并修复美股标普500 指数代码映射（usINX → us.INX，此前美股择时一直拿不到标普数据）。详见第 12.3 节。</p>
+    <p class="callout-info">&nbsp;&nbsp;<strong>V3.3 新增</strong>：持仓级止损/止盈纪律（固定止损 + 移动止盈 trailing stop + 目标止盈），让系统在新闻没有利空时也能主动离场、锁住利润，不再被动等消息。详见第 12.4 节。</p>
 
     <h2 id="section-2">1. 系统概述</h2>
     <p>本章回答三个问题：这个系统是什么、它同时管理哪些账户、它凭什么值得信任地自动运转。</p>
@@ -181,6 +182,7 @@
       <li><strong>动态调池</strong>：定期自动淘汰「没前景」的股票、选入「后续发展好」的强势股，股票池不再一成不变（A 股账户启用，见第 12.1 节）。</li>
       <li><strong>市场择时</strong>：内置「大盘温度计」，用 RSRS 阻力支撑强度 + 扩散指标判断大盘冷热，走弱时自动勒紧仓位、保留弹药（见第 12.2 节）。</li>
       <li><strong>波动率自适应</strong>：用年化波动率 + 时变夏普自动调节仓位轻重，高波动下小注、低波动下大注（见第 12.3 节）。</li>
+      <li><strong>主动止损止盈</strong>：持仓浮亏过深自动止损、从峰值回撤过大自动止盈锁利，不等新闻才离场（见第 12.4 节）。</li>
     </ol>
 
     <h2 id="section-3">2. 快速上手</h2>
@@ -346,6 +348,7 @@
         <tr><td>市场环境温度计（regime）</td><td>系统综合 RSRS + 扩散指标 + 均线动量合成的大盘冷热评分，范围 [-3, +3]，映射成进攻 / 中性 / 防守三档，用于自动调节买卖力度（见第 12.2 节）。</td></tr>
         <tr><td>波动率自适应仓位（vol targeting）</td><td>借鉴券商金工「时变夏普 / 波动率目标」思想：用指数日 K 计算年化波动率与短期夏普，高波动自动缩仓位、低波动可加仓，是「方向」之外的独立风控维度（见第 12.3 节）。</td></tr>
         <tr><td>年化波动率</td><td>最近 20 日日收益率标准差 × √252，衡量市场近期的波动水平。15% 以下算低波、15~30% 中波、30% 以上高波。</td></tr>
+        <tr><td>移动止盈（trailing stop）</td><td>记录持仓历史最高价（峰值），当现价从峰值回撤超过一定比例时自动卖出，锁住利润。核心思想是「让利润奔跑，但防止坐电梯回吐」。见第 12.4 节。</td></tr>
       </tbody>
     </table>
 
@@ -391,7 +394,7 @@
         <tr><td>minAgree</td><td>内置评议团通过所需的最少同意票数。</td><td>2</td><td>2</td><td>1</td></tr>
         <tr><td>useRisk</td><td>是否启用风控官一票否决权。</td><td>开</td><td>开</td><td>开</td></tr>
         <tr><td>maxTotalPos</td><td>总仓位红线（%）：持仓市值占总资产超过此值禁止再买。</td><td>92</td><td>92</td><td>98</td></tr>
-        <tr><td>stopLossPct</td><td>浮亏禁加仓线：个股浮亏超过此比例，禁止再买入摊平。</td><td>−8%</td><td>−8%</td><td>−15%</td></tr>
+        <tr><td>stopLossPct</td><td>固定止损线：个股浮亏超过此比例，触发止损清仓（V3.3 起为真止损，不再只是禁加仓）。</td><td>−8%</td><td>−8%</td><td>−15%</td></tr>
         <tr><td>priceMode</td><td>价格模式：real = 用真实行情价成交。</td><td>real</td><td>real</td><td>real</td></tr>
       </tbody>
     </table>
@@ -415,6 +418,9 @@
         <tr><td>regimeBuyPctScale</td><td>防守档单笔买入比例的缩放系数（buyPct × 此值）。</td><td>0.5</td><td>0.5</td><td>0.6</td></tr>
         <tr><td>regimePosCap</td><td>防守档总仓位上限%（覆盖 maxTotalPos，保留弹药）。</td><td>70</td><td>70</td><td>80</td></tr>
         <tr><td>useVolTarget</td><td>是否启用波动率自适应仓位（高波动降仓、低波动加仓）。</td><td>开</td><td>开</td><td>开</td></tr>
+        <tr><td>useStops</td><td>是否启用固定止损 + 移动止盈 + 目标止盈。</td><td>开</td><td>开</td><td>开</td></tr>
+        <tr><td>trailPct</td><td>移动止盈回撤线：现价从历史峰值回撤超过此%则卖出锁利。</td><td>15</td><td>15</td><td>20</td></tr>
+        <tr><td>takeProfitPct</td><td>目标止盈位：浮盈达到此%则分批落袋（先卖一半）。</td><td>30</td><td>30</td><td>40</td></tr>
       </tbody>
     </table>
 
@@ -497,9 +503,12 @@
         <tr><td>regimeBuyPctScale</td><td>0.5</td><td>0.5</td><td>0.6</td></tr>
         <tr><td>regimePosCap</td><td>70</td><td>70</td><td>80</td></tr>
         <tr><td>useVolTarget</td><td>开</td><td>开</td><td>开</td></tr>
+        <tr><td>useStops</td><td>开</td><td>开</td><td>开</td></tr>
+        <tr><td>trailPct</td><td>15</td><td>15</td><td>20</td></tr>
+        <tr><td>takeProfitPct</td><td>30</td><td>30</td><td>40</td></tr>
       </tbody>
     </table>
-    <p>设计意图：稳健版用高门槛（minScore=4）+ 多重过滤换取低换手、低回撤；激进版放宽一切门槛换取更多交易机会；美股版介于两者之间但信号源最少（仅技术+新闻，且新闻仅认公司名、不认宽泛主题词）。调池仅 A 股启用（强势榜为 A 股专属数据源）；择时与波动率自适应三账户全开，稳健版防守最狠（仓位上限压到 70%）。</p>
+    <p>设计意图：稳健版用高门槛（minScore=4）+ 多重过滤换取低换手、低回撤；激进版放宽一切门槛换取更多交易机会；美股版介于两者之间但信号源最少（仅技术+新闻，且新闻仅认公司名、不认宽泛主题词）。调池仅 A 股启用（强势榜为 A 股专属数据源）；择时、波动率自适应、止损止盈三账户全开，稳健版防守最狠（仓位上限压到 70%、止损最紧），激进版让利润多跑（移动止盈 20%、目标止盈 40%）。</p>
 
     <h2 id="section-7">6. 网页界面使用指南</h2>
     <table>
@@ -569,11 +578,12 @@
       <li><strong>资金闸门</strong>：单次买入 ≤ 可用现金 × buyPct，且现金留 2% 余量。</li>
       <li><strong>集中度闸门</strong>：单只持仓 ≤ maxPosPct；总仓位 ≤ maxTotalPos。</li>
       <li><strong>节奏闸门</strong>：maxPerRound / maxPerDay 限笔数；cooldownMin 限同股频率。</li>
-      <li><strong>摊平闸门</strong>：个股浮亏超 stopLossPct 禁止加仓。</li>
+      <li><strong>止损闸门</strong>（第 12.4 节）：个股浮亏超 stopLossPct 触发止损清仓；V3.3 起该线既禁止加仓、也主动止损卖出。</li>
       <li><strong>估值闸门</strong>（稳健版）：亏损股、高 PE、高换手直接禁买。</li>
       <li><strong>决策闸门</strong>：双人交叉验证分歧判 HOLD；批准结论可挂起但不会带病执行。</li>
       <li><strong>择时闸门</strong>（第 12.2 节）：大盘走弱（防守档）时，买入信号分下限上浮、单笔买入比例缩水、总仓位上限收紧，强制「弱市少买、保留弹药」。</li>
       <li><strong>波动率闸门</strong>（第 12.3 节）：市场波动飙升时自动缩小单笔买入与总仓位上限，让每笔交易承担的风险尽量恒定。</li>
+      <li><strong>止盈闸门</strong>（第 12.4 节）：持仓从历史峰值回撤超 trailPct 自动止盈锁利，浮盈达 takeProfitPct 分批落袋，防止利润坐电梯。</li>
     </ol>
 
     <h2 id="section-11">10. 常见问题（FAQ）</h2>
@@ -680,6 +690,21 @@
     </ol>
     <p>波动率维度与方向维度（进攻/防守）<strong>独立相乘</strong>：例如大盘趋势向上但波动率飙升，方向档看多、波动维度仍会勒紧仓位，避免「高位追高还满仓」。</p>
     <p class="callout-info">&nbsp;&nbsp;<strong>修复记录</strong>：本版同时修复了美股标普500 指数代码映射（腾讯行情源正确代码是 us.INX 而非 usINX），此前美股版的择时与波动率计算一直拿不到标普数据、静默降级为中性。</p>
+
+    <h3>12.4 持仓级止损/止盈纪律（固定止损 + 移动止盈）</h3>
+    <p>V3.3 之前，系统卖出<strong>完全依赖新闻利空或信号转弱</strong>——如果一只持仓既没出利空消息、信号也没转弱，即便已经深套或回吐大半利润，系统也会一直拿着干等。止损止盈纪律补上了这个缺口：<strong>基于价格本身主动离场</strong>，不依赖任何消息。</p>
+    <p><strong>三条规则（在每次刷新现价后自动检查，只在交易时段执行）：</strong></p>
+    <table>
+      <thead><tr><th>规则</th><th>触发条件</th><th>动作</th><th>目的</th></tr></thead>
+      <tbody>
+        <tr><td>固定止损</td><td>现价相对成本浮亏超过 stopLossPct</td><td>全仓清掉</td><td>砍掉深套，截断亏损</td></tr>
+        <tr><td>移动止盈（trailing stop）</td><td>从历史峰值回撤超过 trailPct（且仍浮盈）</td><td>全仓卖出</td><td>让利润奔跑，但防止坐电梯回吐</td></tr>
+        <tr><td>目标止盈</td><td>浮盈达到 takeProfitPct</td><td>分批落袋（先卖一半）</td><td>高位先锁一部分利润</td></tr>
+      </tbody>
+    </table>
+    <p><strong>移动止盈的核心思想</strong>：系统会持续记录每只持仓的历史最高价（峰值），只要价格不断创新高，就一路持有；一旦从峰值回撤超过阈值（如稳健版 15%），即便此刻仍相对成本浮盈，也果断卖出锁定利润——避免「浮盈 40% 拿到手只剩 5%」。</p>
+    <p><strong>三账户参数差异</strong>：稳健/美股版移动止盈 15%、目标止盈 30%、止损 −8%；激进版让利润多跑（移动止盈 20%、目标止盈 40%）、止损放宽到 −15%（但依然设线）。</p>
+    <p class="callout-info">&nbsp;&nbsp;<strong>与「摊平闸门」的关系</strong>：V3.3 起 stopLossPct 同时承担两重角色——买入时禁止对深套股加仓摊平，持仓时触发止损清仓。止盈止损触发的卖出同样受当日笔数上限约束，达到上限则顺延到下一轮，不会突破风控额度。</p>
   </section>
 </body>
 </html>

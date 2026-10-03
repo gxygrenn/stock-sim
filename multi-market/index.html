@@ -652,6 +652,13 @@ function renderHoldings(){
     var mv = h.price*h.shares, fl = mv - h.cost*h.shares;
     var flp = h.cost>0 && h.shares>0 ? (h.price/h.cost-1)*100 : 0;
     tmv += mv; tfl += fl;
+    // 移动止盈状态：显示历史峰值及当前回撤
+    var peakTag = "";
+    if(h.peak && h.peak>0 && h.shares>0){
+      var dd = (h.price/h.peak-1)*100;
+      peakTag = " <span class='small' title='移动止盈：历史峰值 "+h.peak.toFixed(2)+"，当前回撤 "+
+        (dd>=0?"+":"")+dd.toFixed(1)+"%'>峰值"+h.peak.toFixed(2)+"</span>";
+    }
     var tr = document.createElement("tr");
     tr.innerHTML =
       "<td>"+esc(h.name)+" <span class='small'>"+esc(h.code)+"</span></td>"+
@@ -661,7 +668,7 @@ function renderHoldings(){
       "<td>"+(h.shares>0?h.cost.toFixed(3):"-")+"</td>"+
       "<td>"+money(mv)+"</td>"+
       "<td class='"+cls(fl)+"'>"+(fl>=0?"+":"")+money(fl)+
-        (h.shares>0?" <span class='small'>("+pct(flp)+")</span>":"")+"</td>";
+        (h.shares>0?" <span class='small'>("+pct(flp)+")</span>":"")+peakTag+"</td>";
     tb.appendChild(tr);
   });
   if(hs.length){

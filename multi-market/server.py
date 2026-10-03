@@ -505,6 +505,10 @@ CN_CONSERVATIVE_CONFIG = {
     "regimePosCap": 70,          # 防守档总仓位上限%（覆盖 maxTotalPos，保留弹药）
     # ---- 波动率自适应仓位（借鉴 QuantsPlaybook：时变夏普 / 波动率目标） ----
     "useVolTarget": True,        # 高波动自动降仓、低波动可加仓（方向分之外的独立维度）
+    # ---- 持仓级止损/止盈纪律（主动离场，与新闻/信号驱动卖出互补） ----
+    "useStops": True,            # 启用固定止损 + 移动止盈 + 目标止盈
+    "trailPct": 15,              # 移动止盈：从历史峰值回撤超过该%则卖出锁利润
+    "takeProfitPct": 30,         # 目标止盈：浮盈达到该%则分批落袋（先卖一半）
 }
 
 
@@ -550,6 +554,10 @@ CN_AGGRESSIVE_CONFIG = {
     "regimePosCap": 80,
     # ---- 波动率自适应仓位（激进版：波动收紧更温和，但仍响应高波动） ----
     "useVolTarget": True,
+    # ---- 持仓级止损/止盈纪律（激进版：止损线更宽，让利润多跑，但同样设纪律） ----
+    "useStops": True,
+    "trailPct": 20,              # 移动止盈回撤线放宽（激进版 20）
+    "takeProfitPct": 40,         # 目标止盈位抬高（激进版 40）
 }
 
 
@@ -593,6 +601,10 @@ US_CONFIG = {
     "regimePosCap": 70,
     # ---- 波动率自适应仓位（美股：用标普500 usINX 波动率，同样启用） ----
     "useVolTarget": True,
+    # ---- 持仓级止损/止盈纪律（美股：与稳健版一致，主动离场） ----
+    "useStops": True,
+    "trailPct": 15,
+    "takeProfitPct": 30,
 }
 
 
@@ -1832,6 +1844,79 @@ def refresh_prices(s):
     return err
 
 
+def _update_peak(h, price):
+    """更新持仓历史最高价（用于移动止盈回撤计算）。"""
+    if price > (h.get("peak") or 0):
+        h["peak"] = price
+
+
+def check_stops(s):
+    """持仓级止损/止盈纪律（借鉴 QuantsPlaybook 的组合风控思想）。
+
+    这是对「新闻/信号驱动卖出」的补强：新闻没有利空、信号没转弱时，持仓也可能
+    已经浮亏过深或回吐过多，需要**主动**离场，而不是被动等消息。三类规则：
+
+      1. 固定止损：现价相对成本跌破 stopLossPct → 全仓清掉（砍掉深套）
+      2. 移动止盈：从历史峰值回撤超过 trailPct → 卖出，锁住利润（让利润奔跑，
+         但防止「坐电梯」回吐）
+      3. 目标止盈：盈利达到 takeProfitPct → 分批止盈（先落袋一部分）
+
+    返回卖出笔数。只在交易时段内执行（与 execute_approved 一致）。
+    """
+    cfg = s["config"]
+    if not cfg.get("useStops", True):
+        return 0
+    if not in_trading_hours():
+        return 0
+    done = 0
+    stop_loss = float(cfg.get("stopLossPct", -8))
+    trail = float(cfg.get("trailPct", 15))
+    take = float(cfg.get("takeProfitPct", 30))
+    for h in list(s["holdings"]):
+        if h["shares"] <= 0 or h["cost"] <= 0 or h["price"] <= 0:
+            continue
+        code = h["code"]
+        name = h["name"]
+        price = h["price"]
+        cost = h["cost"]
+        pnl_pct = (price - cost) / cost * 100.0
+
+        _update_peak(h, price)
+        peak = h.get("peak") or cost
+        drawdown = (price - peak) / peak * 100.0  # 相对峰值回撤（负值）
+
+        reason = ""
+        qty = 0
+        # 1. 固定止损：深套清仓
+        if pnl_pct <= stop_loss:
+            reason = "止损：浮亏%.1f%% 触及%.0f%% 线" % (pnl_pct, stop_loss)
+            qty = h["shares"]
+        # 2. 移动止盈：从峰值回撤过大，锁利润
+        elif pnl_pct > 0 and drawdown <= -trail:
+            reason = "移动止盈：从峰值回撤%.1f%% 触及%.0f%% 线（仍浮盈%.1f%%）" % (
+                drawdown, trail, pnl_pct)
+            qty = h["shares"]
+        # 3. 目标止盈：达到目标位，分批落袋（先卖一半）
+        elif pnl_pct >= take:
+            reason = "目标止盈：浮盈%.1f%% 触及%.0f%% 目标，分批落袋" % (pnl_pct, take)
+            qty = max(1, int(h["shares"] * 0.5))
+
+        if qty <= 0:
+            continue
+        if quota_block(s):
+            # 达到当日笔数上限，本笔跳过（不卖），下轮再试
+            log("止损止盈暂停（%s）" % quota_block(s))
+            break
+        tr = do_sell(s, name, code, price, qty, reason)
+        if tr:
+            done += 1
+            # 止损止盈清仓后，重置峰值，避免残留影响未来重新建仓
+            if h["shares"] <= 0:
+                h.pop("peak", None)
+            log("止损止盈卖出 %s %d 股 @%.3f（%s）" % (name, qty, price, reason))
+    return done
+
+
 # ---------------------------------------------- 专家评议团
 # 四位分析师各自独立出意见（不看别人），加权合议投票；风控官持一票否决权。
 ANALYSTS = [
@@ -2386,6 +2471,14 @@ def scan(s, force_trade=False):
         compute_signals(s)
     except Exception as exc:
         log("信号计算异常: %s" % exc)
+
+    # 持仓级止损/止盈纪律：基于刚刷新的现价主动离场（与新闻/信号驱动卖出互补）
+    try:
+        stopped = check_stops(s)
+        if stopped:
+            log("止损止盈触发 %d 笔" % stopped)
+    except Exception as exc:
+        log("止损止盈异常: %s" % exc)
 
     # 市场环境温度计：大盘择时（RSRS + 扩散指标 + 动量），供买卖决策/风控收紧用
     try:
