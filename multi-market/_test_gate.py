@@ -89,9 +89,9 @@ chk("强信号无新闻也入队", len(pend) == 1 and pend[0]["name"] == "特斯
     str(pend[:1]))
 chk("信号候选带方向与分值", pend[0]["direction"] == "买入" and pend[0]["score"] == 5)
 
-# 7. 弱信号不入队
+# 7. 弱信号不入队（美股 sigScore 已下调为 2，故 delta=1 才低于门槛）
 s = fresh_state()
-s["signals"]["usTSLA"] = {"tech": 1, "lhb": 0, "ann": 0, "delta": 2,
+s["signals"]["usTSLA"] = {"tech": 1, "lhb": 0, "ann": 0, "delta": 1,
                             "block": False, "notes": []}
 srv.enqueue_review_candidates(s, [])
 chk("低于 sigScore 门槛不入队", len(s["pendingReview"]) == 0)
