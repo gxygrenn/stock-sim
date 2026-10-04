@@ -2604,6 +2604,7 @@ def daily_facts(s):
                           for p in (s.get("pendingReview") or [])],
         "expiredRecent": (s.get("expiredReviews") or [])[-5:],
         "reviewedToday": reviewed_today,
+        "reviewed": s.get("reviewed") or {},   # 完整 code->时间戳（冷却判断用，跨天也可靠）
         "reviewLog": (s.get("reviewLog") or [])[-200:],
         "councilToday": council_today[:10],
         "marketContext": s.get("marketContext"),
