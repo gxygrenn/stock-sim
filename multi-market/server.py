@@ -992,7 +992,126 @@ def tech_score(s, code):
     if amount > 0 and amount < 1e8:
         score -= 1; notes.append("流动性差-1")
 
+    # 8. 旗形突破（Sequoia-X 旗形形态，美股/A股通用）：急涨旗杆 + 高位缩量整理 + 放量突破
+    flag = flag_pattern(closes, highs, vols)
+    if flag > 0:
+        score += 1; notes.append("旗形突破+1")
+    elif flag < 0:
+        score -= 1; notes.append("旗形破位-1")
+
+    # 9/10. A股专属形态（涨停洗盘 / 跌停反包），美股不适用
+    if ACCOUNTS.get(current_account(), {}).get("market") == "cn":
+        if limitup_washout(closes, vols):
+            score += 1; notes.append("涨停洗盘+1")
+        if limitdown_reversal(closes, vols):
+            score += 1; notes.append("跌停反包+1")
+
     return max(-3, min(3, score)), notes[:8]
+
+
+def flag_pattern(closes, highs, vols):
+    """旗形形态识别（借鉴 Sequoia-X 旗形策略）。
+
+    结构：旗杆 = 近 12 日内有一段急涨（单日涨幅 >8%）；
+          旗面 = 随后 3~8 日高位窄幅整理（区间幅度 < 杆高的 50%，且缩量）；
+          突破 = 最新价上穿旗面上沿（放量更可靠）或跌破下沿。
+    返回 +1=向上突破 / -1=向下破位 / 0=无旗形或未突破。
+    """
+    n = len(closes)
+    if n < 10:
+        return 0
+    # 找旗杆：从前往后扫，在 n-9 .. n-4 之间找最大单日涨幅（给旗面留至少 3 根）
+    pole_i, pole_r = -1, 0.0
+    for i in range(max(1, n - 9), n - 3):
+        if closes[i - 1] > 0:
+            r = (closes[i] / closes[i - 1] - 1) * 100
+            if r > pole_r:
+                pole_r, pole_i = r, i
+    if pole_r < 8 or pole_i < 0:
+        return 0                        # 没有足够强的旗杆
+    # 旗面：旗杆之后的整理区间（3~8 日，不含最新突破日），用收盘价定义上下沿
+    seg_c = closes[pole_i + 1:-1]
+    if len(seg_c) < 2 or len(seg_c) > 9:
+        return 0
+    seg_hi = max(seg_c)
+    seg_lo = min(seg_c)
+    if seg_hi <= seg_lo:
+        return 0
+    # 旗面高度应明显小于旗杆（窄幅整理）
+    pole_h = (closes[pole_i] - closes[pole_i - 1]) / closes[pole_i - 1] * 100
+    flag_h = (seg_hi - seg_lo) / seg_lo * 100
+    if flag_h > pole_h * 0.5:
+        return 0                        # 整理太宽，不是旗形
+    # 缩量确认：旗面均量 < 旗杆日量的 1.1 倍（放量突破前通常是缩量整理，留点容差）
+    pole_v = vols[pole_i] if pole_i < len(vols) else 0
+    flag_vols = vols[pole_i + 1:-1] if pole_i + 1 < len(vols) else []
+    flag_v = sum(flag_vols) / len(flag_vols) if flag_vols else 0
+    if pole_v > 0 and flag_v > pole_v * 1.1:
+        return 0                        # 整理期明显放量，非旗形
+    # 突破方向
+    latest = closes[-1]
+    if latest > seg_hi:
+        return 1                        # 向上突破
+    if latest < seg_lo:
+        return -1                       # 向下破位
+    return 0
+
+
+def limitup_washout(closes, vols):
+    """涨停洗盘（A股专属）：近期出现涨停后缩量回踩不破支撑，是强势洗盘。
+
+    规则：近 12 日内有涨停（单日涨幅 >= 9.5%）；涨停后回踩（现价低于涨停收盘，
+          但未跌破涨停前一日收盘的 97%）；且回踩期间缩量。
+    """
+    n = len(closes)
+    if n < 6:
+        return False
+    start = max(1, n - 12)
+    for i in range(start, n - 1):
+        if closes[i - 1] <= 0:
+            continue
+        r = (closes[i] / closes[i - 1] - 1) * 100
+        if r >= 9.5:
+            support = closes[i - 1]     # 涨停前一日收盘做支撑
+            latest = closes[-1]
+            if latest < closes[i] and latest >= support * 0.97:
+                # 缩量：回踩段均量 < 涨停日量的 80%
+                if i < len(vols) and vols[i] > 0:
+                    tail = vols[i + 1:]
+                    if tail and sum(tail) / len(tail) < vols[i] * 0.8:
+                        return True
+            return False
+    return False
+
+
+def limitdown_reversal(closes, vols):
+    """跌停反包（A股专属）：跌停次日放量阳线反包，超跌反转信号。
+
+    规则：近 10 日内有跌停（单日跌幅 <= -9.5%）；次日（或近 2 日内）收阳且
+          收盘价收复跌停阴线实体一半以上，且放量。
+    """
+    n = len(closes)
+    if n < 5:
+        return False
+    start = max(1, n - 10)
+    for i in range(start, n - 1):
+        if closes[i - 1] <= 0:
+            continue
+        r = (closes[i] / closes[i - 1] - 1) * 100
+        if r <= -9.5:
+            for j in (i + 1, i + 2):
+                if j >= n:
+                    break
+                if closes[j - 1] <= 0:
+                    continue
+                if closes[j] > closes[j - 1]:           # 阳线
+                    body_lo = closes[i]                 # 跌停阴线实体下沿
+                    body_hi = closes[i - 1]             # 阴线实体上沿
+                    if closes[j] >= (body_hi + body_lo) / 2:
+                        if j < len(vols) and vols[j] > vols[i] * 1.2:   # 放量
+                            return True
+            return False
+    return False
 
 
 def _linreg(xs, ys):
