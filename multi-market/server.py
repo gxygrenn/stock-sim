@@ -511,6 +511,8 @@ CN_CONSERVATIVE_CONFIG = {
     "takeProfitPct": 30,         # 目标止盈：浮盈达到该%则分批落袋（先卖一半）
     # ---- 行业轮动 RRG（相对旋转图，识别强势行业，供进攻档聚焦强势行业） ----
     "useSectorRotation": True,   # 每轮扫描算行业相对强弱，进攻档聚焦领先/转强行业
+    # ---- 量价微观结构因子（买卖压力/振幅/凸显性，直接进 delta 打分） ----
+    "usePriceVolume": True,      # 量价质量分折半叠加进综合信号 delta
 }
 
 
@@ -562,6 +564,8 @@ CN_AGGRESSIVE_CONFIG = {
     "takeProfitPct": 40,         # 目标止盈位抬高（激进版 40）
     # ---- 行业轮动 RRG（激进版：更强调强势行业聚焦，加成更大） ----
     "useSectorRotation": True,
+    # ---- 量价微观结构因子（激进版：同样接入 delta，但阈值更松） ----
+    "usePriceVolume": True,
 }
 
 
@@ -611,6 +615,8 @@ US_CONFIG = {
     "takeProfitPct": 30,
     # ---- 行业轮动 RRG（美股：用标普500做基准，识别强势行业） ----
     "useSectorRotation": True,
+    # ---- 量价微观结构因子（美股：同样接入 delta） ----
+    "usePriceVolume": True,
 }
 
 
@@ -1823,7 +1829,19 @@ def compute_signals(s):
             log("公告获取失败: %s" % exc)
     signals = {}
     s["signals"] = signals          # 提前挂上：评议团预览要读同一份最新数据
+    # 行业轮动：先算一次 RRG，供 delta 合成里的行业加分用（scan 里 market_regime 也会再算，幂等）
+    if cfg.get("useSectorRotation"):
+        try:
+            sector_rotation(s)
+        except Exception as exc:
+            log("行业轮动异常: %s" % exc)
+    sec_leading = set((s.get("sectors") or {}).get("leading") or [])
+    sec_improving = set((s.get("sectors") or {}).get("improving") or [])
+    _sec_list = (s.get("sectors") or {}).get("sectors") or []
+    sec_weakening = {x["name"] for x in _sec_list if x.get("tier") == "weakening"}
+    sec_lagging = {x["name"] for x in _sec_list if x.get("tier") == "lagging"}
     tech_fail = 0
+    pvf_fail = 0
     for item in s["pool"]:
         code = item["code"]
         num = re.sub(r"\D", "", code)
@@ -1840,9 +1858,37 @@ def compute_signals(s):
         ls, lnote = (lhb_score(lhb[num]) if (cfg.get("useLhb") and num in lhb) else (0, ""))
         ascore, anotes = (ann_score(ann_by_code.get(num, [])) if cfg.get("useAnn") else (0, []))
         block, vnotes, vdelta = val_filter(s, cfg, code)
-        delta = max(-6, min(6, tech + ls + ascore + vdelta))
-        notes = tnotes + ([lnote] if lnote else []) + anotes + vnotes
+        # 量价微观结构因子：直接进 delta（折半叠加，[-3,3]→[-1.5,1.5]，避免喧宾夺主）
+        pvf = 0.0
+        pvf_notes = []
+        if cfg.get("usePriceVolume", True):
+            try:
+                pvf_raw, pvf_notes, _ = price_volume_factors(code)
+                pvf = round(pvf_raw * 0.5, 2)
+            except Exception as exc:
+                pvf_fail += 1
+                if pvf_fail == 1:
+                    log("量价因子获取失败(%s): %s" % (code, exc))
+        # 行业轮动加分：领先/转强行业加分、转弱/落后行业减分，直接进 delta（小权重）
+        sec = sector_of(item)
+        sector_bonus = 0.0
+        if cfg.get("useSectorRotation"):
+            if sec in sec_leading:
+                sector_bonus = 0.4
+                pvf_notes.append("领先行业+0.4")
+            elif sec in sec_improving:
+                sector_bonus = 0.2
+                pvf_notes.append("转强行业+0.2")
+            elif sec in sec_weakening:
+                sector_bonus = -0.2
+                pvf_notes.append("转弱行业-0.2")
+            elif sec in sec_lagging:
+                sector_bonus = -0.4
+                pvf_notes.append("落后行业-0.4")
+        delta = max(-6, min(6, tech + ls + ascore + vdelta + pvf + sector_bonus))
+        notes = tnotes + ([lnote] if lnote else []) + anotes + vnotes + pvf_notes
         signals[code] = {"tech": tech, "lhb": ls, "ann": ascore, "delta": delta,
+                         "pvf": pvf, "sectorBonus": sector_bonus,
                          "block": block, "notes": notes[:6], "time": now_str()}
         # 评议团预览：四位分析师此刻对该股的倾向（不记录、不否决）
         try:
