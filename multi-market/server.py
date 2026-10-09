@@ -33,6 +33,9 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
 BASE = os.path.dirname(os.path.abspath(__file__))
 DATA_FILE = os.path.join(BASE, "data-multi.json")   # 独立数据文件，避免读到旧单账户版残留的 data.json
+# 跨部署持久化快照：随代码一起进 git 仓库并部署，重新部署后若 data-multi.json 丢失则从此恢复。
+SNAPSHOT_DIR = os.path.join(BASE, "snapshot")
+SNAPSHOT_FILE = os.path.join(SNAPSHOT_DIR, "data-multi.snapshot.json")
 UA = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"}
 
 # ---------------------------------------------------------------- 词库
@@ -728,8 +731,46 @@ def load_state(account=None):
                 d = acct_data
         except Exception as exc:
             d["log"] = [{"time": now_str(), "msg": "读取存档失败(%s)，已使用新账户" % exc}]
+    else:
+        # 主存档不存在（如重新部署后被清空）→ 尝试从跨部署快照恢复
+        _restore_from_snapshot(account, d)
     _states[account] = d
     return d
+
+
+def _restore_from_snapshot(account, d):
+    """主存档缺失时，尝试从跨部署快照恢复（重新部署后 data-multi.json 会被清空，快照随代码部署带上）。"""
+    try:
+        if os.path.exists(DATA_FILE):
+            return
+        if not os.path.exists(SNAPSHOT_FILE):
+            return
+        with open(SNAPSHOT_FILE, "r", encoding="utf-8") as fh:
+            saved = json.load(fh)
+        acct_data = None
+        if isinstance(saved, dict) and any(k in ACCOUNTS for k in saved):
+            acct_data = saved.get(account)
+        elif account == DEFAULT_ACCOUNT:
+            acct_data = saved
+        if not acct_data:
+            return
+        # 与 load_state 相同的补键逻辑：快照里的旧字段缺失时用默认补上
+        for k, v in d.items():
+            if k not in acct_data:
+                acct_data[k] = v
+        for k, v in ACCOUNTS[account]["config"].items():
+            if k not in acct_data.get("config", {}):
+                acct_data["config"][k] = v
+        for p in acct_data.get("pool", []):
+            if "tags" not in p:
+                p["tags"] = ""
+        d.clear()
+        d.update(acct_data)
+        d.setdefault("log", []).insert(0, {"time": now_str(),
+                                           "msg": "已从跨部署快照恢复最近一次存档"})
+    except Exception as exc:
+        d.setdefault("log", []).insert(0, {"time": now_str(),
+                                           "msg": "快照恢复失败(%s)，使用新账户" % exc})
 
 
 def save_state():
@@ -745,9 +786,23 @@ def save_state():
             with open(tmp, "w", encoding="utf-8") as fh:
                 json.dump(_states, fh, ensure_ascii=False)
             os.replace(tmp, DATA_FILE)
+            _write_snapshot(_states)
     except Exception as exc:
         _save_broken = True
         print("存档写入失败，转为内存模式: %s" % exc, flush=True)
+
+
+def _write_snapshot(states):
+    """把当前状态同步写一份到快照文件（随代码部署，跨部署持久化）。失败不影响主存档。"""
+    try:
+        if not os.path.isdir(SNAPSHOT_DIR):
+            os.makedirs(SNAPSHOT_DIR, exist_ok=True)
+        tmp = SNAPSHOT_FILE + ".tmp"
+        with open(tmp, "w", encoding="utf-8") as fh:
+            json.dump(states, fh, ensure_ascii=False)
+        os.replace(tmp, SNAPSHOT_FILE)
+    except Exception as exc:
+        print("快照写入失败: %s" % exc, flush=True)
 
 
 def log(msg):
@@ -3278,11 +3333,15 @@ class Handler(BaseHTTPRequestHandler):
                             pend.remove(hit)
                         outcome = "HOLD，出队"
                     # 评审历史台账：完整留存结论，独立于队列生命周期，供事后对账审计
+                    # 补记评审时价格：让「被否决/HOLD 的票后来涨跌」可回算，供每日误杀归因学习
+                    _rev_item = next((it for it in s["pool"] if it.get("code") == hit.get("code")), None)
+                    _rev_price = current_price(s, _rev_item) if _rev_item else 0.0
                     rl = s.setdefault("reviewLog", [])
                     rl.append({"code": hit.get("code"), "name": hit.get("name"),
                                "verdict": verdict, "confidence": conf, "note": note,
                                "reviewedAt": reviewed_at, "outcome": outcome,
                                "queued": verdict in ("BUY", "SELL"),
+                               "priceAtReview": round(_rev_price, 3) if _rev_price > 0 else None,
                                "fillPrice": None, "fillTime": None})
                     s["reviewLog"] = rl[-200:]
                     log("专家团评审 %s(%s) -> %s 信心%s（%s）| %s"
