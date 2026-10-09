@@ -3187,15 +3187,20 @@ def quota_block(s):
 
 
 def current_price(s, item):
+    code = item.get("code") if isinstance(item, dict) else item
     if s["priceMode"] == "real":
         try:
-            q = fetch_prices([item["code"]]).get(item["code"])
+            q = fetch_prices([code]).get(code)
             if q and q["price"] > 0:
                 return q["price"]
         except Exception:
             pass
+        # 实时拉价失败 → 回退到扫描时已存的最新报价（poolQuote 里 A股/美股都常驻有价）
+        pq = (s.get("poolQuote") or {}).get(code) or {}
+        if (pq.get("price") or 0) > 0:
+            return pq["price"]
     for h in s["holdings"]:
-        if h["code"] == item["code"] and h["price"] > 0:
+        if h["code"] == code and h["price"] > 0:
             return h["price"]
     return 0.0
 
@@ -3334,8 +3339,13 @@ class Handler(BaseHTTPRequestHandler):
                         outcome = "HOLD，出队"
                     # 评审历史台账：完整留存结论，独立于队列生命周期，供事后对账审计
                     # 补记评审时价格：让「被否决/HOLD 的票后来涨跌」可回算，供每日误杀归因学习
-                    _rev_item = next((it for it in s["pool"] if it.get("code") == hit.get("code")), None)
-                    _rev_price = current_price(s, _rev_item) if _rev_item else 0.0
+                    # 取值优先级：入队时已缓存的 px（最稳）→ poolQuote → current_price 实时拉价
+                    _rev_price = hit.get("px") or 0.0
+                    if _rev_price <= 0:
+                        _rev_price = cached_price(s, hit.get("code"))
+                    if _rev_price <= 0:
+                        _rev_item = next((it for it in s["pool"] if it.get("code") == hit.get("code")), None)
+                        _rev_price = current_price(s, _rev_item) if _rev_item else 0.0
                     rl = s.setdefault("reviewLog", [])
                     rl.append({"code": hit.get("code"), "name": hit.get("name"),
                                "verdict": verdict, "confidence": conf, "note": note,
