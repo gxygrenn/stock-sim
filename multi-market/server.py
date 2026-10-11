@@ -1914,6 +1914,14 @@ def execute_approved_pool_changes(s):
                 s["pool"].append({"name": name, "code": code, "alias": name,
                                   "beta": 1.0,
                                   "tags": "%s,热点,强势" % (meta.get("industry") or "")})
+                # 入池即补拉现价进 poolQuote：否则新票要等下一次 refresh_prices 才有价，
+                # 若赶上休市/扫描停摆，评审时 priceAtReview 会落空（2026-10-10 已实锤 A 股误杀归因缺价）
+                try:
+                    _q = fetch_prices([code]).get(code)
+                    if _q and (_q.get("price") or 0) > 0:
+                        s.setdefault("poolQuote", {})[code] = _q
+                except Exception:
+                    pass
                 logbook.append({"code": code, "name": name, "direction": "add",
                                 "result": "added", "time": now_str(),
                                 "note": p.get("reason", "")})
@@ -2225,28 +2233,70 @@ def do_sell(s, name, code, price, qty, reason):
     return tr
 
 
+# 2026 年 A 股法定节假日休市日期（上交所官方公告；周末不在此列，由 weekday 判断处理）。
+# 仅覆盖 2026 年，跨年后需人工续补。
+CN_HOLIDAYS_2026 = {
+    # 元旦：1/1(四)~1/3(六)
+    "2026-01-01", "2026-01-02", "2026-01-03",
+    # 春节：2/15(日)~2/23(一)
+    "2026-02-15", "2026-02-16", "2026-02-17", "2026-02-18", "2026-02-19",
+    "2026-02-20", "2026-02-21", "2026-02-22", "2026-02-23",
+    # 清明：4/4(六)~4/6(一)
+    "2026-04-04", "2026-04-05", "2026-04-06",
+    # 劳动节：5/1(五)~5/5(二)
+    "2026-05-01", "2026-05-02", "2026-05-03", "2026-05-04", "2026-05-05",
+    # 端午：6/19(五)~6/21(日)
+    "2026-06-19", "2026-06-20", "2026-06-21",
+    # 中秋：9/25(五)~9/27(日)
+    "2026-09-25", "2026-09-26", "2026-09-27",
+    # 国庆：10/1(四)~10/7(三)
+    "2026-10-01", "2026-10-02", "2026-10-03", "2026-10-04", "2026-10-05",
+    "2026-10-06", "2026-10-07",
+}
+
+
+def is_cn_holiday(dt):
+    """判断某日是否为 A 股法定节假日休市日（不含周末）。"""
+    return dt.strftime("%Y-%m-%d") in CN_HOLIDAYS_2026
+
+
 def next_trading_day(ds):
     y, m, d = [int(x) for x in ds.split("-")]
     cur = datetime(y, m, d) + timedelta(days=1)
-    while cur.weekday() >= 5:
+    while cur.weekday() >= 5 or is_cn_holiday(cur):
         cur += timedelta(days=1)
     return cur.strftime("%Y-%m-%d")
 
 
 def settle(s, mkt_pct, date_str=None):
-    """结算：记录当日快照。当日盈亏 = 总资产变化（含手续费）。"""
+    """结算：记录当日快照。当日盈亏 = 总资产变化（含手续费）。
+
+    A 股法定节假日休市日不产生结算记录（跳过，只推进 nextDate），
+    避免把国庆/春节等假期日误当交易日结算出虚假 history 记录。
+    """
+    base = date_str or s["nextDate"]
+    # A 股账户且 base 落在法定节假日 → 跳过结算，只推进到下一个交易日
+    market = (ACCOUNTS.get(current_account()) or {}).get("market")
+    if market != "us":
+        try:
+            y, m, d = [int(x) for x in base.split("-")]
+            if is_cn_holiday(datetime(y, m, d)):
+                s["nextDate"] = next_trading_day(base)
+                return
+        except Exception:
+            pass
     prev = s["history"][-1]["total"] if s["history"] else s["initCapital"]
     total = total_asset(s)
     s["idx"] = s["idx"] * (1 + mkt_pct / 100.0)
     s["history"].append({
-        "date": date_str or s["nextDate"],
+        "date": base,
         "mkt": round(mkt_pct, 4),
         "total": round(total, 2),
         "dayPnl": round(total - prev, 2),
         "ret": round((total / s["initCapital"] - 1) * 100, 4),
         "mret": round(s["idx"] - 100, 4),
     })
-    s["nextDate"] = next_trading_day(date_str or s["nextDate"])
+    s["nextDate"] = next_trading_day(base)
 
 
 # ---------------------------------------------------------------- 扫描
@@ -2690,8 +2740,8 @@ def us_dst(now=None):
 
 
 def cn_trading(now):
-    """A 股连续竞价时段（工作日 09:30-11:30 / 13:00-15:00）。"""
-    if now.weekday() >= 5:
+    """A 股连续竞价时段（工作日 09:30-11:30 / 13:00-15:00），法定节假日休市。"""
+    if now.weekday() >= 5 or is_cn_holiday(now):
         return False
     hm = now.hour * 60 + now.minute
     return (570 <= hm <= 690) or (780 <= hm <= 900)
@@ -3438,16 +3488,7 @@ class Handler(BaseHTTPRequestHandler):
                         refresh_prices(s)
                         q = s.get("quote") or {}
                         pct = q.get("pct", pct)
-                    prev = s["history"][-1]["total"] if s["history"] else s["initCapital"]
-                    total = total_asset(s)
-                    s["idx"] = s["idx"] * (1 + pct / 100.0)
-                    s["history"].append({
-                        "date": s["nextDate"], "mkt": round(pct, 4), "total": round(total, 2),
-                        "dayPnl": round(total - prev, 2),
-                        "ret": round((total / s["initCapital"] - 1) * 100, 4),
-                        "mret": round(s["idx"] - 100, 4),
-                    })
-                    s["nextDate"] = next_trading_day(s["nextDate"])
+                    settle(s, pct)
                     save_state()
                     self._json({"ok": True})
                     return
