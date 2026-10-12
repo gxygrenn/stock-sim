@@ -4,7 +4,7 @@ data-multi.json
 logs/
 
 # 跨部署持久化快照（含真实账户数据，不进版本管理/不泄露到远程仓库）
-snapshot/data-multi.snapshot.json
+multi-market/snapshot/
 
 # Python 缓存
 __pycache__/
