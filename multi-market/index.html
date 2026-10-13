@@ -887,9 +887,17 @@ function renderCouncil(){
         var appr = (p.state==="approved");
         var wait = (p.waitH===undefined||p.waitH===null||p.waitH<0) ? "" : ("\u5df2\u7b49 "+p.waitH+"h");
         var wc = appr ? "#0f7a45" : (p.waitH>=18 ? "#c0392b" : "#b6bdc9");
+        var cb = "";
+        if(p.council){
+          var cvc = p.council.verdict==="\u4e70\u5165" ? "b-buy" : (p.council.verdict==="\u5356\u51fa" ? "b-sell" :
+                   (p.council.verdict==="\u5426\u51b3" ? "b-veto" : "b-wait"));
+          var ctip = (p.council.notes||[]).join("\uff0c")+(p.council.veto?("\uff08\u98ce\u63a7:"+p.council.veto+"\uff09"):"");
+          cb = "<span class='badge "+cvc+"' title='"+esc(ctip)+"'>\u521d\u5ba1:"+esc(p.council.verdict)+"</span>";
+        }
         return "<div style='display:flex;gap:6px;align-items:center;font-size:12px;padding:2px 0'>"+
           "<span class='badge "+dc+"'>"+esc(p.direction)+"</span>"+
           "<b>"+esc(p.name)+"</b>"+
+          cb+
           (appr?"<span class='badge b-buy'>\u5df2\u6279\u51c6\u00b7\u5f85\u6210\u4ea4</span>":"")+
           "<span style='color:#8a93a5'>"+esc(p.reason||"")+"</span>"+
           "<span style='margin-left:auto;color:"+wc+"'>"+esc(wait)+"</span></div>";

@@ -482,6 +482,8 @@ CN_CONSERVATIVE_CONFIG = {
     "indexCode": "sh000001",
     "reviewCooldownMin": 60,  # 同一只股票专家评审后多久内不再进入待评审队列
     "reviewTTLHours": 24,  # 候选在待评审队列里最多等这么久，超时作废出队（防坑位被长期占死）
+    "approvedTTLHours": 24,  # 已批准结论的保质期：超时未成交作废（防周六的结论周一才买，行情早变了）
+    "sameDayBuyMax": 1,      # 同一只股票当日最多自动买入次数（防评审冷却间隙里同股连买）
     # ---- 信号源（新闻之外的影响因素） ----
     "useTech": True,     # 技术面：均线多空/20日新高新低/量比
     "useLhb": True,      # 龙虎榜：机构游资净买净卖
@@ -535,6 +537,8 @@ CN_AGGRESSIVE_CONFIG = {
     "indexCode": "sh000001",
     "reviewCooldownMin": 30,  # 评审冷却（稳健版 60）
     "reviewTTLHours": 24,  # 候选在待评审队列里最多等这么久，超时作废出队（防坑位被长期占死）
+    "approvedTTLHours": 24,  # 已批准结论的保质期：超时未成交作废（防周六的结论周一才买，行情早变了）
+    "sameDayBuyMax": 1,      # 同一只股票当日最多自动买入次数（防评审冷却间隙里同股连买）
     # ---- 信号源（新闻之外的影响因素） ----
     "useTech": True,     # 技术面：均线多空/20日新高新低/量比
     "useLhb": True,      # 龙虎榜：机构游资净买净卖
@@ -586,6 +590,8 @@ US_CONFIG = {
     "indexCode": "usINX",  # 美股版：标普500 指数（替代上证 sh000001）
     "reviewCooldownMin": 60,  # 同一只股票专家评审后多久内不再进入待评审队列
     "reviewTTLHours": 24,  # 候选在待评审队列里最多等这么久，超时作废出队（防坑位被长期占死）
+    "approvedTTLHours": 24,  # 已批准结论的保质期：超时未成交作废（防周六的结论周一才买，行情早变了）
+    "sameDayBuyMax": 1,      # 同一只股票当日最多自动买入次数（防评审冷却间隙里同股连买）
     # ---- 信号源（美股版：龙虎榜/公告/估值均为 A 股专属，已关闭；仅保留技术面 + 新闻） ----
     "useTech": True,     # 技术面：均线多空/20日新高新低/量比（美股 K 线源可用）
     "useLhb": False,     # 龙虎榜：美股无此概念，关闭
@@ -2529,16 +2535,17 @@ def _risk_check(s, item, code, direction, price, advisory=False):
 
 
 def run_council(s, item, code, news_score=0, news_title="", skip_risk=False, record=True,
-                session="", advisory=False):
+                session="", advisory=False, price_hint=0.0):
     """开一次专家会：四位分析师独立研判 -> 加权合议 -> 风控官否决。
 
     advisory=True 时按「研判会」处理：只出意见不下单，风控官不查执行额度。
+    price_hint>0 时用该价研判（入队初审用缓存价，省一次实时拉价）。
     返回 {verdict(买入/卖出/观望/否决), score, agree, total, veto, votes[], time}。
     """
     cfg = s["config"]
     sig = (s.get("signals") or {}).get(code) or {}
     q = (s.get("poolQuote") or {}).get(code) or {}
-    price = current_price(s, item) or 0
+    price = float(price_hint or 0) or current_price(s, item) or 0
 
     t = int(sig.get("tech", 0) or 0) if cfg.get("useTech") else 0
     tnotes = [x for x in (sig.get("notes") or []) if x.startswith(("均线", "20日", "放量"))][:3]
@@ -2782,8 +2789,9 @@ def expire_stale_reviews(s):
     """队列 TTL：等太久的候选作废出队，释放坑位，避免队列被永久占死。
 
     - 未评审（waiting）：从入队时间 queuedAt 起算，超 TTL 作废
-    - 已批准（approved）：**不因 TTL 作废**（已过专家团评审，是有效决策），
-      由 execute_approved 在交易时段成交，或用业务原因（信号跌破下限/资金不足/持仓满）drop
+    - 已批准（approved）：也有保质期 approvedTTLHours——超时未成交说明结论已脱离
+      行情（典型：周六批准、周一才开盘，其间隔夜消息全没消化），作废出队，
+      复市后的扫描会按最新信号重新入队评审，而不是拿旧结论直接下单
     - 旧格式条目（没有 queuedAt 的）一律视为已过期
     """
     cfg = s["config"]
@@ -2791,18 +2799,27 @@ def expire_stale_reviews(s):
         ttl = float(cfg.get("reviewTTLHours", 24) or 24)
     except Exception:
         ttl = 24.0
+    try:
+        attl = float(cfg.get("approvedTTLHours", 24) or 24)
+    except Exception:
+        attl = 24.0
     pend = s.get("pendingReview") or []
     if not pend:
         return 0
     keep, dropped = [], []
     for p in pend:
-        if (p.get("state") or "waiting") == "approved":
-            keep.append(p)     # approved 已过专家团评审，不因墙钟 TTL 作废；交给 execute_approved 成交或业务原因 drop
+        st = p.get("state") or "waiting"
+        if st == "approved":
+            aged = age_hours(p.get("reviewedAt") or p.get("queuedAt") or p.get("time"))
+            if aged < 0 or aged <= attl:
+                keep.append(p)     # 批准未过期：交给 execute_approved 在交易时段成交
+            else:
+                dropped.append((p, aged, "批准结论超 %.0fh 保质期" % attl))
             continue
         base = p.get("queuedAt") or p.get("time")
         aged = age_hours(base)
         if aged < 0 or aged > ttl:
-            dropped.append((p, aged if aged >= 0 else ttl))
+            dropped.append((p, aged if aged >= 0 else ttl, "TTL 超时未评审"))
         else:
             keep.append(p)
     if not dropped:
@@ -2810,14 +2827,15 @@ def expire_stale_reviews(s):
     s["pendingReview"] = keep
     reviewed = s.setdefault("reviewed", {})
     exp = s.setdefault("expiredReviews", [])
-    for p, aged in dropped:
+    for p, aged, why in dropped:
         exp.append({"code": p.get("code"), "name": p.get("name"),
                     "direction": p.get("direction"), "state": p.get("state") or "waiting",
-                    "waitedH": round(aged, 1), "why": "TTL 超时未评审", "time": now_str()})
+                    "waitedH": round(aged, 1), "why": why, "time": now_str()})
         reviewed[(p.get("code") or "").lower()] = now_str()   # 记冷却（key 统一小写），避免同一条信号立刻又被塞回来
     s["expiredReviews"] = exp[-100:]
-    log("评审队列 TTL 作废 %d 只：%s"
-        % (len(dropped), "、".join((p.get("name") or p.get("code")) for p, _ in dropped)))
+    log("评审队列作废 %d 只：%s"
+        % (len(dropped), "、".join("%s(%s)" % (p.get("name") or p.get("code"), why)
+                                    for p, _, why in dropped)))
     return len(dropped)
 
 
@@ -2874,12 +2892,35 @@ def execute_approved(s):
         if price <= 0:
             continue                      # 没报价，留着下轮再试
         lag = age_hours(p.get("reviewedAt") or p.get("time"))
+        # 闸门一：批准结论的保质期。过期说明结论已脱离行情（如周六批准、周一才开盘），
+        # 宁可作废重评也不拿旧结论下单（2026-10-11 教训：国轩高科按 68.8h 前的结论成交）
+        try:
+            attl = float(cfg.get("approvedTTLHours", 24) or 24)
+        except Exception:
+            attl = 24.0
+        if lag >= 0 and lag > attl:
+            s.setdefault("reviewed", {})[(p.get("code") or "").lower()] = now_str()
+            drop(p, "批准结论已过期 %.1fh（保质期 %.0fh）" % (lag, attl))
+            continue
         lagtxt = ("评审后 %.1fh 按最新价" % lag) if lag >= 0 else "按最新价"
         reason = "专家团%s信心%s(%s):%s" % (verdict, conf or "-", lagtxt,
                                             (p.get("reason") or "")[:16])
         if verdict == "BUY":
             if sig.get("block"):
                 drop(p, "已被估值过滤")
+                continue
+            # 闸门二：同股当日限买。评审冷却（30~60 分钟）只管「重复入队」，管不住
+            # 冷却间隙里多次入队-批准-成交的连买（2026-10-12 教训：Palantir/Shopify
+            # 各 2 小时内买了 3 次）。在执行咽喉统一拦截。
+            day_max = int(cfg.get("sameDayBuyMax", 1) or 1)
+            ckey = (p.get("code") or "").lower()
+            buys_today = sum(1 for t in s.get("trades") or []
+                             if (t.get("code") or "").lower() == ckey
+                             and t.get("side") == "买入"
+                             and (t.get("time") or "").startswith(today_str()))
+            if buys_today >= day_max:
+                s.setdefault("reviewed", {})[ckey] = now_str()
+                drop(p, "同股当日已买 %d 次（限 %d 次/日）" % (buys_today, day_max))
                 continue
             floor = cfg.get("buySigFloor", -6)
             sd = int(sig.get("delta", 0) or 0)
@@ -3055,7 +3096,7 @@ def enqueue_review_candidates(s, fresh):
         except Exception:
             return False
 
-    def enqueue(item, direction, score, reason):
+    def enqueue(item, direction, score, reason, is_news=False):
         code = item["code"]
         if code in queued or recently(code) or len(pend) >= 6:
             return
@@ -3073,11 +3114,30 @@ def enqueue_review_candidates(s, fresh):
                 floor += int(cfg.get("regimeBuyFloor", 0))
             if int(sig.get("delta", 0) or 0) < floor:
                 return   # 信号分低于买入下限，不入队（同 execute 的买入门槛）
-        pend.append({"code": code, "name": item["name"], "direction": direction,
-                     "score": score, "delta": sig.get("delta", 0),
-                     "reason": reason[:60], "time": now_str(),
-                     "queuedAt": now_str(), "px": round(cached_price(s, code), 3),
-                     "state": "waiting"})
+        entry = {"code": code, "name": item["name"], "direction": direction,
+                 "score": score, "delta": sig.get("delta", 0),
+                 "reason": reason[:60], "time": now_str(),
+                 "queuedAt": now_str(), "px": round(cached_price(s, code), 3),
+                 "state": "waiting"}
+        # ---- 内置评议团初审：门控模式下内置评议会不再随 execute() 自动召开，
+        #      导致前端「专家评议团」卡片恒空。这里让它在入队时以「初审」身份复活：
+        #      合议记录写进 s["council"]（卡片有真实数据），意见附在队列条目上，
+        #      LLM 专家团经 /api/state 可见，作为第二意见参考。
+        #      不拦截入队——终审权仍在 LLM 专家团。----
+        try:
+            prev = run_council(s, item, code,
+                               news_score=(score if is_news else 0),
+                               news_title=(reason if is_news else ""),
+                               record=True, session="门控初审",
+                               advisory=True, price_hint=entry["px"])
+            entry["council"] = {"verdict": prev["verdict"], "score": prev["score"],
+                                "agree": prev["agree"], "oppose": prev["oppose"],
+                                "abstain": prev["abstain"], "veto": prev["veto"],
+                                "notes": ["%s:%s" % (v["role"], v["stance"])
+                                          for v in prev["votes"]]}
+        except Exception as exc:
+            log("初审评议异常 %s: %s" % (item.get("name"), exc))
+        pend.append(entry)
         queued.add(code)
 
     by_name = {p["name"]: p for p in s["pool"]}
@@ -3089,7 +3149,7 @@ def enqueue_review_candidates(s, fresh):
         for nm in n.get("hits") or []:
             it = by_name.get(nm)
             if it:
-                enqueue(it, direction, sc, "快讯: " + (n.get("title") or "")[:24])
+                enqueue(it, direction, sc, "快讯: " + (n.get("title") or "")[:24], True)
     for item in s["pool"]:
         sig = (s.get("signals") or {}).get(item["code"]) or {}
         d0 = int(sig.get("delta", 0) or 0)
@@ -3324,7 +3384,7 @@ class Handler(BaseHTTPRequestHandler):
                 self._json(daily_facts(load_state()))
             return
         if path == "/api/version":
-            self._json({"ok": True, "features": ["gate", "pendingReview", "dailyFacts", "dailyReview", "marketContext", "reviewDecoupled", "reviewTTL", "catchup"], "time": now_str()})
+            self._json({"ok": True, "features": ["gate", "pendingReview", "dailyFacts", "dailyReview", "marketContext", "reviewDecoupled", "reviewTTL", "catchup", "approvedTTL", "sameDayBuyMax", "councilInitialReview"], "time": now_str()})
             return
         self._send(404, "not found", "text/plain; charset=utf-8")
 
