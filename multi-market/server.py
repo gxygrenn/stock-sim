@@ -482,8 +482,9 @@ CN_CONSERVATIVE_CONFIG = {
     "indexCode": "sh000001",
     "reviewCooldownMin": 60,  # 同一只股票专家评审后多久内不再进入待评审队列
     "reviewTTLHours": 24,  # 候选在待评审队列里最多等这么久，超时作废出队（防坑位被长期占死）
-    "approvedTTLHours": 24,  # 已批准结论的保质期：超时未成交作废（防周六的结论周一才买，行情早变了）
+    "approvedTTLHours": 8,   # 2026-10-15 收紧 24→8：A股只当日成交，隔夜批准一律过期重评（防风语筑式18.6h陈旧信号）
     "sameDayBuyMax": 1,      # 同一只股票当日最多自动买入次数（防评审冷却间隙里同股连买）
+    "minBuyAmount": 2000,    # 2026-10-15 新增：最小下单金额（元），低于此停买保留弹药（防零股塞单）
     # ---- 信号源（新闻之外的影响因素） ----
     "useTech": True,     # 技术面：均线多空/20日新高新低/量比
     "useLhb": True,      # 龙虎榜：机构游资净买净卖
@@ -514,6 +515,8 @@ CN_CONSERVATIVE_CONFIG = {
     "useStops": True,            # 启用固定止损 + 移动止盈 + 目标止盈
     "trailPct": 15,              # 移动止盈：从历史峰值回撤超过该%则卖出锁利润
     "takeProfitPct": 30,         # 目标止盈：浮盈达到该%则分批落袋（先卖一半）
+    "reReviewPct": -5,           # 2026-10-15 新增：浮亏触及该%强制送 LLM 复核去留（介于0与止损线之间）
+    "reReviewGapH": 72,          # 同一持仓两次强制复核的最小间隔（小时）
     # ---- 行业轮动 RRG（相对旋转图，识别强势行业，供进攻档聚焦强势行业） ----
     "useSectorRotation": True,   # 每轮扫描算行业相对强弱，进攻档聚焦领先/转强行业
     # ---- 量价微观结构因子（买卖压力/振幅/凸显性，直接进 delta 打分） ----
@@ -537,8 +540,9 @@ CN_AGGRESSIVE_CONFIG = {
     "indexCode": "sh000001",
     "reviewCooldownMin": 30,  # 评审冷却（稳健版 60）
     "reviewTTLHours": 24,  # 候选在待评审队列里最多等这么久，超时作废出队（防坑位被长期占死）
-    "approvedTTLHours": 24,  # 已批准结论的保质期：超时未成交作废（防周六的结论周一才买，行情早变了）
+    "approvedTTLHours": 8,   # 2026-10-15 收紧 24→8：A股只当日成交，隔夜批准一律过期重评（防风语筑式18.6h陈旧信号）
     "sameDayBuyMax": 1,      # 同一只股票当日最多自动买入次数（防评审冷却间隙里同股连买）
+    "minBuyAmount": 2000,    # 2026-10-15 新增：最小下单金额（元），低于此停买保留弹药（防零股塞单）
     # ---- 信号源（新闻之外的影响因素） ----
     "useTech": True,     # 技术面：均线多空/20日新高新低/量比
     "useLhb": True,      # 龙虎榜：机构游资净买净卖
@@ -569,6 +573,8 @@ CN_AGGRESSIVE_CONFIG = {
     "useStops": True,
     "trailPct": 20,              # 移动止盈回撤线放宽（激进版 20）
     "takeProfitPct": 40,         # 目标止盈位抬高（激进版 40）
+    "reReviewPct": -8,           # 2026-10-15 新增：浮亏触及该%强制送 LLM 复核去留（激进版止损-15，复核线放宽）
+    "reReviewGapH": 72,          # 同一持仓两次强制复核的最小间隔（小时）
     # ---- 行业轮动 RRG（激进版：更强调强势行业聚焦，加成更大） ----
     "useSectorRotation": True,
     # ---- 量价微观结构因子（激进版：同样接入 delta，但阈值更松） ----
@@ -584,14 +590,15 @@ US_CONFIG = {
     "maxPerRound": 3,    # 每轮最多成交笔数（每轮 = 一次扫描，到下一轮才重置）
     "maxPerDay": 12,     # 当日最多成交笔数（兜底，防止整天连续成交）
     "minScore": 4,       # 触发交易的最低分数（绝对值）。美股提至 4，挡掉低分噪音新闻误命中
-    "maxPosPct": 30,     # 单只个股占总资产上限
+    "maxPosPct": 20,     # 2026-10-15 收紧 30→20：AMD 单票曾达 30%，科技回撤日集中度放大亏损
     "cooldownMin": 30,   # 同一只股票两次交易的最小间隔
     "maxHold": 8,        # 最多同时持有几只
     "indexCode": "usINX",  # 美股版：标普500 指数（替代上证 sh000001）
     "reviewCooldownMin": 60,  # 同一只股票专家评审后多久内不再进入待评审队列
     "reviewTTLHours": 24,  # 候选在待评审队列里最多等这么久，超时作废出队（防坑位被长期占死）
-    "approvedTTLHours": 24,  # 已批准结论的保质期：超时未成交作废（防周六的结论周一才买，行情早变了）
+    "approvedTTLHours": 12,  # 2026-10-15 收紧 24→12：隔一个美东交易时段以上的批准结论过期重评
     "sameDayBuyMax": 1,      # 同一只股票当日最多自动买入次数（防评审冷却间隙里同股连买）
+    "minBuyAmount": 300,     # 2026-10-15 新增：最小下单金额（美元），低于此停买保留弹药
     # ---- 信号源（美股版：龙虎榜/公告/估值均为 A 股专属，已关闭；仅保留技术面 + 新闻） ----
     "useTech": True,     # 技术面：均线多空/20日新高新低/量比（美股 K 线源可用）
     "useLhb": False,     # 龙虎榜：美股无此概念，关闭
@@ -622,6 +629,8 @@ US_CONFIG = {
     "useStops": True,
     "trailPct": 15,
     "takeProfitPct": 30,
+    "reReviewPct": -5,           # 2026-10-15 新增：浮亏触及该%强制送 LLM 复核去留（AMD 曾-6.5%无复核）
+    "reReviewGapH": 72,          # 同一持仓两次强制复核的最小间隔（小时）
     # ---- 行业轮动 RRG（美股：用标普500做基准，识别强势行业） ----
     "useSectorRotation": True,
     # ---- 量价微观结构因子（美股：同样接入 delta） ----
@@ -635,6 +644,9 @@ ACCOUNTS = {
     "cn_aggressive": {"name": "A股激进", "market": "cn", "pool": CN_POOL, "config": CN_AGGRESSIVE_CONFIG},
 }
 DEFAULT_ACCOUNT = "cn_conservative"
+# 2026-10-15 教训：自动化用短名 cnc/cna 调接口时静默回落到默认账户，导致激进账户复盘
+# 覆盖了稳健账户的存档。显式注册别名，短名映射到正确账户；未知名仍回落默认（保持兼容）。
+ACCOUNT_ALIASES = {"cnc": "cn_conservative", "cna": "cn_aggressive"}
 
 
 def now_str():
@@ -2188,6 +2200,12 @@ def do_buy(s, name, code, price, qty, reason):
     if qty <= 0 or price <= 0:
         return None
     amount = price * qty
+    # 2026-10-15 教训（激进版）：现金耗尽后仍通过 88~302 元的零股买单，无资金意义
+    # 却承担个股风险。最小下单金额校验：低于门槛直接拒单，保留弹药。
+    min_amt = float(s.get("config", {}).get("minBuyAmount", 0) or 0)
+    if min_amt > 0 and amount < min_amt:
+        log("拒单 %s：金额 %.0f 低于最小下单金额 %.0f，保留弹药" % (name, amount, min_amt))
+        return None
     fee = buy_fee(amount)
     if amount + fee > s["cash"]:
         return None
@@ -2936,6 +2954,12 @@ def execute_approved(s):
             if h:
                 room -= h["price"] * h["shares"]
             budget = min(s["cash"] * cfg["buyPct"] / 100.0, room, s["cash"] * 0.98)
+            # 2026-10-15 教训：资金不足最小下单金额时明确弃单停买，而不是零股塞单
+            min_amt = float(cfg.get("minBuyAmount", 0) or 0)
+            if min_amt > 0 and budget < min_amt:
+                s.setdefault("reviewed", {})[ckey] = now_str()
+                drop(p, "资金不足最小下单金额 %.0f，停买保留弹药" % min_amt)
+                continue
             qty = int(budget / price)
             if qty < 1:
                 drop(p, "资金或单票额度不足")
@@ -3158,6 +3182,56 @@ def enqueue_review_candidates(s, fresh):
             enqueue(item, direction, d0,
                     "综合信号: " + " ".join(sig.get("notes", [])[:2])[:24])
 
+    # ---- 2026-10-15 教训（国轩/万科/AMD）：浮亏持仓长期失血却无任何动作——
+    #      止损线太远时中间地带无人管。浮亏触及 reReviewPct 时主动入队一个
+    #      「卖出」方向候选，交 LLM 专家团裁决 HOLD/SELL；不自动砍仓，终审权在评审。
+    #      同一持仓 reReviewGapH 小时内不重复强制复核。----
+    rr = float(cfg.get("reReviewPct", 0) or 0)
+    if rr < 0:
+        rr_gap = float(cfg.get("reReviewGapH", 72) or 72) * 3600.0
+        rr_book = s.setdefault("reReviewed", {})
+        for h in s["holdings"]:
+            code = h.get("code") or ""
+            if h.get("shares", 0) <= 0 or not code or code in queued:
+                continue
+            if (h.get("price") or 0) <= 0 or (h.get("cost") or 0) <= 0:
+                continue
+            pnl = (h["price"] - h["cost"]) / h["cost"] * 100.0
+            if pnl > rr:
+                continue
+            ts = rr_book.get(code.lower())
+            if ts:
+                try:
+                    if (datetime.now() - datetime.strptime(ts, "%Y-%m-%d %H:%M:%S")).total_seconds() < rr_gap:
+                        continue
+                except Exception:
+                    pass
+            if len(pend) >= 6:
+                break
+            entry = {"code": code, "name": h.get("name") or code, "direction": "卖出",
+                     "score": 0, "delta": 0,
+                     "reason": "浮亏%.1f%%触及强制复核线%.0f%%" % (pnl, rr),
+                     "time": now_str(), "queuedAt": now_str(),
+                     "px": round(h.get("price") or 0, 3), "state": "waiting",
+                     "forced": True}
+            try:
+                item = next((p for p in s["pool"] if p["code"] == code), None)
+                if item:
+                    prev = run_council(s, item, code, news_score=0,
+                                       record=True, session="浮亏复核初审",
+                                       advisory=True, price_hint=entry["px"])
+                    entry["council"] = {"verdict": prev["verdict"], "score": prev["score"],
+                                        "agree": prev["agree"], "oppose": prev["oppose"],
+                                        "abstain": prev["abstain"], "veto": prev["veto"],
+                                        "notes": ["%s:%s" % (v["role"], v["stance"])
+                                                  for v in prev["votes"]]}
+            except Exception as exc:
+                log("浮亏复核初审异常 %s: %s" % (h.get("name"), exc))
+            pend.append(entry)
+            queued.add(code)
+            rr_book[code.lower()] = now_str()
+            log("浮亏强制复核入队 %s（现亏%.1f%%）" % (h.get("name"), pnl))
+
 
 def execute(s, n, hits, score, apply_delta=True):
     """按命中逐只尝试成交。apply_delta=True 时叠加综合信号修正分并应用估值硬过滤。"""
@@ -3351,13 +3425,14 @@ class Handler(BaseHTTPRequestHandler):
         pass
 
     def _account(self):
-        """从 query 参数解析账户（?account=us / cn_conservative / cn_aggressive）。"""
+        """从 query 参数解析账户（?account=us / cn_conservative / cn_aggressive，短名 cnc/cna 亦可）。"""
         from urllib.parse import urlparse, parse_qs
         try:
             q = urlparse(self.path).query
             account = (parse_qs(q).get("account") or [DEFAULT_ACCOUNT])[0]
         except Exception:
             account = DEFAULT_ACCOUNT
+        account = ACCOUNT_ALIASES.get(account, account)   # 短名别名映射（2026-10-15）
         return account if account in ACCOUNTS else DEFAULT_ACCOUNT
 
     def do_GET(self):
@@ -3384,7 +3459,7 @@ class Handler(BaseHTTPRequestHandler):
                 self._json(daily_facts(load_state()))
             return
         if path == "/api/version":
-            self._json({"ok": True, "features": ["gate", "pendingReview", "dailyFacts", "dailyReview", "marketContext", "reviewDecoupled", "reviewTTL", "catchup", "approvedTTL", "sameDayBuyMax", "councilInitialReview"], "time": now_str()})
+            self._json({"ok": True, "features": ["gate", "pendingReview", "dailyFacts", "dailyReview", "marketContext", "reviewDecoupled", "reviewTTL", "catchup", "approvedTTL", "sameDayBuyMax", "councilInitialReview", "accountAliases", "minBuyAmount", "lossReReview"], "time": now_str()})
             return
         self._send(404, "not found", "text/plain; charset=utf-8")
 
