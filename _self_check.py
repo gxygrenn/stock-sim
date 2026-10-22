@@ -149,12 +149,19 @@ def build_truth(acct, facts, state, today):
     for r in rows:
         if r["date"] == today:
             mkt_today = r.get("mkt")
-    mkt = mkt_today if mkt_today is not None else (prev[-1].get("mkt") if prev else None)
+    # history 无当日行时（未结算），用 facts.market 的当日大盘涨跌，而非前一日 mkt（E15 修正）
+    fm = (facts.get("market") or {}).get("pct")
+    mkt = mkt_today if mkt_today is not None else (fm if fm is not None else (prev[-1].get("mkt") if prev else None))
 
     today_pnl = a.get("todayPnl")
     float_pnl = sum(h["shares"] * (h["price"] - h["preClose"]) for h in holds if h.get("preClose"))
     computed = today_pnl is None
-    day_pnl = float_pnl if computed else today_pnl
+    # E15 修正：todayPnl 缺失时，当日盈亏用「总值-前日总值」（经济口径，含当日盘中买卖的真实成交价）；
+    # Σ(price-preClose) 只对隔夜持仓正确，当日盘中买入的股票会把"前收→成交价"的变动也算进去。
+    if computed:
+        day_pnl = (total - prev_total) if prev_total else float_pnl
+    else:
+        day_pnl = today_pnl
     day_pct = (day_pnl / prev_total * 100) if prev_total else None
     excess = (day_pct - mkt) if (day_pct is not None and mkt is not None) else None
 
