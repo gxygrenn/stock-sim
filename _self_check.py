@@ -439,10 +439,28 @@ def integrity(date):
         settles = sorted([e for e in s.get("log", []) if "自动结算" in e.get("msg", "")], key=lambda e: e.get("time", ""))
         last_settle = settles[-1] if settles else None
         issues = []
+        # E16（2026-10-24 修）：休市日（周六/周日）无当日结算属预期，「缺当日行/结算日期不符」降级 WARN；
+        # 但「缺上一交易日行」是真 bug（如 cnc 10-23 行被 10-22 标签覆盖、cna 结算停止），仍判 FAIL。
+        _d = datetime.datetime.strptime(date, "%Y-%m-%d").date()
+        _wd = _d.weekday()
+        if _wd == 5:
+            prev_td = str(_d - datetime.timedelta(days=1))    # 周六 -> 周五
+        elif _wd == 6:
+            prev_td = str(_d - datetime.timedelta(days=2))    # 周日 -> 周五
+        else:
+            prev_td = date                                    # 工作日 -> 当日
+        offday = prev_td != date
         if not last or last["date"] != date:
-            issues.append(("FAIL", "history 末行 %s，缺当日行" % (last["date"] if last else "无")))
-        if last_settle and date not in last_settle.get("msg", ""):
-            issues.append(("FAIL", "末条结算日志为『%s』，日期与当日不符" % last_settle.get("msg", "")[:40]))
+            if offday:
+                issues.append(("WARN", "休市日无当日行（预期）；history 末行 %s" % (last["date"] if last else "无")))
+            else:
+                issues.append(("FAIL", "history 末行 %s，缺当日行" % (last["date"] if last else "无")))
+        if offday and (not last or last["date"] != prev_td):
+            issues.append(("FAIL", "缺上一交易日 %s 行（结算错位/停止，真缺陷）" % prev_td))
+        if last_settle:
+            _expect = prev_td if offday else date
+            if _expect not in last_settle.get("msg", ""):
+                issues.append(("FAIL", "末条结算日志为『%s』，应含 %s" % (last_settle.get("msg", "")[:40], _expect)))
         if a.get("todayPnl") is not None and abs(a["todayPnl"]) < 1e-9 and abs(float_pnl) > total * 0.001:
             issues.append(("FAIL", "todayPnl=0 但持仓当日浮动 %.0f 元 → 净值行被覆盖" % float_pnl))
         if prev_total and abs(prev_total - total) < 1e-6:

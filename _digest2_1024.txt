@@ -1,0 +1,152 @@
+===== us =====
+facts.priceMode=real scanErr=
+facts.newsStats={'total': 60, 'hitCount': 9, 'topHits': [{'time': '2026-10-24 01:41:44', 'title': '高盛：油价上涨开始引发美国经济增长担忧，预计美联储12月再加息一次', 'score': 6, 'hits': ['微软', '谷歌', '亚马逊', '高盛'], 'action': '待执行'}, {'time': '2026-10-24 02:29:49', 'title': '花旗：铝空头关注2027年可能出现100万至200万吨的大幅', 'score': 1, 'hits': ['花旗集团'], 'action': '忽略'}, {'time': '2026-10-24 02:28:51', 'title': '花旗：在能源市场与关税形势进一步明朗之前，我们对铜维持中性立', 'score': -1, 'hits': ['花旗集团'], 'action': '忽略'}, {'time': '2026-10-24 02:05:15', 'title': '美国参议员科林斯：蓝莓、马铃薯、苹果以及海藻生产商将获得加拿', 'score': -1, 'hits': ['苹果'], 'action': '忽略'}, {'time': '2026-10-24 12:51:44', 'title': '微信回应耐克等账号发色情链接：系第三方外挂服务被攻破', 'score': 0, 'hits': ['耐克'], 'action': '忽略'}, {'time': '2026-10-24 12:18:59', 'title': 'iPhoneDuo内屏维修要7998元', 'score': 0, 'hits': ['苹果'], 'action': '忽略'}, {'time': '2026-10-24 02:45:20', 'title': 'WTI原油日内涨4%，现报103.45美元/桶。', 'score': 0, 'hits': ['德州仪器'], 'action': '忽略'}, {'time': '2026-10-24 02:31:11', 'title': 'WTI 12月原油期货收报103.27美元/桶。NYMEX ', 'score': 0, 'hits': ['德州仪器'], 'action': '忽略'}, {'time': '2026-10-24 02:31:00', 'title': '花旗：基准情景下，锡价6至12个月内有上行空间至每吨6万美元', 'score': 0, 'hits': ['花旗集团'], 'action': '忽略'}]}
+facts.councilToday=[{'time': '2026-10-24 13:29:49', 'name': '好市多', 'verdict': '否决', 'agree': 1, 'oppose': 0, 'veto': '持仓只数已达上限8', 'proposal': '买入', 'news': ''}, {'time': '2026-10-24 13:29:49', 'name': '沃尔玛', 'verdict': '否决', 'agree': 1, 'oppose': 0, 'veto': '持仓只数已达上限8', 'proposal': '买入', 'news': ''}, {'time': '2026-10-24 13:29:49', 'name': '艾伯维', 'verdict': '否决', 'agree': 1, 'oppose': 0, 'veto': '持仓只数已达上限8', 'proposal': '买入', 'news': ''}, {'time': '2026-10-24 13:29:49', 'name': '万事达', 'verdict': '否决', 'agree': 1, 'oppose': 0, 'veto': '持仓只数已达上限8', 'proposal': '买入', 'news': ''}, {'time': '2026-10-24 13:29:49', 'name': 'Visa', 'verdict': '观望', 'agree': 1, 'oppose': 0, 'veto': '', 'proposal': '买入', 'news': ''}, {'time': '2026-10-24 13:29:49', 'name': 'Palantir', 'verdict': '否决', 'agree': 1, 'oppose': 0, 'veto': '持仓只数已达上限8', 'proposal': '买入', 'news': ''}, {'time': '2026-10-24 02:59:13', 'name': '沃尔玛', 'verdict': '否决', 'agree': 1, 'oppose': 0, 'veto': '持仓只数已达上限8', 'proposal': '买入', 'news': ''}, {'time': '2026-10-24 02:59:13', 'name': '艾伯维', 'verdict': '否决', 'agree': 1, 'oppose': 0, 'veto': '持仓只数已达上限8', 'proposal': '买入', 'news': ''}, {'time': '2026-10-24 02:59:13', 'name': '万事达', 'verdict': '否决', 'agree': 1, 'oppose': 0, 'veto': '持仓只数已达上限8', 'proposal': '买入', 'news': ''}, {'time': '2026-10-24 02:59:13', 'name': 'Visa', 'verdict': '观望', 'agree': 1, 'oppose': 0, 'veto': '', 'proposal': '买入', 'news': ''}]
+facts.reviewedToday=[{'code': 'usmsft', 'time': '2026-10-24 01:56:40'}, {'code': 'usgoogl', 'time': '2026-10-24 01:56:48'}, {'code': 'usgs', 'time': '2026-10-24 01:56:48'}, {'code': 'usamzn', 'time': '2026-10-24 01:56:48'}, {'code': 'uspltr', 'time': '2026-10-24 03:03:59'}, {'code': 'usv', 'time': '2026-10-24 03:04:00'}, {'code': 'usma', 'time': '2026-10-24 03:04:01'}, {'code': 'usabbv', 'time': '2026-10-24 03:04:02'}, {'code': 'uswmt', 'time': '2026-10-24 03:04:03'}, {'code': 'usintu', 'time': '2026-10-24 13:29:49'}]
+facts.expiredRecent=[{'code': 'usABNB', 'name': '爱彼迎', 'direction': '买入', 'state': 'rejected', 'why': '同股当日已买 1 次（限 1 次/日）', 'time': '2026-10-23 02:45:04'}, {'code': 'usINTU', 'name': '财捷', 'direction': '买入', 'state': 'approved', 'waitedH': 16.7, 'why': '批准结论超 12h 保质期', 'time': '2026-10-23 21:32:50'}, {'code': 'usABNB', 'name': '爱彼迎', 'direction': '买入', 'state': 'approved', 'waitedH': 16.7, 'why': '批准结论超 12h 保质期', 'time': '2026-10-23 21:32:50'}, {'code': 'usINTU', 'name': '财捷', 'direction': '买入', 'state': 'rejected', 'why': '同股当日已买 1 次（限 1 次/日）', 'time': '2026-10-23 23:44:58'}, {'code': 'usINTU', 'name': '财捷', 'direction': '买入', 'state': 'approved', 'waitedH': 12.6, 'why': '批准结论超 12h 保质期', 'time': '2026-10-24 13:29:49'}]
+facts.marketContext keys=['date', 'time', 'intl', 'sentiment']
+  marketContext={"date": "2026-10-23", "time": "2026-10-23 08:42:24", "intl": {"impact": "利空", "strength": -3, "summary": "隔夜美股科技股重挫：纳指-2.60%创6月以来最大单日跌幅、费半-6.72%，存储与半导体全线暴跌（闪迪/SK海力士/英特尔/AMD跌超8%、英伟达-4.4%市值蒸发约2352亿美元），对A股算力链形成直接压制。中东局势升级推升油价：WTI涨2.39%报99.47、布油涨4.00%报113.17创五个月新高（霍尔木兹海峡7艘油轮遇袭起火、胡塞加大对沙特袭击、美国撤离驻沙非紧急人员），通胀担忧强化加息预期（CME 12月加息25bp概率74.8%）。缓和因素：10Y美债收益率跌16.6bp至4.965%一个月来首次跌破5%、离岸人民币升至6.6721、俄美就重启俄乌三方会谈达成一致。整体外部环境", "items": [{"name": "标普500", "value": "-1.21% 报7663.43", "note": "道指+0.02%、纳指-2.60%创6月来最大跌幅，科技权重领跌"}, {"name": "费城半导体指数", "value": "-6.72%", "note": "闪迪/SK海力士/英特尔/AMD跌超8%，英伟达-4.4%，全球半导体链承压，利空A股算力硬件"}, {"name": "WTI原油", "value": "+2.39% 报99.47美元", "note": "布油+4.00%报113.17创五个月新高，霍尔木兹油轮遇袭+胡塞袭沙特，推升通胀与加息预期"}, {"name": "美元指数", "value": "101.60 (-0.18%)", "note": "微跌；离岸人民币纽约尾盘6.6721涨27点，人民币偏强缓和外
+facts.historyLast10=[{'date': '2026-10-12', 'mkt': 0.02, 'total': 99923.51, 'dayPnl': -76.49, 'ret': -0.0765, 'mret': 0.4301}, {'date': '2026-10-13', 'mkt': -0.06, 'total': 99633.84, 'dayPnl': -289.67, 'ret': -0.3662, 'mret': 0.3698}, {'date': '2026-10-14', 'mkt': -0.02, 'total': 99978.9, 'dayPnl': 345.06, 'ret': -0.0211, 'mret': 0.3497}, {'date': '2026-10-15', 'mkt': -1.11, 'total': 96511.05, 'dayPnl': -3467.85, 'ret': -3.489, 'mret': -0.7641}, {'date': '2026-10-16', 'mkt': 0.33, 'total': 95933.59, 'dayPnl': -577.46, 'ret': -4.0664, 'mret': -0.4367}, {'date': '2026-10-19', 'mkt': -1.09, 'total': 92577.4, 'dayPnl': -3356.19, 'ret': -7.4226, 'mret': -1.5219}, {'date': '2026-10-20', 'mkt': 0.41, 'total': 93273.6, 'dayPnl': 696.2, 'ret': -6.7264, 'mret': -1.1181}, {'date': '2026-10-21', 'mkt': 0.28, 'total': 95346.71, 'dayPnl': 2073.11, 'ret': -4.6533, 'mret': -0.8413}, {'date': '2026-10-22', 'mkt': 0.58, 'total': 95510.01, 'dayPnl': 163.3, 'ret': -4.49, 'mret': -0.2661}, {'date': '2026-10-23', 'mkt': -1.21, 'total': 90528.84, 'dayPnl': -4981.17, 'ret': -9.4712, 'mret': -1.4729}]
+state keys: ['account', 'cash', 'config', 'council', 'dailyReviews', 'expiredReviews', 'fees', 'history', 'holdings', 'idx', 'initCapital', 'lastRebalance', 'lastScan', 'lastTrade', 'log', 'marketContext', 'news', 'nextDate', 'pendingReview', 'pool', 'poolChangeLog', 'poolChanges', 'poolQuote', 'priceMode', 'quote', 'reReviewed', 'realized', 'regime', 'reviewLog', 'reviewed', 'roundTrades', 'scanErr', 'sectors', 'seenNews', 'seq', 'sigFired', 'signals', 'trades']
+--- log head 25 (n=200) ---
+  LOG 2026-10-24 13:29:49 | 扫描完成：新增 25 条消息，成交 0 笔
+  LOG 2026-10-24 13:29:49 | 评审队列作废 1 只：财捷(批准结论超 12h 保质期)
+  LOG 2026-10-24 13:29:07 | K线源切换 -> proxy.finance.qq.com
+  LOG 2026-10-24 03:04:03 | 专家团评审 uswmt(沃尔玛) -> HOLD 信心40（delta=2.9具买压偏强，但遇仓位否决（持仓只数已达上限）| HOLD，出队
+  LOG 2026-10-24 03:04:02 | 专家团评审 usabbv(艾伯维) -> HOLD 信心40（服从仓位否决：持仓只数已达上限8（veto原文），当前8只满）| HOLD，出队
+  LOG 2026-10-24 03:04:01 | 专家团评审 usma(万事达) -> HOLD 信心40（服从仓位否决：持仓只数已达上限8（veto原文），当前8只满）| HOLD，出队
+  LOG 2026-10-24 03:04:00 | 专家团评审 usv(Visa) -> HOLD 信心40（delta=2.4<2.5且无强特征（无20日新高/无放量/）| HOLD，出队
+  LOG 2026-10-24 03:03:59 | 专家团评审 uspltr(Palantir) -> HOLD 信心40（服从仓位否决：持仓只数已达上限8（veto原文），当前8只满）| HOLD，出队
+  LOG 2026-10-24 03:02:37 | 扫描完成：新增 0 条消息，成交 0 笔
+  LOG 2026-10-24 03:02:22 | 扫描完成：新增 0 条消息，成交 0 笔
+  LOG 2026-10-24 03:01:42 | K线源切换 -> proxy.finance.qq.com
+  LOG 2026-10-24 03:00:40 | 扫描完成：新增 1 条消息，成交 0 笔
+  LOG 2026-10-24 03:00:10 | 扫描完成：新增 1 条消息，成交 0 笔
+  LOG 2026-10-24 02:59:13 | 扫描完成：新增 20 条消息，成交 0 笔
+  LOG 2026-10-24 02:58:21 | K线源切换 -> ifzq.gtimg.cn
+  LOG 2026-10-24 01:56:48 | 专家团评审 usgs(高盛) -> HOLD 信心85（服从仓位否决(持仓只数已达上限8)；council否决有约束）| HOLD，出队
+  LOG 2026-10-24 01:56:48 | 专家团评审 uspltr(Palantir) -> HOLD 信心85（服从仓位否决(持仓只数已达上限8)；delta=2.4多头排）| HOLD，出队
+  LOG 2026-10-24 01:56:48 | 专家团评审 usamzn(亚马逊) -> HOLD 信心85（服从仓位否决(持仓只数已达上限8)；council否决有约束）| HOLD，出队
+  LOG 2026-10-24 01:56:48 | 专家团评审 usgoogl(谷歌) -> HOLD 信心85（服从仓位否决(持仓只数已达上限8)；council否决有约束）| HOLD，出队
+  LOG 2026-10-24 01:56:40 | 专家团评审 usmsft(微软) -> HOLD 信心85（服从仓位否决(持仓只数已达上限8)；council否决有约束）| HOLD，出队
+  LOG 2026-10-24 01:56:11 | 扫描完成：新增 1 条消息，成交 0 笔
+  LOG 2026-10-24 01:55:57 | 扫描完成：新增 0 条消息，成交 0 笔
+  LOG 2026-10-24 01:55:42 | 扫描完成：新增 23 条消息，成交 0 笔
+  LOG 2026-10-24 01:54:57 | K线源切换 -> ifzq.gtimg.cn
+  LOG 2026-10-24 00:52:54 | 专家团评审 uswmt(沃尔玛) -> HOLD 信心80（服从仓位否决（veto:持仓只数已达上限8），delta=2）| HOLD，出队
+--- log 结算/作废/复盘 相关（全部日志里筛） ---
+  SETTLE 2026-10-24 13:29:49 | 评审队列作废 1 只：财捷(批准结论超 12h 保质期)
+  SETTLE 2026-10-23 21:32:50 | 评审队列作废 2 只：财捷(批准结论超 12h 保质期)、爱彼迎(批准结论超 12h 保质期)
+  SETTLE 2026-10-23 16:22:37 | 每日复盘 2026-10-23 已存档（6 条要点 / 2 条经验）
+  SETTLE 2026-10-23 08:42:45 | 自动结算 2026-10-23（大盘 -1.21%）
+  SETTLE 2026-10-22 17:21:04 | 每日复盘 2026-10-22 已存档（4 条要点 / 1 条经验）
+--- reviewLog n=200; first entry fields ---
+  keys=['code', 'confidence', 'fillPrice', 'fillTime', 'name', 'note', 'outcome', 'priceAtReview', 'queued', 'reviewedAt', 'verdict']
+  first={"code": "usWMT", "name": "沃尔玛", "verdict": "HOLD", "confidence": 55, "note": "主审HOLD/复核一致无致命风险：delta2.4<2.5，仅多头排列+买压偏强，无20日新高/放量/阳线突破等强特征，未达强势门槛。无有效快讯属美股保守过滤正常，不构成否决。", "reviewedAt": "2026-10-21 01:29:45", "outcome": "HOLD，出队", "queued": false, "priceAtReview": 118.09, "fillPrice": null, "fillTime": null}
+  last={"code": "usWMT", "name": "沃尔玛", "verdict": "HOLD", "confidence": 40, "note": "delta=2.9具买压偏强，但遇仓位否决（持仓只数已达上限8），服从否决HOLD", "reviewedAt": "2026-10-24 03:04:03", "outcome": "HOLD，出队", "queued": false, "priceAtReview": 119.16, "fillPrice": null, "fillTime": null}
+  newest reviewedAt=2026-10-21 01:29:45 ; oldest=2026-10-24 03:04:03
+dailyReviews n=10 newest5=['2026-10-23', '2026-10-22', '2026-10-20', '2026-10-19', '2026-10-18']
+state.trades: type=list len=49
+
+===== cn_conservative =====
+facts.priceMode=real scanErr=
+facts.newsStats={'total': 60, 'hitCount': 11, 'topHits': [{'time': '2026-10-24 12:16:50', 'title': '海航控股与零重空间签署战略合作协议 共拓飞机通信服务领域', 'score': 18, 'hits': ['中兴通讯', '中国移动', '中国电信'], 'action': '待执行'}, {'time': '2026-10-24 13:19:29', 'title': '胜利济阳页岩油估算资源量105.2亿吨', 'score': 1, 'hits': ['紫金矿业', '中国神华', '陕西煤业', '洛阳钼业', '北方稀土', '华友钴业'], 'action': '忽略'}, {'time': '2026-10-24 02:28:51', 'title': '花旗：在能源市场与关税形势进一步明朗之前，我们对铜维持中性立', 'score': -1, 'hits': ['紫金矿业', '中国神华', '陕西煤业', '洛阳钼业', '中国核电', '华能国际'], 'action': '忽略'}, {'time': '2026-10-24 02:05:15', 'title': '美国参议员科林斯：蓝莓、马铃薯、苹果以及海藻生产商将获得加拿', 'score': -1, 'hits': ['立讯精密', '歌尔股份'], 'action': '忽略'}, {'time': '2026-10-24 12:21:42', 'title': '粤开证券罗志恒：积极因素持续积累 资本市场稳健发展基础不断夯实', 'score': 0, 'hits': ['东方财富', '中信证券'], 'action': '忽略'}, {'time': '2026-10-24 12:18:37', 'title': '福建省调整防台风应急响应至四级 加强安全管理', 'score': 0, 'hits': ['三六零'], 'action': '忽略'}, {'time': '2026-10-24 12:02:12', 'title': '南方区域电力市场经营主体已超29万家', 'score': 0, 'hits': ['长江电力', '中国核电', '华能国际'], 'action': '忽略'}, {'time': '2026-10-24 03:02:50', 'title': '伊朗称，南部港口封锁导致进口减少25%。', 'score': 0, 'hits': ['中远海控'], 'action': '忽略'}, {'time': '2026-10-24 01:14:31', 'title': 'Meta 首席人工智能官 Alexandr Wang：Met', 'score': 0, 'hits': ['三六零', '中科曙光', '海康威视', '大华股份'], 'action': '忽略'}, {'time': '2026-10-24 01:13:07', 'title': 'Meta 首席人工智能官 Alexandr Wang ：Mu', 'score': 0, 'hits': ['三六零', '中科曙光', '海康威视', '大华股份'], 'action': '忽略'}]}
+facts.councilToday=[{'time': '2026-10-24 13:30:15', 'name': '中国电信', 'verdict': '买入', 'agree': 3, 'oppose': 0, 'veto': '', 'proposal': '买入', 'news': '快讯: 海航控股与零重空间签署战略合作协议 共拓飞机'}, {'time': '2026-10-24 13:30:15', 'name': '中国移动', 'verdict': '买入', 'agree': 3, 'oppose': 0, 'veto': '', 'proposal': '买入', 'news': '快讯: 海航控股与零重空间签署战略合作协议 共拓飞机'}, {'time': '2026-10-24 13:30:15', 'name': '中兴通讯', 'verdict': '观望', 'agree': 1, 'oppose': 1, 'veto': '', 'proposal': '买入', 'news': '快讯: 海航控股与零重空间签署战略合作协议 共拓飞机'}, {'time': '2026-10-24 00:47:31', 'name': '洛阳钼业', 'verdict': '买入', 'agree': 2, 'oppose': 1, 'veto': '', 'proposal': '买入', 'news': '快讯: 第一量子准备就最高53亿美元的铜矿项目申请阿'}, {'time': '2026-10-24 00:47:31', 'name': '紫金矿业', 'verdict': '买入', 'agree': 2, 'oppose': 1, 'veto': '', 'proposal': '买入', 'news': '快讯: 第一量子准备就最高53亿美元的铜矿项目申请阿'}]
+facts.reviewedToday=[{'code': 'sh601899', 'time': '2026-10-24 00:53:03'}, {'code': 'sh603993', 'time': '2026-10-24 00:53:03'}]
+facts.expiredRecent=[{'code': 'sh601728', 'name': '中国电信', 'direction': '买入', 'state': 'approved', 'waitedH': 15.9, 'why': '批准结论超 8h 保质期', 'time': '2026-10-17 12:02:09'}, {'code': 'sh601728', 'name': '中国电信', 'direction': '买入', 'state': 'approved', 'waitedH': 10.4, 'why': '批准结论超 8h 保质期', 'time': '2026-10-18 08:34:03'}, {'code': 'sh601728', 'name': '中国电信', 'direction': '买入', 'state': 'approved', 'waitedH': 8.3, 'why': '批准结论超 8h 保质期', 'time': '2026-10-21 03:38:04'}, {'code': 'sh601988', 'name': '中国银行', 'direction': '买入', 'state': 'approved', 'waitedH': 8.3, 'why': '批准结论超 8h 保质期', 'time': '2026-10-22 00:20:19'}, {'code': 'sz002085', 'name': '万丰奥威', 'direction': '买入', 'state': 'approved', 'waitedH': 8.3, 'why': '批准结论超 8h 保质期', 'time': '2026-10-22 00:20:19'}]
+facts.marketContext keys=['date', 'time', 'intl', 'sentiment']
+  marketContext={"date": "2026-10-23", "time": "2026-10-23 08:42:25", "intl": {"impact": "利空", "strength": -3, "summary": "隔夜美股科技股重挫：纳指-2.60%创6月以来最大单日跌幅、费半-6.72%，存储与半导体全线暴跌（闪迪/SK海力士/英特尔/AMD跌超8%、英伟达-4.4%市值蒸发约2352亿美元），对A股算力链形成直接压制。中东局势升级推升油价：WTI涨2.39%报99.47、布油涨4.00%报113.17创五个月新高（霍尔木兹海峡7艘油轮遇袭起火、胡塞加大对沙特袭击、美国撤离驻沙非紧急人员），通胀担忧强化加息预期（CME 12月加息25bp概率74.8%）。缓和因素：10Y美债收益率跌16.6bp至4.965%一个月来首次跌破5%、离岸人民币升至6.6721、俄美就重启俄乌三方会谈达成一致。整体外部环境", "items": [{"name": "标普500", "value": "-1.21% 报7663.43", "note": "道指+0.02%、纳指-2.60%创6月来最大跌幅，科技权重领跌"}, {"name": "费城半导体指数", "value": "-6.72%", "note": "闪迪/SK海力士/英特尔/AMD跌超8%，英伟达-4.4%，全球半导体链承压，利空A股算力硬件"}, {"name": "WTI原油", "value": "+2.39% 报99.47美元", "note": "布油+4.00%报113.17创五个月新高，霍尔木兹油轮遇袭+胡塞袭沙特，推升通胀与加息预期"}, {"name": "美元指数", "value": "101.60 (-0.18%)", "note": "微跌；离岸人民币纽约尾盘6.6721涨27点，人民币偏强缓和外
+facts.historyLast10=[{'date': '2026-10-09', 'mkt': 0.05, 'total': 100000.0, 'dayPnl': 0.0, 'ret': 0.0, 'mret': 0.1}, {'date': '2026-10-12', 'mkt': -0.43, 'total': 100000.0, 'dayPnl': 0.0, 'ret': 0.0, 'mret': -0.3304}, {'date': '2026-10-13', 'mkt': 0.1, 'total': 99943.76, 'dayPnl': -56.24, 'ret': -0.0562, 'mret': -0.2307}, {'date': '2026-10-14', 'mkt': -0.88, 'total': 99423.54, 'dayPnl': -520.22, 'ret': -0.5765, 'mret': -1.1087}, {'date': '2026-10-15', 'mkt': -1.59, 'total': 101421.23, 'dayPnl': 1997.69, 'ret': 1.4212, 'mret': -2.6811}, {'date': '2026-10-16', 'mkt': 0.24, 'total': 98128.09, 'dayPnl': -3293.14, 'ret': -1.8719, 'mret': -2.4475}, {'date': '2026-10-19', 'mkt': 0.39, 'total': 95881.28, 'dayPnl': -2246.81, 'ret': -4.1187, 'mret': -2.0671}, {'date': '2026-10-20', 'mkt': 0.12, 'total': 96318.59, 'dayPnl': 437.31, 'ret': -3.6814, 'mret': -1.9495}, {'date': '2026-10-21', 'mkt': -0.6, 'total': 94670.28, 'dayPnl': -1648.31, 'ret': -5.3297, 'mret': -2.5378}, {'date': '2026-10-22', 'mkt': 0.89, 'total': 93657.92, 'dayPnl': -1012.36, 'ret': -6.3421, 'mret': -1.6704}]
+state keys: ['account', 'cash', 'config', 'council', 'dailyReviews', 'expiredReviews', 'fees', 'history', 'holdings', 'idx', 'initCapital', 'lastRebalance', 'lastScan', 'lastTrade', 'log', 'marketContext', 'news', 'nextDate', 'pendingReview', 'pool', 'poolChangeLog', 'poolChanges', 'poolQuote', 'priceMode', 'quote', 'reReviewed', 'realized', 'regime', 'reviewLog', 'reviewed', 'roundTrades', 'scanErr', 'sectors', 'seenNews', 'seq', 'sigFired', 'signals', 'trades']
+--- log head 25 (n=200) ---
+  LOG 2026-10-24 13:30:15 | 扫描完成：新增 25 条消息，成交 0 笔
+  LOG 2026-10-24 03:03:35 | 扫描完成：新增 3 条消息，成交 0 笔
+  LOG 2026-10-24 03:00:24 | 扫描完成：新增 15 条消息，成交 0 笔
+  LOG 2026-10-24 02:59:40 | 扫描完成：新增 25 条消息，成交 0 笔
+  LOG 2026-10-24 00:53:03 | 专家团评审 sh603993(洛阳钼业) -> HOLD 信心75（delta=-2.9深负，快讯为第一量子（无关公司）噪声错配）| HOLD，出队
+  LOG 2026-10-24 00:53:03 | 专家团评审 sh601899(紫金矿业) -> HOLD 信心72（delta=-1.4负值，快讯为第一量子（无关公司）噪声错配）| HOLD，出队
+  LOG 2026-10-24 00:51:18 | 扫描完成：新增 1 条消息，成交 0 笔
+  LOG 2026-10-24 00:48:47 | 扫描完成：新增 0 条消息，成交 0 笔
+  LOG 2026-10-24 00:48:16 | 扫描完成：新增 0 条消息，成交 0 笔
+  LOG 2026-10-24 00:47:31 | 扫描完成：新增 23 条消息，成交 0 笔
+  LOG 2026-10-23 23:44:15 | 扫描完成：新增 16 条消息，成交 0 笔
+  LOG 2026-10-23 23:43:36 | 扫描完成：新增 25 条消息，成交 0 笔
+  LOG 2026-10-23 22:40:49 | 专家团评审 sh603799(华友钴业) -> HOLD 信心55（快讯为能源外交噪声错配，delta=-1.4负值无强特征）| HOLD，出队
+  LOG 2026-10-23 22:40:48 | 专家团评审 sh600111(北方稀土) -> HOLD 信心55（快讯为能源外交噪声错配，delta=-1.4负值无强特征）| HOLD，出队
+  LOG 2026-10-23 22:40:47 | 专家团评审 sh603993(洛阳钼业) -> HOLD 信心55（快讯为能源外交噪声错配，delta=-2.9负值技术面偏空）| HOLD，出队
+  LOG 2026-10-23 22:40:46 | 专家团评审 sh601225(陕西煤业) -> HOLD 信心55（快讯为能源外交噪声错配，delta=2.4无强特征，稳健账户）| HOLD，出队
+  LOG 2026-10-23 22:40:45 | 专家团评审 sh601088(中国神华) -> HOLD 信心55（快讯为能源外交噪声错配，delta=2.4无强特征，稳健账户）| HOLD，出队
+  LOG 2026-10-23 22:40:44 | 专家团评审 sh601899(紫金矿业) -> HOLD 信心55（快讯为能源外交弱间接联想噪声错配，delta=-1.4负值无）| HOLD，出队
+  LOG 2026-10-23 22:39:59 | 扫描完成：新增 1 条消息，成交 0 笔
+  LOG 2026-10-23 22:39:19 | 扫描完成：新增 15 条消息，成交 0 笔
+  LOG 2026-10-23 22:38:38 | 扫描完成：新增 25 条消息，成交 0 笔
+  LOG 2026-10-23 21:35:42 | 专家团评审 sh600030(中信证券) -> HOLD 信心45（快讯为弱间接利好，delta=-1.7 技术面偏空，稳健账户）| HOLD，出队
+  LOG 2026-10-23 21:35:40 | 专家团评审 sz300059(东方财富) -> HOLD 信心45（快讯「券商社会责任评价评级上调投教权重」对东方财富为弱间接利）| HOLD，出队
+  LOG 2026-10-23 21:34:21 | 扫描完成：新增 4 条消息，成交 0 笔
+  LOG 2026-10-23 21:34:08 | 自动结算 2026-10-22（大盘 +0.89%）
+--- log 结算/作废/复盘 相关（全部日志里筛） ---
+  SETTLE 2026-10-23 21:34:08 | 自动结算 2026-10-22（大盘 +0.89%）
+  SETTLE 2026-10-23 16:22:38 | 每日复盘 2026-10-23 已存档（4 条要点 / 1 条经验）
+  SETTLE 2026-10-22 17:21:04 | 每日复盘 2026-10-22 已存档（4 条要点 / 1 条经验）
+  SETTLE 2026-10-22 00:20:19 | 评审队列作废 2 只：中国银行(批准结论超 8h 保质期)、万丰奥威(批准结论超 8h 保质期)
+  SETTLE 2026-10-21 20:07:48 | 自动结算 2026-10-21（大盘 -0.60%）
+  SETTLE 2026-10-21 03:38:04 | 评审队列作废 1 只：中国电信(批准结论超 8h 保质期)
+--- reviewLog n=200; first entry fields ---
+  keys=['code', 'confidence', 'fillPrice', 'fillTime', 'name', 'note', 'outcome', 'priceAtReview', 'queued', 'reviewedAt', 'verdict']
+  first={"code": "sz001318", "name": "阳光乳业", "verdict": "BUY", "confidence": 72, "note": "delta4.9>=3强势 多头排列+20日新高+阳线突破+相对强度高+买压偏强 阳光乳业区域乳制品 无有效快讯 无致命风险 主审BUY胜出", "reviewedAt": "2026-10-15 10:58:39", "outcome": "已买入", "queued": true, "priceAtReview": 16.97, "fillPrice": 16.97, "fillTime": "2026-10-15 10:58:39"}
+  last={"code": "sh603993", "name": "洛阳钼业", "verdict": "HOLD", "confidence": 75, "note": "delta=-2.9深负，快讯为第一量子（无关公司）噪声错配，技术面看空，无有效利好，暂观望", "reviewedAt": "2026-10-24 00:53:03", "outcome": "HOLD，出队", "queued": false, "priceAtReview": 14.23, "fillPrice": null, "fillTime": null}
+  newest reviewedAt=2026-10-15 10:58:39 ; oldest=2026-10-24 00:53:03
+dailyReviews n=10 newest5=['2026-10-23', '2026-10-22', '2026-10-20', '2026-10-19', '2026-10-18']
+state.trades: type=list len=11
+
+===== cn_aggressive =====
+facts.priceMode=real scanErr=
+facts.newsStats={'total': 60, 'hitCount': 10, 'topHits': [{'time': '2026-10-24 12:16:50', 'title': '海航控股与零重空间签署战略合作协议 共拓飞机通信服务领域', 'score': 18, 'hits': ['中国移动', '中国电信'], 'action': '待执行'}, {'time': '2026-10-24 13:19:29', 'title': '胜利济阳页岩油估算资源量105.2亿吨', 'score': 1, 'hits': ['紫金矿业', '中国神华', '陕西煤业', '洛阳钼业', '北方稀土', '华友钴业'], 'action': '忽略'}, {'time': '2026-10-24 02:28:51', 'title': '花旗：在能源市场与关税形势进一步明朗之前，我们对铜维持中性立', 'score': -1, 'hits': ['紫金矿业', '中国神华', '陕西煤业', '洛阳钼业', '中国核电', '华能国际'], 'action': '忽略'}, {'time': '2026-10-24 02:05:15', 'title': '美国参议员科林斯：蓝莓、马铃薯、苹果以及海藻生产商将获得加拿', 'score': -1, 'hits': ['歌尔股份'], 'action': '忽略'}, {'time': '2026-10-24 02:03:16', 'title': '俄罗斯总统普京下令拨款12亿卢布补贴民众购买燃气设备。', 'score': 1, 'hits': ['三一重工', '中联重科'], 'action': '忽略'}, {'time': '2026-10-24 12:21:42', 'title': '粤开证券罗志恒：积极因素持续积累 资本市场稳健发展基础不断夯实', 'score': 0, 'hits': ['东方财富', '中信证券'], 'action': '忽略'}, {'time': '2026-10-24 12:02:12', 'title': '南方区域电力市场经营主体已超29万家', 'score': 0, 'hits': ['长江电力', '中国核电', '华能国际'], 'action': '忽略'}, {'time': '2026-10-24 01:14:31', 'title': 'Meta 首席人工智能官 Alexandr Wang：Met', 'score': 0, 'hits': ['海康威视', '大华股份'], 'action': '忽略'}, {'time': '2026-10-24 01:13:07', 'title': 'Meta 首席人工智能官 Alexandr Wang ：Mu', 'score': 0, 'hits': ['海康威视', '大华股份'], 'action': '忽略'}, {'time': '2026-10-24 01:04:13', 'title': '国际铜研究组织（ICSG）：2026年8月全球精炼铜市场供应', 'score': 0, 'hits': ['紫金矿业', '洛阳钼业'], 'action': '忽略'}]}
+facts.councilToday=[{'time': '2026-10-24 13:30:29', 'name': '跨境通', 'verdict': '卖出', 'agree': 1, 'oppose': 0, 'veto': '', 'proposal': '卖出', 'news': ''}, {'time': '2026-10-24 13:30:29', 'name': '中国电信', 'verdict': '否决', 'agree': 2, 'oppose': 0, 'veto': '总仓位超98%（防守档收紧），保留弹药', 'proposal': '买入', 'news': '快讯: 海航控股与零重空间签署战略合作协议 共拓飞机'}, {'time': '2026-10-24 13:30:29', 'name': '中国移动', 'verdict': '否决', 'agree': 2, 'oppose': 0, 'veto': '总仓位超98%（防守档收紧），保留弹药', 'proposal': '买入', 'news': '快讯: 海航控股与零重空间签署战略合作协议 共拓飞机'}, {'time': '2026-10-24 00:47:15', 'name': '洛阳钼业', 'verdict': '否决', 'agree': 1, 'oppose': 1, 'veto': '总仓位超98%（防守档收紧），保留弹药', 'proposal': '买入', 'news': '快讯: 第一量子准备就最高53亿美元的铜矿项目申请阿'}, {'time': '2026-10-24 00:47:15', 'name': '紫金矿业', 'verdict': '否决', 'agree': 1, 'oppose': 1, 'veto': '总仓位超98%（防守档收紧），保留弹药', 'proposal': '买入', 'news': '快讯: 第一量子准备就最高53亿美元的铜矿项目申请阿'}]
+facts.reviewedToday=[{'code': 'sh601899', 'time': '2026-10-24 00:53:03'}, {'code': 'sh603993', 'time': '2026-10-24 00:53:03'}, {'code': 'sz002640', 'time': '2026-10-24 13:30:29'}]
+facts.expiredRecent=[{'code': 'sz001318', 'name': '阳光乳业', 'direction': '买入', 'state': 'rejected', 'why': '同股当日已买 1 次（限 1 次/日）', 'time': '2026-10-15 10:58:41'}, {'code': 'sz001318', 'name': '阳光乳业', 'direction': '买入', 'state': 'rejected', 'why': '同股当日已买 1 次（限 1 次/日）', 'time': '2026-10-15 14:04:43'}, {'code': 'sz002640', 'name': '跨境通', 'direction': '买入', 'state': 'rejected', 'why': '同股当日已买 1 次（限 1 次/日）', 'time': '2026-10-15 14:04:43'}, {'code': 'sz000002', 'name': '万科A', 'direction': '卖出', 'state': 'approved', 'waitedH': 11.8, 'why': '批准结论超 8h 保质期', 'time': '2026-10-21 09:09:25'}, {'code': 'sz002640', 'name': '跨境通', 'direction': '卖出', 'state': 'approved', 'waitedH': 15.9, 'why': '批准结论超 8h 保质期', 'time': '2026-10-24 13:30:29'}]
+facts.marketContext keys=['date', 'time', 'intl', 'sentiment']
+  marketContext={"date": "2026-10-23", "time": "2026-10-23 08:42:26", "intl": {"impact": "利空", "strength": -3, "summary": "隔夜美股科技股重挫：纳指-2.60%创6月以来最大单日跌幅、费半-6.72%，存储与半导体全线暴跌（闪迪/SK海力士/英特尔/AMD跌超8%、英伟达-4.4%市值蒸发约2352亿美元），对A股算力链形成直接压制。中东局势升级推升油价：WTI涨2.39%报99.47、布油涨4.00%报113.17创五个月新高（霍尔木兹海峡7艘油轮遇袭起火、胡塞加大对沙特袭击、美国撤离驻沙非紧急人员），通胀担忧强化加息预期（CME 12月加息25bp概率74.8%）。缓和因素：10Y美债收益率跌16.6bp至4.965%一个月来首次跌破5%、离岸人民币升至6.6721、俄美就重启俄乌三方会谈达成一致。整体外部环境", "items": [{"name": "标普500", "value": "-1.21% 报7663.43", "note": "道指+0.02%、纳指-2.60%创6月来最大跌幅，科技权重领跌"}, {"name": "费城半导体指数", "value": "-6.72%", "note": "闪迪/SK海力士/英特尔/AMD跌超8%，英伟达-4.4%，全球半导体链承压，利空A股算力硬件"}, {"name": "WTI原油", "value": "+2.39% 报99.47美元", "note": "布油+4.00%报113.17创五个月新高，霍尔木兹油轮遇袭+胡塞袭沙特，推升通胀与加息预期"}, {"name": "美元指数", "value": "101.60 (-0.18%)", "note": "微跌；离岸人民币纽约尾盘6.6721涨27点，人民币偏强缓和外
+facts.historyLast10=[{'date': '2026-10-09', 'mkt': 0.05, 'total': 100000.0, 'dayPnl': 0.0, 'ret': 0.0, 'mret': 0.05}, {'date': '2026-10-12', 'mkt': 0.1, 'total': 99578.32, 'dayPnl': -421.68, 'ret': -0.4217, 'mret': 0.15}, {'date': '2026-10-13', 'mkt': -0.88, 'total': 98438.38, 'dayPnl': -1139.94, 'ret': -1.5616, 'mret': -0.7313}, {'date': '2026-10-14', 'mkt': -1.59, 'total': 98459.09, 'dayPnl': 20.71, 'ret': -1.5409, 'mret': -2.3096}, {'date': '2026-10-15', 'mkt': 0.24, 'total': 98609.57, 'dayPnl': 150.48, 'ret': -1.3904, 'mret': -2.0752}, {'date': '2026-10-16', 'mkt': 0.24, 'total': 98609.57, 'dayPnl': -0.0, 'ret': -1.3904, 'mret': -1.8402}, {'date': '2026-10-19', 'mkt': 0.12, 'total': 96674.21, 'dayPnl': -1935.36, 'ret': -3.3258, 'mret': -1.7224}, {'date': '2026-10-20', 'mkt': -0.6, 'total': 94476.11, 'dayPnl': -2198.1, 'ret': -5.5239, 'mret': -2.312}]
+state keys: ['account', 'cash', 'config', 'council', 'dailyReviews', 'expiredReviews', 'fees', 'history', 'holdings', 'idx', 'initCapital', 'lastRebalance', 'lastScan', 'lastTrade', 'log', 'marketContext', 'news', 'nextDate', 'pendingReview', 'pool', 'poolChangeLog', 'poolChanges', 'poolQuote', 'priceMode', 'quote', 'reReviewed', 'realized', 'regime', 'reviewLog', 'reviewed', 'roundTrades', 'scanErr', 'sectors', 'seenNews', 'seq', 'sigFired', 'signals', 'trades']
+--- log head 25 (n=200) ---
+  LOG 2026-10-24 13:30:29 | 扫描完成：新增 25 条消息，成交 0 笔
+  LOG 2026-10-24 13:30:29 | 浮亏强制复核入队 跨境通（现亏-9.9%）
+  LOG 2026-10-24 13:30:29 | 评审队列作废 1 只：跨境通(批准结论超 8h 保质期)
+  LOG 2026-10-24 03:00:54 | 扫描完成：新增 15 条消息，成交 0 笔
+  LOG 2026-10-24 02:59:53 | 扫描完成：新增 25 条消息，成交 0 笔
+  LOG 2026-10-24 00:53:03 | 专家团评审 sh603993(洛阳钼业) -> HOLD 信心80（服从仓位否决（veto:总仓位超98%（防守档收紧），保留弹）| HOLD，出队
+  LOG 2026-10-24 00:53:03 | 专家团评审 sh601899(紫金矿业) -> HOLD 信心80（服从仓位否决（veto:总仓位超98%（防守档收紧），保留弹）| HOLD，出队
+  LOG 2026-10-24 00:51:30 | 扫描完成：新增 1 条消息，成交 0 笔
+  LOG 2026-10-24 00:49:00 | 扫描完成：新增 0 条消息，成交 0 笔
+  LOG 2026-10-24 00:47:45 | 扫描完成：新增 0 条消息，成交 0 笔
+  LOG 2026-10-24 00:47:15 | 扫描完成：新增 23 条消息，成交 0 笔
+  LOG 2026-10-23 23:44:26 | 扫描完成：新增 16 条消息，成交 0 笔
+  LOG 2026-10-23 23:43:48 | 扫描完成：新增 25 条消息，成交 0 笔
+  LOG 2026-10-23 22:40:53 | 专家团评审 sh600111(北方稀土) -> HOLD 信心70（服从仓位否决：council风控官否决「总仓位超98%（防守）| HOLD，出队
+  LOG 2026-10-23 22:40:52 | 专家团评审 sh603993(洛阳钼业) -> HOLD 信心70（服从仓位否决：council风控官否决「总仓位超98%（防守）| HOLD，出队
+  LOG 2026-10-23 22:40:51 | 专家团评审 sh601225(陕西煤业) -> HOLD 信心70（服从仓位否决：council风控官否决「总仓位超98%（防守）| HOLD，出队
+  LOG 2026-10-23 22:40:51 | 专家团评审 sh601088(中国神华) -> HOLD 信心70（服从仓位否决：council风控官否决「总仓位超98%（防守）| HOLD，出队
+  LOG 2026-10-23 22:40:50 | 专家团评审 sh601899(紫金矿业) -> HOLD 信心70（服从仓位否决：council风控官否决「总仓位超98%（防守）| HOLD，出队
+  LOG 2026-10-23 22:40:11 | 扫描完成：新增 1 条消息，成交 0 笔
+  LOG 2026-10-23 22:39:31 | 扫描完成：新增 15 条消息，成交 0 笔
+  LOG 2026-10-23 22:38:51 | 扫描完成：新增 25 条消息，成交 0 笔
+  LOG 2026-10-23 21:35:45 | 专家团评审 sh600030(中信证券) -> HOLD 信心55（服从「总仓位超98%防守档收紧保留弹药」仓位否决）| HOLD，出队
+  LOG 2026-10-23 21:35:43 | 专家团评审 sz300059(东方财富) -> HOLD 信心55（服从「总仓位超98%防守档收紧保留弹药」仓位否决）| HOLD，出队
+  LOG 2026-10-23 21:35:42 | 专家团评审 sz000002(万科A) -> HOLD 信心55（forced 强制复核（浮亏-10.2%），但当日止跌回升+）| HOLD，出队
+  LOG 2026-10-23 21:35:41 | 专家团评审 sz002640(跨境通) -> SELL 信心80（delta=-3.2 死叉+20日新低，趋势明确恶化，cou）| 已批准，待交易时段按最新价成交
+--- log 结算/作废/复盘 相关（全部日志里筛） ---
+  SETTLE 2026-10-24 13:30:29 | 评审队列作废 1 只：跨境通(批准结论超 8h 保质期)
+  SETTLE 2026-10-23 16:22:38 | 每日复盘 2026-10-23 已存档（5 条要点 / 1 条经验）
+  SETTLE 2026-10-22 17:21:56 | 每日复盘 2026-10-22 已存档（5 条要点 / 1 条经验）
+  SETTLE 2026-10-22 17:21:05 | 每日复盘 2026-10-22 已存档（5 条要点 / 1 条经验）
+  SETTLE 2026-10-21 20:08:01 | 自动结算 2026-10-20（大盘 -0.60%）
+  SETTLE 2026-10-21 09:09:25 | 评审队列作废 1 只：万科A(批准结论超 8h 保质期)
+  SETTLE 2026-10-20 21:51:31 | 每日复盘 2026-10-20 已存档（6 条要点 / 2 条经验）
+--- reviewLog n=200; first entry fields ---
+  keys=['code', 'confidence', 'fillPrice', 'fillTime', 'name', 'note', 'outcome', 'priceAtReview', 'queued', 'reviewedAt', 'verdict']
+  first={"code": "sz002594", "name": "比亚迪", "verdict": "HOLD", "confidence": 60, "note": "服从仓位否决（总仓位超98%防守档收紧保留弹药），现金仅168元veto与事实相符。delta-1.4技术偏空，快讯刀片电池闪充为真实公司但技术面不配合。复核无致命风险。", "reviewedAt": "2026-10-16 14:57:14", "outcome": "HOLD，出队", "queued": false, "priceAtReview": 81.88, "fillPrice": null, "fillTime": null}
+  last={"code": "sh603993", "name": "洛阳钼业", "verdict": "HOLD", "confidence": 80, "note": "服从仓位否决（veto:总仓位超98%（防守档收紧），保留弹药），delta=-2.9，不加仓", "reviewedAt": "2026-10-24 00:53:03", "outcome": "HOLD，出队", "queued": false, "priceAtReview": 14.23, "fillPrice": null, "fillTime": null}
+  newest reviewedAt=2026-10-16 14:57:14 ; oldest=2026-10-24 00:53:03
+dailyReviews n=10 newest5=['2026-10-23', '2026-10-22', '2026-10-20', '2026-10-19', '2026-10-18']
+state.trades: type=list len=17

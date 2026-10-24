@@ -1,0 +1,174 @@
+===== ACCOUNT: us =====
+facts.date=2026-10-24 account={'cash': 19897.74, 'totalAsset': 89908.3, 'initCapital': 100000.0, 'pnlTotal': -10091.7, 'retTotalPct': -10.09, 'todayPnl': None, 'realized': -9920.47, 'fees': 1.85}
+facts keys: ['account', 'councilToday', 'date', 'expiredRecent', 'historyLast10', 'holdings', 'lastScan', 'market', 'marketContext', 'newsStats', 'pendingReview', 'priceMode', 'reviewLog', 'reviewed', 'reviewedToday', 'scanErr', 'trades']
+  facts.lastScan = 2026-10-24 13:29:49
+  facts.market = {'code': 'usINX', 'name': '标普500', 'price': 7623.68, 'pct': -0.52}
+  facts.market = {'code': 'usINX', 'name': '标普500', 'price': 7623.68, 'pct': -0.52}
+  trades n=0
+  state.holding total=13 live=8
+    HOLD usSHOP Shopify sh=120 cost=171.94725 price=168.68 pnlPct=None pct=-0.08 preClose=168.81
+    HOLD usV Visa sh=21 cost=385.45 price=407.92 pnlPct=None pct=-1.55 preClose=414.34
+    HOLD usCOP 康菲石油 sh=38 cost=145.29473684210527 price=150.8 pnlPct=None pct=3.55 preClose=145.63
+    HOLD usAMGN 安进 sh=24 cost=439.63375 price=439.26 pnlPct=None pct=-1.79 preClose=447.28
+    HOLD usEDU 新东方 sh=88 cost=60.78999999999999 price=58.38 pnlPct=None pct=-0.51 preClose=58.68
+    HOLD usABNB 爱彼迎 sh=53 cost=174.62735849056602 price=172.01 pnlPct=None pct=-2.13 preClose=175.76
+    HOLD usINTU 财捷 sh=17 cost=346.76235294117646 price=343.39 pnlPct=None pct=-3.24 preClose=354.9
+    HOLD usSBUX 星巴克 sh=48 cost=101.66000000000001 price=100.8 pnlPct=None pct=-1.09 preClose=101.91
+    TAGS usSBUX: 餐饮,咖啡,消费,连锁
+    TAGS usABNB: 旅游,住宿,共享经济,出行
+    TAGS usSHOP: 电商,SaaS,云计算,跨境电商
+    TAGS usV: 支付,信用卡,金融,清算
+    TAGS usAMGN: 医药,生物医药,制药,创新药
+    TAGS usCOP: 能源,石油,油气,资源
+    TAGS usEDU: 教育,中概股,留学,直播电商
+    TAGS usINTU: 软件,财务软件,报税,SaaS
+  pending n=6
+    PEND {'code': 'usPLTR', 'name': 'Palantir', 'direction': '买入', 'score': 2, 'delta': 2.4, 'reason': '综合信号: 多头排列+1 金叉+1', 'time': '2026-10-24 13:29:49', 'queuedAt': '2026-10-24 13:29:49', 'px': 196.75, 'state': 'waiting', 'council': {'verdict': '否决', 'score': 0.5, 'agree': 1, 'oppose': 0, 'abstain': 3, 'veto': '持仓只数已达上限8', 'notes': ['技术分析师:看多', '资金面分析师:中性', '消息面分析师:中性', '估值分析师:中性', '风控官:否决']}, 'waitH': 2.7}
+    PEND {'code': 'usV', 'name': 'Visa', 'direction': '买入', 'score': 2, 'delta': 2.4, 'reason': '综合信号: 多头排列+1 买压偏强+1', 'time': '2026-10-24 13:29:49', 'queuedAt': '2026-10-24 13:29:49', 'px': 407.92, 'state': 'waiting', 'council': {'verdict': '观望', 'score': 0.25, 'agree': 1, 'oppose': 0, 'abstain': 3, 'veto': '', 'notes': ['技术分析师:看多', '资金面分析师:中性', '消息面分析师:中性', '估值分析师:中性', '风控官:放行']}, 'waitH': 2.7}
+    PEND {'code': 'usMA', 'name': '万事达', 'direction': '买入', 'score': 2, 'delta': 2.4, 'reason': '综合信号: 多头排列+1 买压偏强+1', 'time': '2026-10-24 13:29:49', 'queuedAt': '2026-10-24 13:29:49', 'px': 623.6, 'state': 'waiting', 'council': {'verdict': '否决', 'score': 0.25, 'agree': 1, 'oppose': 0, 'abstain': 3, 'veto': '持仓只数已达上限8', 'notes': ['技术分析师:看多', '资金面分析师:中性', '消息面分析师:中性', '估值分析师:中性', '风控官:否决']}, 'waitH': 2.7}
+    PEND {'code': 'usABBV', 'name': '艾伯维', 'direction': '买入', 'score': 2, 'delta': 2.4, 'reason': '综合信号: 多头排列+1 买压偏强+1', 'time': '2026-10-24 13:29:49', 'queuedAt': '2026-10-24 13:29:49', 'px': 285.64, 'state': 'waiting', 'council': {'verdict': '否决', 'score': 0.25, 'agree': 1, 'oppose': 0, 'abstain': 3, 'veto': '持仓只数已达上限8', 'notes': ['技术分析师:看多', '资金面分析师:中性', '消息面分析师:中性', '估值分析师:中性', '风控官:否决']}, 'waitH': 2.7}
+    PEND {'code': 'usWMT', 'name': '沃尔玛', 'direction': '买入', 'score': 2, 'delta': 2.9, 'reason': '综合信号: 多头排列+1 买压偏强+1', 'time': '2026-10-24 13:29:49', 'queuedAt': '2026-10-24 13:29:49', 'px': 119.89, 'state': 'waiting', 'council': {'verdict': '否决', 'score': 0.25, 'agree': 1, 'oppose': 0, 'abstain': 3, 'veto': '持仓只数已达上限8', 'notes': ['技术分析师:看多', '资金面分析师:中性', '消息面分析师:中性', '估值分析师:中性', '风控官:否决']}, 'waitH': 2.7}
+    PEND {'code': 'usCOST', 'name': '好市多', 'direction': '买入', 'score': 2, 'delta': 2.4, 'reason': '综合信号: 多头排列+1 买压偏强+1', 'time': '2026-10-24 13:29:49', 'queuedAt': '2026-10-24 13:29:49', 'px': 1003.32, 'state': 'waiting', 'council': {'verdict': '否决', 'score': 0.25, 'agree': 1, 'oppose': 0, 'abstain': 3, 'veto': '持仓只数已达上限8', 'notes': ['技术分析师:看多', '资金面分析师:中性', '消息面分析师:中性', '估值分析师:中性', '风控官:否决']}, 'waitH': 2.7}
+  signals n=0
+  history n=11 last12:
+    HIST {'date': '2026-10-09', 'mkt': 0.41, 'total': 100000.0, 'dayPnl': 0.0, 'ret': 0.0, 'mret': 0.41}
+    HIST {'date': '2026-10-12', 'mkt': 0.02, 'total': 99923.51, 'dayPnl': -76.49, 'ret': -0.0765, 'mret': 0.4301}
+    HIST {'date': '2026-10-13', 'mkt': -0.06, 'total': 99633.84, 'dayPnl': -289.67, 'ret': -0.3662, 'mret': 0.3698}
+    HIST {'date': '2026-10-14', 'mkt': -0.02, 'total': 99978.9, 'dayPnl': 345.06, 'ret': -0.0211, 'mret': 0.3497}
+    HIST {'date': '2026-10-15', 'mkt': -1.11, 'total': 96511.05, 'dayPnl': -3467.85, 'ret': -3.489, 'mret': -0.7641}
+    HIST {'date': '2026-10-16', 'mkt': 0.33, 'total': 95933.59, 'dayPnl': -577.46, 'ret': -4.0664, 'mret': -0.4367}
+    HIST {'date': '2026-10-19', 'mkt': -1.09, 'total': 92577.4, 'dayPnl': -3356.19, 'ret': -7.4226, 'mret': -1.5219}
+    HIST {'date': '2026-10-20', 'mkt': 0.41, 'total': 93273.6, 'dayPnl': 696.2, 'ret': -6.7264, 'mret': -1.1181}
+    HIST {'date': '2026-10-21', 'mkt': 0.28, 'total': 95346.71, 'dayPnl': 2073.11, 'ret': -4.6533, 'mret': -0.8413}
+    HIST {'date': '2026-10-22', 'mkt': 0.58, 'total': 95510.01, 'dayPnl': 163.3, 'ret': -4.49, 'mret': -0.2661}
+    HIST {'date': '2026-10-23', 'mkt': -1.21, 'total': 90528.84, 'dayPnl': -4981.17, 'ret': -9.4712, 'mret': -1.4729}
+  log n=200 last15:
+    LOG {'time': '2026-10-22 14:52:49', 'msg': '扫描完成：新增 25 条消息，成交 0 笔'}
+    LOG {'time': '2026-10-22 14:52:08', 'msg': 'K线源切换 -> proxy.finance.qq.com'}
+    LOG {'time': '2026-10-22 13:59:47', 'msg': '扫描完成：新增 15 条消息，成交 0 笔'}
+    LOG {'time': '2026-10-22 13:59:07', 'msg': 'K线源切换 -> proxy.finance.qq.com'}
+    LOG {'time': '2026-10-22 13:57:42', 'msg': '专家团评审 usma(万事达) -> HOLD 信心55（delta2.4多头排列+买压偏强、无20日新高/放量/阳线）| HOLD，出队'}
+    LOG {'time': '2026-10-22 13:57:42', 'msg': '专家团评审 uslly(礼来) -> HOLD 信心55（delta2.4多头排列+买压偏强、无20日新高/放量/阳线）| HOLD，出队'}
+    LOG {'time': '2026-10-22 13:57:42', 'msg': '专家团评审 usv(Visa) -> HOLD 信心55（delta2.4多头排列+买压偏强、无20日新高/放量/阳线）| HOLD，出队'}
+    LOG {'time': '2026-10-22 13:50:01', 'msg': '扫描完成：新增 25 条消息，成交 0 笔'}
+    LOG {'time': '2026-10-22 13:49:21', 'msg': 'K线源切换 -> proxy.finance.qq.com'}
+    LOG {'time': '2026-10-22 11:53:54', 'msg': '专家团评审 uslly(礼来) -> HOLD 信心55（delta2.4多头排列+买压偏强,无强特征;news=nu）| HOLD，出队'}
+    LOG {'time': '2026-10-22 11:53:54', 'msg': '专家团评审 usma(万事达) -> HOLD 信心55（delta2.4多头排列+买压偏强,无强特征;news=nu）| HOLD，出队'}
+    LOG {'time': '2026-10-22 11:53:53', 'msg': '专家团评审 usv(Visa) -> HOLD 信心55（delta2.4多头排列+买压偏强,无20日新高/放量/阳线）| HOLD，出队'}
+    LOG {'time': '2026-10-22 11:53:53', 'msg': '专家团评审 usintu(财捷) -> BUY 信心55（delta2.3但reason含[相对强度高]命中强特征清单）| 已批准，待交易时段按最新价成交'}
+    LOG {'time': '2026-10-22 11:47:06', 'msg': '扫描完成：新增 15 条消息，成交 0 笔'}
+    LOG {'time': '2026-10-22 11:46:28', 'msg': '扫描完成：新增 25 条消息，成交 0 笔'}
+  reviewLog n=200
+  dailyReviews n=10 dates=['2026-10-17', '2026-10-16', '2026-10-15', '2026-10-14', '2026-10-13']
+  realized n=-9920.469999999998
+
+===== ACCOUNT: cn_conservative =====
+facts.date=2026-10-24 account={'cash': 49807.61, 'totalAsset': 93657.92, 'initCapital': 100000.0, 'pnlTotal': -6342.08, 'retTotalPct': -6.34, 'todayPnl': None, 'realized': -6290.78, 'fees': 1.25}
+facts keys: ['account', 'councilToday', 'date', 'expiredRecent', 'historyLast10', 'holdings', 'lastScan', 'market', 'marketContext', 'newsStats', 'pendingReview', 'priceMode', 'reviewLog', 'reviewed', 'reviewedToday', 'scanErr', 'trades']
+  facts.lastScan = 2026-10-24 13:30:15
+  facts.market = {'code': 'sh000001', 'name': '上证指数', 'price': 3690.48, 'pct': 0.89}
+  facts.market = {'code': 'sh000001', 'name': '上证指数', 'price': 3690.48, 'pct': 0.89}
+  trades n=0
+  state.holding total=6 live=3
+    HOLD sh601728 中国电信 sh=3504 cost=6.720410958904109 price=6.84 pnlPct=None pct=1.79 preClose=6.72
+    HOLD sh605189 富春染织 sh=649 cost=16.36 price=16.15 pnlPct=None pct=2.67 preClose=15.73
+    HOLD sh601939 建设银行 sh=832 cost=11.7 price=11.3 pnlPct=None pct=-3.09 preClose=11.66
+    TAGS sh601939: 银行,金融,大金融,国有大行,高股息
+    TAGS sh601728: 电信,通信,运营商,5G,云计算
+    TAGS sh605189: ,热点,强势
+  pending n=3
+    PEND {'code': 'sz000063', 'name': '中兴通讯', 'direction': '买入', 'score': 18, 'delta': -1.1, 'reason': '快讯: 海航控股与零重空间签署战略合作协议 共拓飞机通信', 'time': '2026-10-24 13:30:15', 'queuedAt': '2026-10-24 13:30:15', 'px': 28.16, 'state': 'waiting', 'council': {'verdict': '观望', 'score': 0.5, 'agree': 1, 'oppose': 1, 'abstain': 2, 'veto': '', 'notes': ['技术分析师:看空', '资金面分析师:中性', '消息面分析师:看多', '估值分析师:中性', '风控官:放行']}, 'waitH': 2.7}
+    PEND {'code': 'sh600941', 'name': '中国移动', 'direction': '买入', 'score': 18, 'delta': 1.9, 'reason': '快讯: 海航控股与零重空间签署战略合作协议 共拓飞机通信', 'time': '2026-10-24 13:30:15', 'queuedAt': '2026-10-24 13:30:15', 'px': 99.14, 'state': 'waiting', 'council': {'verdict': '买入', 'score': 1.2, 'agree': 3, 'oppose': 0, 'abstain': 1, 'veto': '', 'notes': ['技术分析师:看多', '资金面分析师:中性', '消息面分析师:看多', '估值分析师:看多', '风控官:放行']}, 'waitH': 2.7}
+    PEND {'code': 'sh601728', 'name': '中国电信', 'direction': '买入', 'score': 18, 'delta': 2.9, 'reason': '快讯: 海航控股与零重空间签署战略合作协议 共拓飞机通信', 'time': '2026-10-24 13:30:15', 'queuedAt': '2026-10-24 13:30:15', 'px': 6.84, 'state': 'waiting', 'council': {'verdict': '买入', 'score': 1.2, 'agree': 3, 'oppose': 0, 'abstain': 1, 'veto': '', 'notes': ['技术分析师:看多', '资金面分析师:中性', '消息面分析师:看多', '估值分析师:看多', '风控官:放行']}, 'waitH': 2.7}
+  signals n=0
+  history n=11 last12:
+    HIST {'date': '2026-10-08', 'mkt': 0.05, 'total': 100000.0, 'dayPnl': 0.0, 'ret': 0.0, 'mret': 0.05}
+    HIST {'date': '2026-10-09', 'mkt': 0.05, 'total': 100000.0, 'dayPnl': 0.0, 'ret': 0.0, 'mret': 0.1}
+    HIST {'date': '2026-10-12', 'mkt': -0.43, 'total': 100000.0, 'dayPnl': 0.0, 'ret': 0.0, 'mret': -0.3304}
+    HIST {'date': '2026-10-13', 'mkt': 0.1, 'total': 99943.76, 'dayPnl': -56.24, 'ret': -0.0562, 'mret': -0.2307}
+    HIST {'date': '2026-10-14', 'mkt': -0.88, 'total': 99423.54, 'dayPnl': -520.22, 'ret': -0.5765, 'mret': -1.1087}
+    HIST {'date': '2026-10-15', 'mkt': -1.59, 'total': 101421.23, 'dayPnl': 1997.69, 'ret': 1.4212, 'mret': -2.6811}
+    HIST {'date': '2026-10-16', 'mkt': 0.24, 'total': 98128.09, 'dayPnl': -3293.14, 'ret': -1.8719, 'mret': -2.4475}
+    HIST {'date': '2026-10-19', 'mkt': 0.39, 'total': 95881.28, 'dayPnl': -2246.81, 'ret': -4.1187, 'mret': -2.0671}
+    HIST {'date': '2026-10-20', 'mkt': 0.12, 'total': 96318.59, 'dayPnl': 437.31, 'ret': -3.6814, 'mret': -1.9495}
+    HIST {'date': '2026-10-21', 'mkt': -0.6, 'total': 94670.28, 'dayPnl': -1648.31, 'ret': -5.3297, 'mret': -2.5378}
+    HIST {'date': '2026-10-22', 'mkt': 0.89, 'total': 93657.92, 'dayPnl': -1012.36, 'ret': -6.3421, 'mret': -1.6704}
+  log n=200 last15:
+    LOG {'time': '2026-10-21 10:50:58', 'msg': '专家团评审 sh601899(紫金矿业) -> HOLD 信心55（主审HOLD/复核一致：delta-2.4为负且技术面看空，）| HOLD，出队'}
+    LOG {'time': '2026-10-21 10:50:46', 'msg': '扫描完成：新增 25 条消息，成交 0 笔'}
+    LOG {'time': '2026-10-21 10:50:22', 'msg': 'K线源切换 -> ifzq.gtimg.cn'}
+    LOG {'time': '2026-10-21 09:50:35', 'msg': '扫描完成：新增 3 条消息，成交 0 笔'}
+    LOG {'time': '2026-10-21 09:48:36', 'msg': '扫描完成：新增 15 条消息，成交 0 笔'}
+    LOG {'time': '2026-10-21 09:40:42', 'msg': '扫描完成：新增 25 条消息，成交 0 笔'}
+    LOG {'time': '2026-10-21 09:40:20', 'msg': 'K线源切换 -> proxy.finance.qq.com'}
+    LOG {'time': '2026-10-21 09:09:09', 'msg': '扫描完成：新增 25 条消息，成交 0 笔'}
+    LOG {'time': '2026-10-21 08:32:04', 'msg': '市场环境播报 2026-10-21 已存档（中性偏暖 / 情绪 偏暖）'}
+    LOG {'time': '2026-10-21 03:41:06', 'msg': '扫描完成：新增 0 条消息，成交 0 笔'}
+    LOG {'time': '2026-10-21 03:40:53', 'msg': '扫描完成：新增 16 条消息，成交 0 笔'}
+    LOG {'time': '2026-10-21 03:38:04', 'msg': '扫描完成：新增 25 条消息，成交 0 笔'}
+    LOG {'time': '2026-10-21 03:38:04', 'msg': '评审队列作废 1 只：中国电信(批准结论超 8h 保质期)'}
+    LOG {'time': '2026-10-21 02:37:36', 'msg': '扫描完成：新增 15 条消息，成交 0 笔'}
+    LOG {'time': '2026-10-21 02:35:41', 'msg': '扫描完成：新增 25 条消息，成交 0 笔'}
+  reviewLog n=200
+  dailyReviews n=10 dates=['2026-10-17', '2026-10-16', '2026-10-15', '2026-10-14', '2026-10-13']
+  realized n=-6290.780000000004
+
+===== ACCOUNT: cn_aggressive =====
+facts.date=2026-10-24 account={'cash': 1573.75, 'totalAsset': 93183.06, 'initCapital': 100000.0, 'pnlTotal': -6816.94, 'retTotalPct': -6.82, 'todayPnl': None, 'realized': -305.12, 'fees': 0.03}
+facts keys: ['account', 'councilToday', 'date', 'expiredRecent', 'historyLast10', 'holdings', 'lastScan', 'market', 'marketContext', 'newsStats', 'pendingReview', 'priceMode', 'reviewLog', 'reviewed', 'reviewedToday', 'scanErr', 'trades']
+  facts.lastScan = 2026-10-24 13:30:29
+  facts.market = {'code': 'sh000001', 'name': '上证指数', 'price': 3690.48, 'pct': 0.89}
+  facts.market = {'code': 'sh000001', 'name': '上证指数', 'price': 3690.48, 'pct': 0.89}
+  trades n=0
+  state.holding total=10 live=9
+    HOLD sz000002 万科A sh=10442 cost=3.7546025665581313 price=3.37 pnlPct=None pct=1.81 preClose=3.31
+    HOLD sz002074 国轩高科 sh=862 cost=28.36886310904872 price=26.04 pnlPct=None pct=3.01 preClose=25.28
+    HOLD sh601398 工商银行 sh=1744 cost=8.48 price=8.32 pnlPct=None pct=-3.14 preClose=8.59
+    HOLD sh601288 农业银行 sh=1327 cost=7.239999999999999 price=7.19 pnlPct=None pct=-2.84 preClose=7.4
+    HOLD sh601088 中国神华 sh=125 cost=49.69 price=50.2 pnlPct=None pct=0.52 preClose=49.94
+    HOLD sh601919 中远海控 sh=154 cost=17.11 price=15.85 pnlPct=None pct=0.19 preClose=15.82
+    HOLD sz002640 跨境通 sh=117 cost=3.806359447004608 price=3.43 pnlPct=None pct=-4.46 preClose=3.59
+    HOLD sh601985 中国核电 sh=50 cost=9.42 price=9.34 pnlPct=None pct=-0.85 preClose=9.42
+    HOLD sh603466 风语筑 sh=23 cost=13.15 price=14.69 pnlPct=None pct=10.04 preClose=13.35
+    TAGS sz000002: 地产,房地产,物业,基建
+    TAGS sh601288: 银行,金融,大金融,国有大行,高股息
+    TAGS sz002074: ,热点,强势
+    TAGS sh601919: 航运,集装箱,港口,运输,周期
+    TAGS sz002640: 互联网电商,热点,强势
+    TAGS sh601985: 核电,电力,能源,公用事业,央企
+    TAGS sh603466: 数字媒体,热点,强势
+    TAGS sh601088: 煤炭,能源,资源,高股息,央企
+    TAGS sh601398: 银行,金融,大金融,国有大行,高股息
+  pending n=3
+    PEND {'code': 'sh600941', 'name': '中国移动', 'direction': '买入', 'score': 18, 'delta': 1.9, 'reason': '快讯: 海航控股与零重空间签署战略合作协议 共拓飞机通信', 'time': '2026-10-24 13:30:29', 'queuedAt': '2026-10-24 13:30:29', 'px': 99.14, 'state': 'waiting', 'council': {'verdict': '否决', 'score': 1.0, 'agree': 2, 'oppose': 0, 'abstain': 2, 'veto': '总仓位超98%（防守档收紧），保留弹药', 'notes': ['技术分析师:看多', '资金面分析师:中性', '消息面分析师:看多', '估值分析师:中性', '风控官:否决']}, 'waitH': 2.7}
+    PEND {'code': 'sh601728', 'name': '中国电信', 'direction': '买入', 'score': 18, 'delta': 2.9, 'reason': '快讯: 海航控股与零重空间签署战略合作协议 共拓飞机通信', 'time': '2026-10-24 13:30:29', 'queuedAt': '2026-10-24 13:30:29', 'px': 6.84, 'state': 'waiting', 'council': {'verdict': '否决', 'score': 1.0, 'agree': 2, 'oppose': 0, 'abstain': 2, 'veto': '总仓位超98%（防守档收紧），保留弹药', 'notes': ['技术分析师:看多', '资金面分析师:中性', '消息面分析师:看多', '估值分析师:中性', '风控官:否决']}, 'waitH': 2.7}
+    PEND {'code': 'sz002640', 'name': '跨境通', 'direction': '卖出', 'score': 0, 'delta': 0, 'reason': '浮亏-9.9%触及强制复核线-8%', 'time': '2026-10-24 13:30:29', 'queuedAt': '2026-10-24 13:30:29', 'px': 3.43, 'state': 'waiting', 'forced': True, 'council': {'verdict': '卖出', 'score': -0.5, 'agree': 1, 'oppose': 0, 'abstain': 3, 'veto': '', 'notes': ['技术分析师:看空', '资金面分析师:中性', '消息面分析师:中性', '估值分析师:中性', '风控官:放行']}, 'waitH': 2.7}
+  signals n=0
+  history n=8 last12:
+    HIST {'date': '2026-10-09', 'mkt': 0.05, 'total': 100000.0, 'dayPnl': 0.0, 'ret': 0.0, 'mret': 0.05}
+    HIST {'date': '2026-10-12', 'mkt': 0.1, 'total': 99578.32, 'dayPnl': -421.68, 'ret': -0.4217, 'mret': 0.15}
+    HIST {'date': '2026-10-13', 'mkt': -0.88, 'total': 98438.38, 'dayPnl': -1139.94, 'ret': -1.5616, 'mret': -0.7313}
+    HIST {'date': '2026-10-14', 'mkt': -1.59, 'total': 98459.09, 'dayPnl': 20.71, 'ret': -1.5409, 'mret': -2.3096}
+    HIST {'date': '2026-10-15', 'mkt': 0.24, 'total': 98609.57, 'dayPnl': 150.48, 'ret': -1.3904, 'mret': -2.0752}
+    HIST {'date': '2026-10-16', 'mkt': 0.24, 'total': 98609.57, 'dayPnl': -0.0, 'ret': -1.3904, 'mret': -1.8402}
+    HIST {'date': '2026-10-19', 'mkt': 0.12, 'total': 96674.21, 'dayPnl': -1935.36, 'ret': -3.3258, 'mret': -1.7224}
+    HIST {'date': '2026-10-20', 'mkt': -0.6, 'total': 94476.11, 'dayPnl': -2198.1, 'ret': -5.5239, 'mret': -2.312}
+  log n=200 last15:
+    LOG {'time': '2026-10-21 03:39:36', 'msg': 'K线源切换 -> proxy.finance.qq.com'}
+    LOG {'time': '2026-10-21 03:38:17', 'msg': '扫描完成：新增 25 条消息，成交 0 笔'}
+    LOG {'time': '2026-10-21 02:37:48', 'msg': '扫描完成：新增 15 条消息，成交 0 笔'}
+    LOG {'time': '2026-10-21 02:35:53', 'msg': '扫描完成：新增 25 条消息，成交 0 笔'}
+    LOG {'time': '2026-10-21 02:31:26', 'msg': '专家团评审 sz002640(跨境通) -> HOLD 信心60（服从仓位否决：council veto「总仓位超98%（防守）| HOLD，出队'}
+    LOG {'time': '2026-10-21 02:31:26', 'msg': '专家团评审 sh601728(中国电信) -> HOLD 信心60（服从仓位否决：council veto「总仓位超98%（防守）| HOLD，出队'}
+    LOG {'time': '2026-10-21 01:34:50', 'msg': '扫描完成：新增 15 条消息，成交 0 笔'}
+    LOG {'time': '2026-10-21 01:33:00', 'msg': '扫描完成：新增 25 条消息，成交 0 笔'}
+    LOG {'time': '2026-10-21 00:32:17', 'msg': '扫描完成：新增 16 条消息，成交 0 笔'}
+    LOG {'time': '2026-10-21 00:30:08', 'msg': '扫描完成：新增 25 条消息，成交 0 笔'}
+    LOG {'time': '2026-10-21 00:27:59', 'msg': '专家团评审 sz002640(跨境通) -> HOLD 信心60（主审BUY/复核无致命利空，delta3.4 达强势（多头排）| HOLD，出队'}
+    LOG {'time': '2026-10-21 00:27:59', 'msg': '专家团评审 sh601728(中国电信) -> HOLD 信心60（主审BUY/复核无致命利空，delta4.4 达强势（多头排）| HOLD，出队'}
+    LOG {'time': '2026-10-20 23:30:17', 'msg': '扫描完成：新增 15 条消息，成交 0 笔'}
+    LOG {'time': '2026-10-20 23:27:52', 'msg': '扫描完成：新增 25 条消息，成交 0 笔'}
+    LOG {'time': '2026-10-20 21:51:31', 'msg': '每日复盘 2026-10-20 已存档（6 条要点 / 2 条经验）'}
+  reviewLog n=200
+  dailyReviews n=10 dates=['2026-10-17', '2026-10-16', '2026-10-15', '2026-10-14', '2026-10-13']
+  realized n=-305.1159447004605
