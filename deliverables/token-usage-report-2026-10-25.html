@@ -1,0 +1,431 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>模拟炒股 · 定时任务 Token 消耗清单（近 30 天）</title>
+<style>
+  :root {
+    --bg: #f6f7f9; --card: #ffffff; --ink: #1c2430; --sub: #67707f;
+    --line: #e6e9ee; --brand: #0f7a6c; --brand-soft: #e2f2ef;
+    --gray: #b9c0cb; --gray-soft: #f0f2f5; --warn: #b7791f;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; padding: 32px 28px 56px; background: var(--bg); color: var(--ink);
+    font-family: -apple-system, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+    font-size: 14px; line-height: 1.6; -webkit-font-smoothing: antialiased;
+  }
+  .wrap { max-width: 1180px; margin: 0 auto; }
+  h1 { font-size: 24px; margin: 0 0 6px; letter-spacing: -0.2px; }
+  .sub { color: var(--sub); font-size: 13px; margin-bottom: 24px; }
+  .kpis { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-bottom: 18px; }
+  .kpi {
+    background: var(--card); border: 1px solid var(--line); border-radius: 12px;
+    padding: 16px 18px;
+  }
+  .kpi .lab { color: var(--sub); font-size: 12px; margin-bottom: 6px; }
+  .kpi .val { font-size: 26px; font-weight: 650; letter-spacing: -0.5px; }
+  .kpi .val small { font-size: 13px; font-weight: 500; color: var(--sub); margin-left: 3px; }
+  .kpi .hint { font-size: 12px; color: var(--sub); margin-top: 4px; }
+  .card {
+    background: var(--card); border: 1px solid var(--line); border-radius: 12px;
+    padding: 20px 20px 8px; margin-bottom: 18px;
+  }
+  .card h2 { font-size: 15px; margin: 0 0 4px; }
+  .card .note { color: var(--sub); font-size: 12px; margin-bottom: 16px; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  th {
+    text-align: right; font-weight: 600; color: var(--sub); font-size: 12px;
+    padding: 8px 8px; border-bottom: 1px solid var(--line); white-space: nowrap;
+  }
+  th:nth-child(1), th:nth-child(2) { text-align: left; }
+  td { padding: 9px 8px; border-bottom: 1px solid #f1f3f6; vertical-align: middle; }
+  td.num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  td.strong { font-weight: 650; }
+  td.idx { color: var(--gray); width: 26px; text-align: left; }
+  td.name { max-width: 250px; font-weight: 550; }
+  td.muted { color: var(--sub); }
+  tr.dead td.name { color: #8b939f; font-weight: 500; }
+  .tag {
+    display: inline-block; margin-left: 6px; padding: 1px 6px; border-radius: 5px;
+    background: var(--gray-soft); color: #8b939f; font-size: 11px; font-weight: 500;
+  }
+  td.barcell { width: 190px; }
+  .bar { height: 9px; border-radius: 5px; background: var(--brand); opacity: .85; }
+  .bar.dead { background: var(--gray); }
+  .chart { display: flex; align-items: flex-end; gap: 4px; height: 190px; padding: 6px 2px 0; }
+  .barcol { flex: 1; display: flex; flex-direction: column; align-items: center; height: 100%; }
+  .barwrap { position: relative; flex: 1; width: 100%; display: flex; align-items: flex-end; }
+  .barinner { width: 100%; background: #cfe6e1; border-radius: 3px 3px 0 0; }
+  .barauto { position: absolute; bottom: 0; left: 0; width: 100%; background: var(--brand); border-radius: 3px 3px 0 0; opacity: .8; }
+  .daylab { font-size: 10px; color: var(--sub); margin-top: 5px; transform: rotate(-45deg); height: 22px; }
+  .legend { display: flex; gap: 16px; font-size: 12px; color: var(--sub); margin: 2px 0 12px; }
+  .dot { display: inline-block; width: 9px; height: 9px; border-radius: 3px; margin-right: 5px; vertical-align: middle; }
+  .insight { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  .ins { background: #fbfcfd; border: 1px solid var(--line); border-left: 3px solid var(--brand); border-radius: 8px; padding: 12px 14px; }
+  .ins b { display: block; margin-bottom: 3px; }
+  .ins span { color: var(--sub); font-size: 12.5px; }
+  .foot { color: var(--sub); font-size: 12px; margin-top: 8px; }
+  @media (max-width: 900px) { .kpis { grid-template-columns: repeat(2,1fr); } .insight { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>定时任务 Token 消耗清单</h1>
+  <div class="sub">统计窗口 2026-09-25 08:24 — 2026-10-25 08:24　·　数据源：本地请求级用量记录（每个 API 请求一条）</div>
+
+  <div class="kpis">
+    <div class="kpi"><div class="lab">总消耗</div><div class="val">311.2<small>M tokens</small></div>
+      <div class="hint">日均 10.4M</div></div>
+    <div class="kpi"><div class="lab">自动任务占比</div><div class="val">86<small>%</small></div>
+      <div class="hint">266.9M / 1054 次运行</div></div>
+    <div class="kpi"><div class="lab">平均上下文</div><div class="val">63<small>k / 请求</small></div>
+      <div class="hint">4927 个请求，缓存命中约 96%</div></div>
+    <div class="kpi"><div class="lab">实际计费输入</div><div class="val">13.8<small>M 未缓存</small></div>
+      <div class="hint">其余为缓存命中，成本低一个量级</div></div>
+  </div>
+
+  <div class="card">
+    <h2>各任务消耗明细（按总量降序）</h2>
+    <div class="note">「在用 4 个任务」共 121.1M，「已删除任务」145.9M —— 后者是 10-23 合并前的旧任务，token 已停止产生。</div>
+    <table>
+      <thead><tr>
+        <th>#</th><th>任务</th><th>运行</th><th>请求</th><th>总量(M)</th><th>占比</th>
+        <th>未缓存(M)</th><th>输出(M)</th><th>点数</th><th>均次(M)</th><th>中位(M)</th><th>请求/次</th>
+      </tr></thead>
+      <tbody>
+      <tr class="dead">
+        <td class="idx">1</td>
+        <td class="name">模拟炒股·云端LLM专家团评审（三账户）<span class="tag">已删除</span></td>
+        <td class="num">285</td>
+        <td class="num">1502</td>
+        <td class="num strong">87.0</td>
+        <td class="barcell"><div class="bar dead" style="width:100.0%"></div></td>
+        <td class="num">3.4</td>
+        <td class="num">0.62</td>
+        <td class="num">1307</td>
+        <td class="num">0.31</td>
+        <td class="num">0.11</td>
+        <td class="num muted">5.3</td>
+      </tr>
+      <tr class="live">
+        <td class="idx">2</td>
+        <td class="name">模拟炒股·盘中引擎（扫描+评审，三账户）</td>
+        <td class="num">322</td>
+        <td class="num">1182</td>
+        <td class="num strong">65.6</td>
+        <td class="barcell"><div class="bar live" style="width:75.4%"></div></td>
+        <td class="num">4.4</td>
+        <td class="num">0.29</td>
+        <td class="num">1198</td>
+        <td class="num">0.20</td>
+        <td class="num">0.20</td>
+        <td class="num muted">3.7</td>
+      </tr>
+      <tr class="live">
+        <td class="idx">3</td>
+        <td class="name">模拟炒股·收盘复盘+归因（三账户）</td>
+        <td class="num">12</td>
+        <td class="num">393</td>
+        <td class="num strong">42.1</td>
+        <td class="barcell"><div class="bar live" style="width:48.4%"></div></td>
+        <td class="num">1.9</td>
+        <td class="num">0.51</td>
+        <td class="num">1637</td>
+        <td class="num">3.51</td>
+        <td class="num">1.31</td>
+        <td class="num muted">32.8</td>
+      </tr>
+      <tr class="dead">
+        <td class="idx">4</td>
+        <td class="name">模拟炒股·盘中半点唤醒+评审联动<span class="tag">已删除</span></td>
+        <td class="num">222</td>
+        <td class="num">739</td>
+        <td class="num strong">35.5</td>
+        <td class="barcell"><div class="bar dead" style="width:40.8%"></div></td>
+        <td class="num">2.1</td>
+        <td class="num">0.17</td>
+        <td class="num">617</td>
+        <td class="num">0.16</td>
+        <td class="num">0.18</td>
+        <td class="num muted">3.3</td>
+      </tr>
+      <tr class="live">
+        <td class="idx">5</td>
+        <td class="name">每日代码自动提交推送</td>
+        <td class="num">23</td>
+        <td class="num">147</td>
+        <td class="num strong">6.8</td>
+        <td class="barcell"><div class="bar live" style="width:7.8%"></div></td>
+        <td class="num">0.2</td>
+        <td class="num">0.04</td>
+        <td class="num">64</td>
+        <td class="num">0.30</td>
+        <td class="num">0.08</td>
+        <td class="num muted">6.4</td>
+      </tr>
+      <tr class="live">
+        <td class="idx">6</td>
+        <td class="name">模拟炒股·盘前准备（市场环境+调池评审）</td>
+        <td class="num">10</td>
+        <td class="num">111</td>
+        <td class="num strong">6.5</td>
+        <td class="barcell"><div class="bar live" style="width:7.5%"></div></td>
+        <td class="num">0.5</td>
+        <td class="num">0.08</td>
+        <td class="num">348</td>
+        <td class="num">0.65</td>
+        <td class="num">0.67</td>
+        <td class="num muted">11.1</td>
+      </tr>
+      <tr class="dead">
+        <td class="idx">7</td>
+        <td class="name">模拟炒股·被否误杀归因学习（每日）<span class="tag">已删除</span></td>
+        <td class="num">14</td>
+        <td class="num">133</td>
+        <td class="num strong">6.4</td>
+        <td class="barcell"><div class="bar dead" style="width:7.3%"></div></td>
+        <td class="num">0.1</td>
+        <td class="num">0.05</td>
+        <td class="num">100</td>
+        <td class="num">0.45</td>
+        <td class="num">0.56</td>
+        <td class="num muted">9.5</td>
+      </tr>
+      <tr class="dead">
+        <td class="idx">8</td>
+        <td class="name">模拟炒股·专家团评审对账（三账户）<span class="tag">已删除</span></td>
+        <td class="num">14</td>
+        <td class="num">107</td>
+        <td class="num strong">5.5</td>
+        <td class="barcell"><div class="bar dead" style="width:6.4%"></div></td>
+        <td class="num">0.2</td>
+        <td class="num">0.05</td>
+        <td class="num">63</td>
+        <td class="num">0.39</td>
+        <td class="num">0.06</td>
+        <td class="num muted">7.6</td>
+      </tr>
+      <tr class="dead">
+        <td class="idx">9</td>
+        <td class="name">模拟炒股·调池门控评审（A股两账户）<span class="tag">已删除</span></td>
+        <td class="num">20</td>
+        <td class="num">65</td>
+        <td class="num strong">3.8</td>
+        <td class="barcell"><div class="bar dead" style="width:4.3%"></div></td>
+        <td class="num">0.2</td>
+        <td class="num">0.02</td>
+        <td class="num">86</td>
+        <td class="num">0.19</td>
+        <td class="num">0.07</td>
+        <td class="num muted">3.2</td>
+      </tr>
+      <tr class="dead">
+        <td class="idx">10</td>
+        <td class="name">模拟炒股激进版·云端LLM专家团评审<span class="tag">已删除</span></td>
+        <td class="num">23</td>
+        <td class="num">23</td>
+        <td class="num strong">1.4</td>
+        <td class="barcell"><div class="bar dead" style="width:1.6%"></div></td>
+        <td class="num">0.0</td>
+        <td class="num">0.01</td>
+        <td class="num">15</td>
+        <td class="num">0.06</td>
+        <td class="num">0.06</td>
+        <td class="num muted">1.0</td>
+      </tr>
+      <tr class="dead">
+        <td class="idx">11</td>
+        <td class="name">模拟炒股稳健版·盘中定时唤醒扫描<span class="tag">已删除</span></td>
+        <td class="num">24</td>
+        <td class="num">25</td>
+        <td class="num strong">1.4</td>
+        <td class="barcell"><div class="bar dead" style="width:1.6%"></div></td>
+        <td class="num">0.0</td>
+        <td class="num">0.01</td>
+        <td class="num">12</td>
+        <td class="num">0.06</td>
+        <td class="num">0.06</td>
+        <td class="num muted">1.0</td>
+      </tr>
+      <tr class="dead">
+        <td class="idx">12</td>
+        <td class="name">模拟炒股稳健版·云端LLM专家团评审<span class="tag">已删除</span></td>
+        <td class="num">24</td>
+        <td class="num">24</td>
+        <td class="num strong">1.3</td>
+        <td class="barcell"><div class="bar dead" style="width:1.5%"></div></td>
+        <td class="num">0.0</td>
+        <td class="num">0.00</td>
+        <td class="num">10</td>
+        <td class="num">0.05</td>
+        <td class="num">0.05</td>
+        <td class="num muted">1.0</td>
+      </tr>
+      <tr class="dead">
+        <td class="idx">13</td>
+        <td class="name">模拟炒股激进版·盘中定时唤醒扫描<span class="tag">已删除</span></td>
+        <td class="num">23</td>
+        <td class="num">23</td>
+        <td class="num strong">1.3</td>
+        <td class="barcell"><div class="bar dead" style="width:1.4%"></div></td>
+        <td class="num">0.0</td>
+        <td class="num">0.01</td>
+        <td class="num">11</td>
+        <td class="num">0.05</td>
+        <td class="num">0.05</td>
+        <td class="num muted">1.0</td>
+      </tr>
+      <tr class="dead">
+        <td class="idx">14</td>
+        <td class="name">A股涨跌新闻归因雷达·交易时段每小时更新<span class="tag">已删除</span></td>
+        <td class="num">9</td>
+        <td class="num">9</td>
+        <td class="num strong">0.7</td>
+        <td class="barcell"><div class="bar dead" style="width:0.8%"></div></td>
+        <td class="num">0.0</td>
+        <td class="num">0.00</td>
+        <td class="num">5</td>
+        <td class="num">0.08</td>
+        <td class="num">0.08</td>
+        <td class="num muted">1.0</td>
+      </tr>
+      <tr class="dead">
+        <td class="idx">15</td>
+        <td class="name">模拟炒股美股版·云端LLM专家团评审<span class="tag">已删除</span></td>
+        <td class="num">9</td>
+        <td class="num">9</td>
+        <td class="num strong">0.6</td>
+        <td class="barcell"><div class="bar dead" style="width:0.6%"></div></td>
+        <td class="num">0.0</td>
+        <td class="num">0.01</td>
+        <td class="num">5</td>
+        <td class="num">0.06</td>
+        <td class="num">0.06</td>
+        <td class="num muted">1.0</td>
+      </tr>
+      <tr class="dead">
+        <td class="idx">16</td>
+        <td class="name">模拟炒股·美股盘中唤醒扫描<span class="tag">已删除</span></td>
+        <td class="num">9</td>
+        <td class="num">9</td>
+        <td class="num strong">0.5</td>
+        <td class="barcell"><div class="bar dead" style="width:0.5%"></div></td>
+        <td class="num">0.0</td>
+        <td class="num">0.00</td>
+        <td class="num">4</td>
+        <td class="num">0.05</td>
+        <td class="num">0.05</td>
+        <td class="num muted">1.0</td>
+      </tr>
+      <tr class="dead">
+        <td class="idx">17</td>
+        <td class="name">模拟炒股美股版·盘中定时唤醒扫描<span class="tag">已删除</span></td>
+        <td class="num">8</td>
+        <td class="num">8</td>
+        <td class="num strong">0.4</td>
+        <td class="barcell"><div class="bar dead" style="width:0.5%"></div></td>
+        <td class="num">0.0</td>
+        <td class="num">0.00</td>
+        <td class="num">3</td>
+        <td class="num">0.05</td>
+        <td class="num">0.05</td>
+        <td class="num muted">1.0</td>
+      </tr>
+      <tr class="dead">
+        <td class="idx">18</td>
+        <td class="name">专家团评审对账报告<span class="tag">已删除</span></td>
+        <td class="num">1</td>
+        <td class="num">1</td>
+        <td class="num strong">0.1</td>
+        <td class="barcell"><div class="bar dead" style="width:0.1%"></div></td>
+        <td class="num">0.0</td>
+        <td class="num">0.00</td>
+        <td class="num">1</td>
+        <td class="num">0.09</td>
+        <td class="num">0.09</td>
+        <td class="num muted">1.0</td>
+      </tr>
+      <tr class="dead">
+        <td class="idx">19</td>
+        <td class="name">模拟炒股美股版·专家团评审对账<span class="tag">已删除</span></td>
+        <td class="num">1</td>
+        <td class="num">1</td>
+        <td class="num strong">0.1</td>
+        <td class="barcell"><div class="bar dead" style="width:0.1%"></div></td>
+        <td class="num">0.0</td>
+        <td class="num">0.00</td>
+        <td class="num">0</td>
+        <td class="num">0.07</td>
+        <td class="num">0.07</td>
+        <td class="num muted">1.0</td>
+      </tr>
+      <tr class="dead">
+        <td class="idx">20</td>
+        <td class="name">模拟炒股·复市首日信号门槛体检<span class="tag">已删除</span></td>
+        <td class="num">1</td>
+        <td class="num">1</td>
+        <td class="num strong">0.0</td>
+        <td class="barcell"><div class="bar dead" style="width:0.0%"></div></td>
+        <td class="num">0.0</td>
+        <td class="num">0.00</td>
+        <td class="num">0</td>
+        <td class="num">0.04</td>
+        <td class="num">0.04</td>
+        <td class="num muted">1.0</td>
+      </tr></tbody>
+      <tfoot>
+        <tr class="dead">
+          <td></td><td class="name">人工对话 / 其他会话（非定时任务）</td>
+          <td class="num">24</td><td class="num">415</td>
+          <td class="num strong">44.2</td><td></td>
+          <td class="num">0.9</td><td class="num">0.26</td>
+          <td class="num">299</td>
+          <td class="num">1.84</td>
+          <td class="num">-</td><td class="num muted">-</td>
+        </tr>
+        <tr>
+          <td></td><td class="name" style="font-weight:700">合计</td>
+          <td class="num" style="font-weight:700">1078</td>
+          <td class="num" style="font-weight:700">4927</td>
+          <td class="num" style="font-weight:700">311.2</td><td></td>
+          <td class="num" style="font-weight:700">13.8</td>
+          <td class="num" style="font-weight:700">2.15</td>
+          <td class="num" style="font-weight:700">5786</td>
+          <td class="num"></td><td class="num"></td><td class="num"></td>
+        </tr>
+      </tfoot>
+    </table>
+  </div>
+
+  <div class="card">
+    <h2>每日消耗趋势</h2>
+    <div class="note">深色 = 定时任务自动消耗，浅色 = 人工对话。柱子按请求发生日期归集。</div>
+    <div class="legend">
+      <span><i class="dot" style="background:#0f7a6c"></i>自动任务</span>
+      <span><i class="dot" style="background:#cfe6e1"></i>人工对话</span>
+    </div>
+    <div class="chart"><div class="barcol" title="2026-09-27：总计 1.9M（自动 0.0M，2 次运行）"><div class="barwrap"><div class="barinner" style="height:4.6%"></div><div class="barauto" style="height:0.0%"></div></div><div class="daylab">09-27</div></div><div class="barcol" title="2026-09-30：总计 0.9M（自动 0.0M，2 次运行）"><div class="barwrap"><div class="barinner" style="height:2.1%"></div><div class="barauto" style="height:0.0%"></div></div><div class="daylab">09-30</div></div><div class="barcol" title="2026-10-01：总计 9.6M（自动 3.6M，69 次运行）"><div class="barwrap"><div class="barinner" style="height:22.9%"></div><div class="barauto" style="height:8.5%"></div></div><div class="daylab">10-01</div></div><div class="barcol" title="2026-10-02：总计 9.8M（自动 5.9M，98 次运行）"><div class="barwrap"><div class="barinner" style="height:23.2%"></div><div class="barauto" style="height:13.9%"></div></div><div class="daylab">10-02</div></div><div class="barcol" title="2026-10-03：总计 7.7M（自动 3.0M，56 次运行）"><div class="barwrap"><div class="barinner" style="height:18.4%"></div><div class="barauto" style="height:7.1%"></div></div><div class="daylab">10-03</div></div><div class="barcol" title="2026-10-04：总计 2.8M（自动 0.2M，5 次运行）"><div class="barwrap"><div class="barinner" style="height:6.6%"></div><div class="barauto" style="height:0.4%"></div></div><div class="daylab">10-04</div></div><div class="barcol" title="2026-10-05：总计 3.1M（自动 2.6M，46 次运行）"><div class="barwrap"><div class="barinner" style="height:7.2%"></div><div class="barauto" style="height:6.2%"></div></div><div class="daylab">10-05</div></div><div class="barcol" title="2026-10-06：总计 1.1M（自动 0.5M，12 次运行）"><div class="barwrap"><div class="barinner" style="height:2.5%"></div><div class="barauto" style="height:1.2%"></div></div><div class="daylab">10-06</div></div><div class="barcol" title="2026-10-08：总计 0.5M（自动 0.4M，9 次运行）"><div class="barwrap"><div class="barinner" style="height:1.2%"></div><div class="barauto" style="height:1.0%"></div></div><div class="daylab">10-08</div></div><div class="barcol" title="2026-10-09：总计 5.1M（自动 3.7M，62 次运行）"><div class="barwrap"><div class="barinner" style="height:12.0%"></div><div class="barauto" style="height:8.7%"></div></div><div class="daylab">10-09</div></div><div class="barcol" title="2026-10-10：总计 3.9M（自动 3.6M，53 次运行）"><div class="barwrap"><div class="barinner" style="height:9.2%"></div><div class="barauto" style="height:8.6%"></div></div><div class="daylab">10-10</div></div><div class="barcol" title="2026-10-11：总计 0.7M（自动 0.5M，6 次运行）"><div class="barwrap"><div class="barinner" style="height:1.7%"></div><div class="barauto" style="height:1.2%"></div></div><div class="daylab">10-11</div></div><div class="barcol" title="2026-10-12：总计 1.5M（自动 1.5M，26 次运行）"><div class="barwrap"><div class="barinner" style="height:3.7%"></div><div class="barauto" style="height:3.7%"></div></div><div class="daylab">10-12</div></div><div class="barcol" title="2026-10-13：总计 5.0M（自动 4.5M，75 次运行）"><div class="barwrap"><div class="barinner" style="height:11.9%"></div><div class="barauto" style="height:10.8%"></div></div><div class="daylab">10-13</div></div><div class="barcol" title="2026-10-14：总计 4.2M（自动 4.2M，72 次运行）"><div class="barwrap"><div class="barinner" style="height:10.1%"></div><div class="barauto" style="height:10.1%"></div></div><div class="daylab">10-14</div></div><div class="barcol" title="2026-10-15：总计 28.1M（自动 28.1M，72 次运行）"><div class="barwrap"><div class="barinner" style="height:66.8%"></div><div class="barauto" style="height:66.8%"></div></div><div class="daylab">10-15</div></div><div class="barcol" title="2026-10-16：总计 29.1M（自动 29.1M，74 次运行）"><div class="barwrap"><div class="barinner" style="height:69.2%"></div><div class="barauto" style="height:69.0%"></div></div><div class="daylab">10-16</div></div><div class="barcol" title="2026-10-17：总计 9.3M（自动 9.3M，17 次运行）"><div class="barwrap"><div class="barinner" style="height:22.0%"></div><div class="barauto" style="height:22.0%"></div></div><div class="daylab">10-17</div></div><div class="barcol" title="2026-10-18：总计 2.7M（自动 2.7M，5 次运行）"><div class="barwrap"><div class="barinner" style="height:6.4%"></div><div class="barauto" style="height:6.4%"></div></div><div class="daylab">10-18</div></div><div class="barcol" title="2026-10-19：总计 22.6M（自动 22.5M，62 次运行）"><div class="barwrap"><div class="barinner" style="height:53.6%"></div><div class="barauto" style="height:53.6%"></div></div><div class="daylab">10-19</div></div><div class="barcol" title="2026-10-20：总计 33.8M（自动 33.4M，60 次运行）"><div class="barwrap"><div class="barinner" style="height:80.2%"></div><div class="barauto" style="height:79.3%"></div></div><div class="daylab">10-20</div></div><div class="barcol" title="2026-10-21：总计 29.0M（自动 29.0M，72 次运行）"><div class="barwrap"><div class="barinner" style="height:68.9%"></div><div class="barauto" style="height:68.9%"></div></div><div class="daylab">10-21</div></div><div class="barcol" title="2026-10-22：总计 42.1M（自动 39.2M，76 次运行）"><div class="barwrap"><div class="barinner" style="height:100.0%"></div><div class="barauto" style="height:93.2%"></div></div><div class="daylab">10-22</div></div><div class="barcol" title="2026-10-23：总计 34.7M（自动 24.3M，42 次运行）"><div class="barwrap"><div class="barinner" style="height:82.4%"></div><div class="barauto" style="height:57.6%"></div></div><div class="daylab">10-23</div></div><div class="barcol" title="2026-10-24：总计 17.1M（自动 15.2M，26 次运行）"><div class="barwrap"><div class="barinner" style="height:40.6%"></div><div class="barauto" style="height:36.0%"></div></div><div class="daylab">10-24</div></div><div class="barcol" title="2026-10-25：总计 4.9M（自动 0.0M，2 次运行）"><div class="barwrap"><div class="barinner" style="height:11.6%"></div><div class="barauto" style="height:0.0%"></div></div><div class="daylab">10-25</div></div></div>
+    <div class="foot">峰值 2026-10-22：42.1M　·　合并前 10-19~10-22 工作日自动日均 31.0M　·　合并后 10-23 全天 24.3M、10-24（周六休市）15.2M</div>
+    <div style="height:10px"></div>
+  </div>
+
+  <div class="card" style="padding-bottom:20px">
+    <h2>几个关键结论</h2>
+    <div class="note">下一步优化怎么下手，看这四条</div>
+    <div class="insight">
+      <div class="ins"><b>① 钱主要花在「次数」，不是「单次」</b>
+        <span>平均每次请求只带 63k 上下文，但一个月发了 4927 个请求。盘中引擎 30 天跑了 322 次，占了 65.6M。</span></div>
+      <div class="ins"><b>② 收盘复盘是单次最贵</b>
+        <span>单次均价 3.51M、32.8 个请求/次，是盘中引擎的 17 倍——自查回环 + 三个账户重复取数是主因。</span></div>
+      <div class="ins"><b>③ 96% 输入是缓存命中</b>
+        <span>总输入 308M 中仅 12.8M 未命中缓存。真正贵的是「未缓存 + 输出」，以及请求数量本身。</span></div>
+      <div class="ins"><b>④ 合并见效了，但还要一周验证</b>
+        <span>10-19~10-22 四个工作日自动任务日均 31.0M；合并当天 10-23 全天 24.3M，10-24（周六休市）15.2M。等价降幅要等下周一至周五跑完才能定论。</span></div>
+    </div>
+    <div class="foot">口径说明：token 数取自每次 API 请求的 usage 记录（input + output，input 含缓存命中部分）；「点数」为同一记录里的 credit 字段，与计费口径一致。人工对话指未绑定定时任务的会话。</div>
+  </div>
+</div>
+</body>
+</html>
