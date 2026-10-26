@@ -1,0 +1,8 @@
+[
+  {"account":"us","code":"usINTU","verdict":"BUY","confidence":60,"note":"主审BUY：delta2.9且带「相对强度高」强特征，按delta>=3处理；买压偏强、技术面看多、风控放行；INTU已在持仓内，加仓不增加持仓只数，现金22.1%充裕。复核保留意见：现浮亏约1.9%（成本346.76/现价340.26），加仓属逆势摊薄且无有效快讯催化，故confidence取低者60，建议轻仓。两轮非致命分歧按主审BUY。"},
+  {"account":"us","code":"usV","verdict":"HOLD","confidence":58,"note":"delta2.4<2.5，信号仅「多头排列+买压偏强」，多头排列不属强特征，属纯技术动量；已持仓浮盈5.2%、现价405.62处相对高位，加仓性价比低。主审与复核一致HOLD。"},
+  {"account":"us","code":"usIBM","verdict":"HOLD","confidence":70,"note":"服从仓位否决（veto原文：持仓只数已达上限8）。delta2.9虽含「相对强度高」强特征，但账户8只已满，风控否决与事实相符（8/8），按纪律不推翻。主审与复核一致HOLD。"},
+  {"account":"us","code":"usMA","verdict":"HOLD","confidence":70,"note":"服从仓位否决（veto原文：持仓只数已达上限8）。delta2.4、无强特征，账户持仓只数已满，不予放宽。主审与复核一致HOLD。"},
+  {"account":"us","code":"usABBV","verdict":"HOLD","confidence":70,"note":"服从仓位否决（veto原文：持仓只数已达上限8）。delta2.4、仅多头排列+买压偏强，无强特征，8只已满维持HOLD。主审与复核一致HOLD。"},
+  {"account":"us","code":"usWMT","verdict":"HOLD","confidence":70,"note":"服从仓位否决（veto原文：持仓只数已达上限8）。delta2.9但信号为「多头排列+买压偏强」，无20日新高/放量/相对强度等强特征，叠加8只已满，HOLD；待仓位腾出后可优先复查。主审与复核一致HOLD。"}
+]

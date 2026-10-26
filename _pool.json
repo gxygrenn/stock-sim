@@ -1,0 +1,18 @@
+[
+  {"account": "cn_aggressive", "code": "sz300999", "action": "approve", "note": "金龙鱼日成交仅8226万，大市值股流动性枯竭，监控意义丧失"},
+  {"account": "cn_aggressive", "code": "sz300014", "action": "approve", "note": "亿纬锂能60日-23%且空头排列，锂电弱势趋势未改"},
+  {"account": "cn_aggressive", "code": "sh600196", "action": "approve", "note": "复星医药日成交9022万，流动性不足以支撑交易"},
+  {"account": "cn_aggressive", "code": "sh600038", "action": "approve", "note": "中直股份日成交仅3759万，流动性枯竭"},
+  {"account": "cn_aggressive", "code": "sh603993", "action": "approve", "note": "洛阳钼业60日-33%，虽铜价高位但个股跌幅证据充分，先移出监控"},
+  {"account": "cn_aggressive", "code": "sh603799", "action": "approve", "note": "华友钴业60日-27%且空头排列，趋势与资金双弱"},
+  {"account": "cn_aggressive", "code": "sz000157", "action": "approve", "note": "中联重科成交5560万叠加60日-23%空头，流动性与趋势均不合格"},
+  {"account": "cn_aggressive", "code": "sz000725", "action": "approve", "note": "京东方A60日-23%且空头排列，面板周期未见拐点"},
+  {"account": "cn_aggressive", "code": "sz002077", "action": "approve", "note": "大港股份主力净流入2.14亿、60日+10%，半导体正处10/23领涨主线，score 5.14 居首"},
+  {"account": "cn_aggressive", "code": "sh600506", "action": "approve", "note": "统一股份净流入1.32亿、60日+18%，油价破百直接利好炼化及贸易"},
+  {"account": "cn_aggressive", "code": "sh603280", "action": "approve", "note": "南方路机净流入0.34亿、60日+34%，工程机械10/23涨3.53%且score 4.85"},
+  {"account": "cn_aggressive", "code": "sz300378", "action": "approve", "note": "鼎捷数智净流入0.49亿、60日+46%，软件服务10/23涨6.02%属核心主线"},
+  {"account": "cn_aggressive", "code": "sh603859", "action": "approve", "note": "能科科技60日+15%、IT服务涨幅居前，净流入0.32亿偏小但方向正确"},
+  {"account": "cn_aggressive", "code": "sh600785", "action": "reject", "note": "新华百货60日已涨51%透支空间，一般零售非当前主线，净流入仅0.65亿"},
+  {"account": "cn_aggressive", "code": "sh603626", "action": "reject", "note": "科森科技60日+76%明显过热且量价0分、综合score -0.58，追高风险大"},
+  {"account": "cn_aggressive", "code": "sz300709", "action": "reject", "note": "精研科技净流入仅0.30亿、60日+7%强度不足，消费电子非本轮主线"}
+]

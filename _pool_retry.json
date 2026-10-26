@@ -1,0 +1,7 @@
+[
+  {"account": "cn_aggressive", "code": "sz300014", "action": "approve", "note": "亿纬锂能60日-23%且空头排列，锂电弱势趋势未改"},
+  {"account": "cn_aggressive", "code": "sh600196", "action": "approve", "note": "复星医药日成交9022万，流动性不足以支撑交易"},
+  {"account": "cn_aggressive", "code": "sh603280", "action": "approve", "note": "南方路机净流入0.34亿、60日+34%，工程机械10/23涨3.53%且score 4.85"},
+  {"account": "cn_aggressive", "code": "sh600785", "action": "reject", "note": "新华百货60日已涨51%透支空间，一般零售非当前主线，净流入仅0.65亿"},
+  {"account": "cn_aggressive", "code": "sh603626", "action": "reject", "note": "科森科技60日+76%明显过热且量价0分、综合score -0.58，追高风险大"}
+]
