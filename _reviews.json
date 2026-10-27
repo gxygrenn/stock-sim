@@ -1,8 +1,8 @@
 [
-  {"account":"us","code":"usINTU","verdict":"BUY","confidence":60,"note":"主审BUY：delta2.9且带「相对强度高」强特征，按delta>=3处理；买压偏强、技术面看多、风控放行；INTU已在持仓内，加仓不增加持仓只数，现金22.1%充裕。复核保留意见：现浮亏约1.9%（成本346.76/现价340.26），加仓属逆势摊薄且无有效快讯催化，故confidence取低者60，建议轻仓。两轮非致命分歧按主审BUY。"},
-  {"account":"us","code":"usV","verdict":"HOLD","confidence":58,"note":"delta2.4<2.5，信号仅「多头排列+买压偏强」，多头排列不属强特征，属纯技术动量；已持仓浮盈5.2%、现价405.62处相对高位，加仓性价比低。主审与复核一致HOLD。"},
-  {"account":"us","code":"usIBM","verdict":"HOLD","confidence":70,"note":"服从仓位否决（veto原文：持仓只数已达上限8）。delta2.9虽含「相对强度高」强特征，但账户8只已满，风控否决与事实相符（8/8），按纪律不推翻。主审与复核一致HOLD。"},
-  {"account":"us","code":"usMA","verdict":"HOLD","confidence":70,"note":"服从仓位否决（veto原文：持仓只数已达上限8）。delta2.4、无强特征，账户持仓只数已满，不予放宽。主审与复核一致HOLD。"},
-  {"account":"us","code":"usABBV","verdict":"HOLD","confidence":70,"note":"服从仓位否决（veto原文：持仓只数已达上限8）。delta2.4、仅多头排列+买压偏强，无强特征，8只已满维持HOLD。主审与复核一致HOLD。"},
-  {"account":"us","code":"usWMT","verdict":"HOLD","confidence":70,"note":"服从仓位否决（veto原文：持仓只数已达上限8）。delta2.9但信号为「多头排列+买压偏强」，无20日新高/放量/相对强度等强特征，叠加8只已满，HOLD；待仓位腾出后可优先复查。主审与复核一致HOLD。"}
+  {"account":"us","code":"usAAPL","verdict":"HOLD","confidence":75,"note":"主审+复核一致：delta 1.1 明显偏弱，仅「iPhone 需求释放」快讯支撑，无20日新高/放量突破等强特征；且初审否决veto原文「持仓只数已达上限8」，AAPL不在持仓内属新票，服从仓位否决。HOLD"},
+  {"account":"us","code":"usBA","verdict":"HOLD","confidence":78,"note":"主审+复核一致：delta -2.3 为负、技术分析师看空，耐用品订单与商用飞机订单大增的利好未转化为价格动量；叠加新票遭遇只数上限否决，服从仓位否决（veto原文：持仓只数已达上限8）。HOLD"},
+  {"account":"us","code":"usV","verdict":"HOLD","confidence":62,"note":"复核保留：V已持仓21股、浮盈约+3.9%，多头排列+买压偏强，风控官放行（只数veto不适用）；但delta 2.2<2.5，无20日新高/放量上涨/阳线突破等强特征，属纯技术动量，且现金占比仅14.8%需留弹药，故不加仓。HOLD"},
+  {"account":"us","code":"usMA","verdict":"HOLD","confidence":76,"note":"主审+复核一致：delta 2.2 仅多头排列+买压偏强、无强特征，且与已持仓的V高度同质（支付板块重复暴露）；新票再遭只数上限否决，服从仓位否决（veto原文：持仓只数已达上限8）。HOLD"},
+  {"account":"us","code":"usABBV","verdict":"HOLD","confidence":70,"note":"主审：delta 2.9 已进[2.5,3)区间、动量偏强；复核：无20日新高/放量上涨/阳线突破/相对强度/主力净买任一强特征，不足以按delta>=3处理；且新票遭遇只数上限否决具约束力，服从仓位否决（veto原文：持仓只数已达上限8）。HOLD"},
+  {"account":"us","code":"usWMT","verdict":"HOLD","confidence":76,"note":"主审+复核一致：delta 2.2 纯技术动量、无强特征，防御性消费与现有持仓相关性高、增量收益有限；服从仓位否决（veto原文：持仓只数已达上限8）。HOLD"}
 ]

@@ -1,18 +1,12 @@
 [
-  {"account": "cn_aggressive", "code": "sz300999", "action": "approve", "note": "金龙鱼日成交仅8226万，大市值股流动性枯竭，监控意义丧失"},
-  {"account": "cn_aggressive", "code": "sz300014", "action": "approve", "note": "亿纬锂能60日-23%且空头排列，锂电弱势趋势未改"},
-  {"account": "cn_aggressive", "code": "sh600196", "action": "approve", "note": "复星医药日成交9022万，流动性不足以支撑交易"},
-  {"account": "cn_aggressive", "code": "sh600038", "action": "approve", "note": "中直股份日成交仅3759万，流动性枯竭"},
-  {"account": "cn_aggressive", "code": "sh603993", "action": "approve", "note": "洛阳钼业60日-33%，虽铜价高位但个股跌幅证据充分，先移出监控"},
-  {"account": "cn_aggressive", "code": "sh603799", "action": "approve", "note": "华友钴业60日-27%且空头排列，趋势与资金双弱"},
-  {"account": "cn_aggressive", "code": "sz000157", "action": "approve", "note": "中联重科成交5560万叠加60日-23%空头，流动性与趋势均不合格"},
-  {"account": "cn_aggressive", "code": "sz000725", "action": "approve", "note": "京东方A60日-23%且空头排列，面板周期未见拐点"},
-  {"account": "cn_aggressive", "code": "sz002077", "action": "approve", "note": "大港股份主力净流入2.14亿、60日+10%，半导体正处10/23领涨主线，score 5.14 居首"},
-  {"account": "cn_aggressive", "code": "sh600506", "action": "approve", "note": "统一股份净流入1.32亿、60日+18%，油价破百直接利好炼化及贸易"},
-  {"account": "cn_aggressive", "code": "sh603280", "action": "approve", "note": "南方路机净流入0.34亿、60日+34%，工程机械10/23涨3.53%且score 4.85"},
-  {"account": "cn_aggressive", "code": "sz300378", "action": "approve", "note": "鼎捷数智净流入0.49亿、60日+46%，软件服务10/23涨6.02%属核心主线"},
-  {"account": "cn_aggressive", "code": "sh603859", "action": "approve", "note": "能科科技60日+15%、IT服务涨幅居前，净流入0.32亿偏小但方向正确"},
-  {"account": "cn_aggressive", "code": "sh600785", "action": "reject", "note": "新华百货60日已涨51%透支空间，一般零售非当前主线，净流入仅0.65亿"},
-  {"account": "cn_aggressive", "code": "sh603626", "action": "reject", "note": "科森科技60日+76%明显过热且量价0分、综合score -0.58，追高风险大"},
-  {"account": "cn_aggressive", "code": "sz300709", "action": "reject", "note": "精研科技净流入仅0.30亿、60日+7%强度不足，消费电子非本轮主线"}
+  {"account": "cn_conservative", "code": "sh603019", "action": "approve", "note": "中科曙光60日-20%且空头排列，昨日电子板块-3.79%、算力硬件持续走弱，趋势证据充分"},
+  {"account": "cn_conservative", "code": "sz300122", "action": "approve", "note": "智飞生物PE为负持续亏损，疫苗价格战未止、行业无催化，移出监控合理"},
+  {"account": "cn_conservative", "code": "sh600893", "action": "approve", "note": "航发动力PE达159倍，军工主机厂盈利释放远慢于估值，估值过热证据充分"},
+  {"account": "cn_conservative", "code": "sh603993", "action": "approve", "note": "洛阳钼业60日-27%且空头排列，昨日有色-2.79%继续领跌，铜价高位而股价背离"},
+  {"account": "cn_conservative", "code": "sz002624", "action": "approve", "note": "完美世界PE180倍，游戏板块昨日虽活跃但公司自身盈利未兑现，估值透支"},
+  {"account": "cn_conservative", "code": "sz000002", "action": "reject", "note": "万科A仅以PE为负单一指标淘汰，但昨日房地产板块涨逾1%逆势领涨、政策宽松预期升温，低位反转方向证据不足"},
+  {"account": "cn_conservative", "code": "sz000559", "action": "approve", "note": "万向钱潮主力净流入6.61亿（本轮最高）、60日+23%温和不过热，score 10.62 显著领先"},
+  {"account": "cn_conservative", "code": "sz002164", "action": "reject", "note": "宁波东力60日已涨62%透支空间，综合score -0.04 为负，属高位追涨风险标的"},
+  {"account": "cn_conservative", "code": "sz000810", "action": "approve", "note": "创维数字净流入1.20亿、60日+21%幅度合理，score 5.19 量价配合良好"},
+  {"account": "cn_conservative", "code": "sz000700", "action": "approve", "note": "模塑科技净流入1.03亿、60日+26%，score 4.53 为正，量价1分偏弱但方向成立"}
 ]
