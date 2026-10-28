@@ -2292,21 +2292,58 @@ def next_trading_day(ds):
     return cur.strftime("%Y-%m-%d")
 
 
+def _closed_session_label(market, now=None):
+    """该市场「最近一个已收盘交易日」的日期标签。
+
+    2026-10-28 修正：结算标签只能由它决定。此前用 s["nextDate"]，而 nextDate 会
+    因漏结算而落后于真实行情日，于是把今日收盘数据写进历史日期（cn_aggressive
+    自 10-19 起、cn_conservative 自 10-22 起 history 整体错位一天）。
+    """
+    now = now or datetime.now()
+    if market == "us":
+        # 美股收盘落在北京时间次日凌晨，先换算回美东当日；
+        # 该日若还没到收盘（美东 <16:00），最近已收盘的交易日要再退一天
+        shift = 12 if us_dst(now) else 13
+        et = now - timedelta(hours=shift)
+        cur = datetime(et.year, et.month, et.day)
+        if et.hour < 16:
+            cur -= timedelta(days=1)
+        for _ in range(10):
+            if cur.weekday() < 5:
+                break
+            cur -= timedelta(days=1)
+        return cur.strftime("%Y-%m-%d")
+    cur = datetime(now.year, now.month, now.day)
+    for _ in range(15):
+        if cur.weekday() < 5 and not is_cn_holiday(cur):
+            break
+        cur -= timedelta(days=1)
+    return cur.strftime("%Y-%m-%d")
+
+
 def settle(s, mkt_pct, date_str=None):
     """结算：记录当日快照。当日盈亏 = 总资产变化（含手续费）。
 
-    A 股法定节假日休市日不产生结算记录（跳过，只推进 nextDate），
-    避免把国庆/春节等假期日误当交易日结算出虚假 history 记录。
+    标签来源（2026-10-28 修正）：自动结算一律用「最近一个已收盘交易日」，
+    **不再用 s["nextDate"]**。nextDate 落后时，拿它当标签等于把今日数据写进
+    历史日期；漏掉的交易日只能留空——宁可缺行，不可错行。
+
+    A 股法定节假日休市日不产生结算记录（跳过，只推进 nextDate）。
+    同一交易日只写一条（幂等），修复「同一天被结算两次」。
+    返回本次写入的日期标签；未写入返回 None。
     """
-    base = date_str or s["nextDate"]
+    market = (ACCOUNTS.get(current_account()) or {}).get("market") or "cn"
+    explicit = bool(date_str)
+    base = date_str or _closed_session_label(market)
+    if not explicit and s["history"] and (s["history"][-1].get("date") or "") >= base:
+        return None                      # 该交易日已结算过，幂等跳过
     # A 股账户且 base 落在法定节假日 → 跳过结算，只推进到下一个交易日
-    market = (ACCOUNTS.get(current_account()) or {}).get("market")
     if market != "us":
         try:
             y, m, d = [int(x) for x in base.split("-")]
             if is_cn_holiday(datetime(y, m, d)):
                 s["nextDate"] = next_trading_day(base)
-                return
+                return None
         except Exception:
             pass
     prev = s["history"][-1]["total"] if s["history"] else s["initCapital"]
@@ -2321,6 +2358,7 @@ def settle(s, mkt_pct, date_str=None):
         "mret": round(s["idx"] - 100, 4),
     })
     s["nextDate"] = next_trading_day(base)
+    return base
 
 
 # ---------------------------------------------------------------- 扫描
@@ -2794,6 +2832,53 @@ def in_trading_hours(now=None):
     return cn_trading(now)
 
 
+def _next_session_open(dt, market=None):
+    """dt 之后（含）的第一个交易时段开始时刻；dt 本身在盘中则原样返回。"""
+    market = market or ((ACCOUNTS.get(current_account()) or {}).get("market") or "cn")
+    cur = dt
+    for _ in range(20):
+        if market == "us":
+            hm = cur.hour * 60 + cur.minute
+            early_cut = 4 * 60 if us_dst(cur) else 5 * 60
+            # 凌晨时段承接前一交易日晚间开盘，故周六凌晨仍算盘中（美股周五场）
+            if hm < early_cut and 1 <= cur.weekday() <= 5:
+                return cur
+            if cur.weekday() < 5:
+                if hm >= (21 * 60 + 30 if us_dst(cur) else 22 * 60 + 30):
+                    return cur
+                return cur.replace(hour=(21 if us_dst(cur) else 22), minute=30,
+                                   second=0, microsecond=0)
+        else:
+            if cur.weekday() < 5 and not is_cn_holiday(cur):
+                hm = cur.hour * 60 + cur.minute
+                if 570 <= hm < 690 or 780 <= hm < 900:
+                    return cur
+                if hm < 570:
+                    return cur.replace(hour=9, minute=30, second=0, microsecond=0)
+                if hm < 780:
+                    return cur.replace(hour=13, minute=0, second=0, microsecond=0)
+        cur = (cur + timedelta(days=1)).replace(
+            hour=21 if market == "us" else 9, minute=30, second=0, microsecond=0)
+    return dt
+
+
+def approved_age_hours(ts, market=None):
+    """已批准结论的「有效年龄」：从 max(评审时刻, 下一个交易时段开盘) 起算。
+
+    2026-10-28 修正：周末/深夜批出来的单，计时起点顺延到下一个交易时段开盘，
+    避免在根本没有成交机会的时段里空转过期（T15：10-26 三账户各废 5 条，
+    15 条判断零成本沉没）。盘中批的单仍按原 8h/12h 计时，隔夜陈旧结论照样作废
+    ——「A股只当日成交、隔夜一律重评」的防线不变。时间戳解析失败退回墙钟口径。
+    """
+    market = market or ((ACCOUNTS.get(current_account()) or {}).get("market") or "cn")
+    try:
+        ref = datetime.strptime(ts, "%Y-%m-%d %H:%M:%S")
+    except Exception:
+        return age_hours(ts)
+    start = _next_session_open(ref, market)
+    return (datetime.now() - start).total_seconds() / 3600.0
+
+
 def cached_price(s, code):
     """取上一次刷新缓存下来的现价（不发网络请求），用于入队时留档信号价。"""
     q = (s.get("poolQuote") or {}).get(code) or {}
@@ -2828,11 +2913,15 @@ def expire_stale_reviews(s):
     for p in pend:
         st = p.get("state") or "waiting"
         if st == "approved":
-            aged = age_hours(p.get("reviewedAt") or p.get("queuedAt") or p.get("time"))
-            if aged < 0 or aged <= attl:
+            ref = p.get("reviewedAt") or p.get("queuedAt") or p.get("time")
+            aged = age_hours(ref)
+            # 保质期按盘中时间计（2026-10-28）：周末与夜间不计时，避免周五批的单
+            # 活不过周一开盘（T15：10-26 三账户各废 5 条）
+            eff = approved_age_hours(ref) if aged >= 0 else -1.0
+            if aged < 0 or eff <= attl:
                 keep.append(p)     # 批准未过期：交给 execute_approved 在交易时段成交
             else:
-                dropped.append((p, aged, "批准结论超 %.0fh 保质期" % attl))
+                dropped.append((p, eff, "批准结论盘中超 %.0fh 保质期" % attl))
             continue
         base = p.get("queuedAt") or p.get("time")
         aged = age_hours(base)
@@ -2910,15 +2999,20 @@ def execute_approved(s):
         if price <= 0:
             continue                      # 没报价，留着下轮再试
         lag = age_hours(p.get("reviewedAt") or p.get("time"))
+        # 保质期按盘中时间计（2026-10-28）：墙钟 48h 若跨周末可能只等于 8h 盘中，
+        # 用墙钟判会把周五收盘前的好结论误杀
+        lag_eff = approved_age_hours(p.get("reviewedAt") or p.get("time")) \
+            if lag >= 0 else -1.0
         # 闸门一：批准结论的保质期。过期说明结论已脱离行情（如周六批准、周一才开盘），
         # 宁可作废重评也不拿旧结论下单（2026-10-11 教训：国轩高科按 68.8h 前的结论成交）
         try:
             attl = float(cfg.get("approvedTTLHours", 24) or 24)
         except Exception:
             attl = 24.0
-        if lag >= 0 and lag > attl:
+        if lag >= 0 and lag_eff > attl:
             s.setdefault("reviewed", {})[(p.get("code") or "").lower()] = now_str()
-            drop(p, "批准结论已过期 %.1fh（保质期 %.0fh）" % (lag, attl))
+            drop(p, "批准结论盘中已过期 %.1fh（保质期 %.0fh，墙钟 %.1fh）"
+                 % (lag_eff, attl, lag))
             continue
         lagtxt = ("评审后 %.1fh 按最新价" % lag) if lag >= 0 else "按最新价"
         reason = "专家团%s信心%s(%s):%s" % (verdict, conf or "-", lagtxt,
@@ -3842,14 +3936,19 @@ def worker():
                         hm = now.hour * 60 + now.minute
                         market = (ACCOUNTS.get(account) or {}).get("market")
                         if market == "us":
+                            # 结算窗口 = 收盘后 ~ 下一次开盘前。原写法只判 hm >= close，
+                            # 而 close 只有 250/310，于是晚上 21:30 开盘时也被判「已收盘」，
+                            # 拿开盘价结算当日（与「每次扫描都结算、标签逐日错位」叠加成灾）
                             close = 4 * 60 + 10 if us_dst(now) else 5 * 60 + 10
-                            settled = hm >= close
+                            ope = (21 * 60 + 30) if us_dst(now) else (22 * 60 + 30)
+                            settled = close <= hm < ope
                         else:
                             settled = now.hour > 15 or (now.hour == 15 and now.minute >= 10)
                         if settled:
                             q = s.get("quote") or {}
-                            settle(s, q.get("pct", 0.0))
-                            log("自动结算 %s（大盘 %+.2f%%）" % (s["history"][-1]["date"], q.get("pct", 0)))
+                            lab = settle(s, q.get("pct", 0.0))
+                            if lab:
+                                log("自动结算 %s（大盘 %+.2f%%）" % (lab, q.get("pct", 0)))
                     s["lastScan"] = now_str()
                     save_state()
             except Exception as exc:
