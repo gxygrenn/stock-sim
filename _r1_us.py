@@ -3,6 +3,8 @@
 import urllib.request, json, sys
 
 CAND = ["usTSLA", "usV", "usMA", "usABBV", "usWMT", "usCOST"]
+if len(sys.argv) > 1 and not sys.argv[1].startswith("-"):
+    CAND = sys.argv[1:]
 SUF = {".OQ": 0, ".N": 0}
 
 
