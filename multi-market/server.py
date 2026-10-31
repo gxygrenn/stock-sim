@@ -517,6 +517,7 @@ CN_CONSERVATIVE_CONFIG = {
     "takeProfitPct": 30,         # 目标止盈：浮盈达到该%则分批落袋（先卖一半）
     "reReviewPct": -5,           # 2026-10-15 新增：浮亏触及该%强制送 LLM 复核去留（介于0与止损线之间）
     "reReviewGapH": 72,          # 同一持仓两次强制复核的最小间隔（小时）
+    "reReviewWorsenPp": 3,       # 2026-10-30 新增：冷却期内浮亏再恶化该 pp 数即提前重触发复核
     # ---- 行业轮动 RRG（相对旋转图，识别强势行业，供进攻档聚焦强势行业） ----
     "useSectorRotation": True,   # 每轮扫描算行业相对强弱，进攻档聚焦领先/转强行业
     # ---- 量价微观结构因子（买卖压力/振幅/凸显性，直接进 delta 打分） ----
@@ -575,6 +576,7 @@ CN_AGGRESSIVE_CONFIG = {
     "takeProfitPct": 40,         # 目标止盈位抬高（激进版 40）
     "reReviewPct": -8,           # 2026-10-15 新增：浮亏触及该%强制送 LLM 复核去留（激进版止损-15，复核线放宽）
     "reReviewGapH": 72,          # 同一持仓两次强制复核的最小间隔（小时）
+    "reReviewWorsenPp": 3,       # 2026-10-30 新增：冷却期内浮亏再恶化该 pp 数即提前重触发复核
     # ---- 行业轮动 RRG（激进版：更强调强势行业聚焦，加成更大） ----
     "useSectorRotation": True,
     # ---- 量价微观结构因子（激进版：同样接入 delta，但阈值更松） ----
@@ -631,6 +633,7 @@ US_CONFIG = {
     "takeProfitPct": 30,
     "reReviewPct": -5,           # 2026-10-15 新增：浮亏触及该%强制送 LLM 复核去留（AMD 曾-6.5%无复核）
     "reReviewGapH": 72,          # 同一持仓两次强制复核的最小间隔（小时）
+    "reReviewWorsenPp": 3,       # 2026-10-30 新增：冷却期内浮亏再恶化该 pp 数即提前重触发复核
     # ---- 行业轮动 RRG（美股：用标普500做基准，识别强势行业） ----
     "useSectorRotation": True,
     # ---- 量价微观结构因子（美股：同样接入 delta） ----
@@ -3284,6 +3287,8 @@ def enqueue_review_candidates(s, fresh):
     if rr < 0:
         rr_gap = float(cfg.get("reReviewGapH", 72) or 72) * 3600.0
         rr_book = s.setdefault("reReviewed", {})
+        # 2026-10-30 新增：记录「上次复核时的浮亏」，用于判断冷却期内是否继续恶化
+        rr_pnl = s.setdefault("reReviewedPnl", {})
         for h in s["holdings"]:
             code = h.get("code") or ""
             if h.get("shares", 0) <= 0 or not code or code in queued:
@@ -3295,13 +3300,36 @@ def enqueue_review_candidates(s, fresh):
                 continue
             ts = rr_book.get(code.lower())
             if ts:
+                in_gap = False
                 try:
-                    if (datetime.now() - datetime.strptime(ts, "%Y-%m-%d %H:%M:%S")).total_seconds() < rr_gap:
-                        continue
+                    in_gap = (datetime.now() - datetime.strptime(ts, "%Y-%m-%d %H:%M:%S")).total_seconds() < rr_gap
                 except Exception:
-                    pass
+                    in_gap = False
+                if in_gap:
+                    # 2026-10-30 修正：reReviewGapH 的本意是「别让同一只票反复刷评审」，
+                    # 但 72h 冷却也把止损变成了盲区——10-30 cna 大洋电机 09:38 复核时浮亏 -5.0%
+                    # 判 HOLD，收盘 -10.46%，冷却期内没有第二次复核，单日拖累 774 元。
+                    # 改为：冷却期内若浮亏比上次复核时再恶化 ≥ reReviewWorsenPp（默认 3pp），
+                    # 允许提前重触发。只影响「要不要送复核」，不自动下单，终审权仍在评审。
+                    worsen = abs(float(cfg.get("reReviewWorsenPp", 3) or 3))
+                    base_pnl = rr_pnl.get(code.lower())
+                    if base_pnl is None or (float(base_pnl) - pnl) < worsen:
+                        continue
             if len(pend) >= 6:
-                break
+                # 2026-10-31 修正：队列满时风控项优先。此前这里是直接 break，
+                # 10-30 cna 收盘队列被 1 条 approved + 5 条普通买入候选（score 2~12）占满，
+                # 大洋电机跌到累计 -10.46%、越过 -8% 复核线也挤不进来，
+                # 全天只有 09:38 那一次评审（当时浮亏 -5.0% 判 HOLD），单日拖累 774 元。
+                # 改为挤掉分数最低的普通 waiting 候选；approved 与 forced 一律不动。
+                evictable = [p for p in pend
+                             if not p.get("forced") and p.get("state") == "waiting"]
+                if not evictable:
+                    break
+                victim = min(evictable, key=lambda p: (p.get("score") or 0, p.get("queuedAt") or ""))
+                pend.remove(victim)
+                queued.discard(victim.get("code"))
+                log("强制复核挤占队列：移除低分候选 %s（score %s）"
+                    % (victim.get("name"), victim.get("score")))
             entry = {"code": code, "name": h.get("name") or code, "direction": "卖出",
                      "score": 0, "delta": 0,
                      "reason": "浮亏%.1f%%触及强制复核线%.0f%%" % (pnl, rr),
@@ -3324,6 +3352,7 @@ def enqueue_review_candidates(s, fresh):
             pend.append(entry)
             queued.add(code)
             rr_book[code.lower()] = now_str()
+            rr_pnl[code.lower()] = round(pnl, 2)
             log("浮亏强制复核入队 %s（现亏%.1f%%）" % (h.get("name"), pnl))
 
 
@@ -3586,7 +3615,11 @@ class Handler(BaseHTTPRequestHandler):
                     # 这里只把结论写回队列，成交由 scan() 在交易时段内按最新价落地。
                     code = (req.get("code") or "").strip().lower()
                     verdict = (req.get("verdict") or "").strip().upper()[:8]
-                    note = (req.get("note") or "")[:120]
+                    # 2026-10-30 修正：note 从 120 字放宽到 400 字。
+                    # 原因：盘中引擎 R6 要求「只数上限否决必须点名置换对象」，而置换结论通常写在
+                    # note 末尾，120 字截断后只剩技术面开头，复盘无法核实规则是否执行
+                    # （10-30 us 礼来/万事达四轮 HOLD 的 note 全部止于半句）。
+                    note = (req.get("note") or "")[:400]
                     try:
                         conf = int(req.get("confidence") or 0)
                     except Exception:
