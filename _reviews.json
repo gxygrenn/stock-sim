@@ -1,8 +1,8 @@
 [
-  {"account":"us","code":"usMU","verdict":"HOLD","confidence":62,"note":"6项0命中,delta-2.9,跌破MA5/10/20、RS20-18%,铠侠指引暗示存储需求放缓属实质利空;主审与复核一致HOLD。【R1未达:0项】【R2不适用】【R5不适用:无具名催化且当日-1.39%】"},
-  {"account":"us","code":"usV","verdict":"BUY","confidence":62,"note":"6项4命中,delta2.4属极强势,转二次复核通过(无利空,开盘30min量比失真不计);已持仓加仓不占席位,风控放行。【R1命中:多头排列+相对强度高+20日新高+阳线突破】"},
-  {"account":"us","code":"usLLY","verdict":"BUY","confidence":66,"note":"delta4.9≥3放行,6项2命中,RS20+23.3%居前;开盘量比失真不计;已持仓加仓不占席位,风控放行。【R1命中:多头排列+相对强度高】"},
-  {"account":"us","code":"usABBV","verdict":"HOLD","confidence":55,"note":"delta2.9、6项2命中按delta≥3放行,但新票席位8/8已满,服从只数否决,可换COP(当日最弱)。【R1达标但服从仓位否决】【R6置换候选:康菲石油 累+3.45%/日-2.42%】"},
-  {"account":"us","code":"usTMO","verdict":"HOLD","confidence":52,"note":"delta2.4,6项仅2命中(多头排列+相对强度高)未达极强势门槛,叠加新票席位已满,双因HOLD。【R1未达:2项<3】【R2不适用】"},
-  {"account":"us","code":"usAMGN","verdict":"BUY","confidence":64,"note":"delta3.9≥3放行,6项2命中,RS20+15.5%;已持仓加仓不占席位,风控放行。【R1命中:多头排列+相对强度高】"}
+{"account":"us","code":"usV","verdict":"BUY","confidence":70,"note":"delta3.4，多头排列+相对强度高，MA5>MA10>MA20趋势完好；已持仓加仓不占席、风控官放行、现金13.2%可承。今-1.28%属上行趋势内回踩。【R1命中:多头排列+相对强度高】"},
+{"account":"us","code":"usINTU","verdict":"BUY","confidence":58,"note":"delta3.1达标；独立计数仅相对强度高1项，MA5略低于MA10，今-2.81%跌破今开，故confidence偏低。已持仓加仓不占席、风控官放行。【R1达标(delta>=3):分量1项】"},
+{"account":"us","code":"usMA","verdict":"HOLD","confidence":55,"note":"delta3.4、多头排列+相对强度高，技术达标；实持8只满席零空缺席，服从只数否决，不可新开。【R1命中:多头排列+相对强度高】【R1达标但服从仓位否决】【R6置换候选:爱彼迎 累-3.15%/日-1.16%】"},
+{"account":"us","code":"usPYPL","verdict":"HOLD","confidence":52,"note":"delta2.9、6项命中2项，按R1等效delta>=3放行技术面；新票零席位，服从只数否决。【R1命中:多头排列+相对强度高】【R1达标但服从仓位否决】【R6置换候选:爱彼迎 累-3.15%/日-1.16%】"},
+{"account":"us","code":"usIBM","verdict":"HOLD","confidence":45,"note":"delta2.1，6项仅2项，纯技术动量不足；今-2.50%跌破今开与前10日高，趋势转弱。无有效快讯仅记不加分。【R1未达:仅2项】【R2适用:技术已弱】"},
+{"account":"us","code":"usBLK","verdict":"HOLD","confidence":45,"note":"delta2.4，6项仅2项，未达门槛；今-0.92%跌破今开、失守MA5，量能未验(开盘8分钟失真)。【R1未达:仅2项】"}
 ]
