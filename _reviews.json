@@ -1,8 +1,44 @@
 [
-{"account":"us","code":"usV","verdict":"BUY","confidence":70,"note":"delta3.4，多头排列+相对强度高，MA5>MA10>MA20趋势完好；已持仓加仓不占席、风控官放行、现金13.2%可承。今-1.28%属上行趋势内回踩。【R1命中:多头排列+相对强度高】"},
-{"account":"us","code":"usINTU","verdict":"BUY","confidence":58,"note":"delta3.1达标；独立计数仅相对强度高1项，MA5略低于MA10，今-2.81%跌破今开，故confidence偏低。已持仓加仓不占席、风控官放行。【R1达标(delta>=3):分量1项】"},
-{"account":"us","code":"usMA","verdict":"HOLD","confidence":55,"note":"delta3.4、多头排列+相对强度高，技术达标；实持8只满席零空缺席，服从只数否决，不可新开。【R1命中:多头排列+相对强度高】【R1达标但服从仓位否决】【R6置换候选:爱彼迎 累-3.15%/日-1.16%】"},
-{"account":"us","code":"usPYPL","verdict":"HOLD","confidence":52,"note":"delta2.9、6项命中2项，按R1等效delta>=3放行技术面；新票零席位，服从只数否决。【R1命中:多头排列+相对强度高】【R1达标但服从仓位否决】【R6置换候选:爱彼迎 累-3.15%/日-1.16%】"},
-{"account":"us","code":"usIBM","verdict":"HOLD","confidence":45,"note":"delta2.1，6项仅2项，纯技术动量不足；今-2.50%跌破今开与前10日高，趋势转弱。无有效快讯仅记不加分。【R1未达:仅2项】【R2适用:技术已弱】"},
-{"account":"us","code":"usBLK","verdict":"HOLD","confidence":45,"note":"delta2.4，6项仅2项，未达门槛；今-0.92%跌破今开、失守MA5，量能未验(开盘8分钟失真)。【R1未达:仅2项】"}
+ {
+  "account": "us",
+  "code": "usIBM",
+  "verdict": "HOLD",
+  "confidence": 58,
+  "note": "R1未达2/6(delta2.1)，量比0.07x属开盘失真不计缩量；新票8/8满席。【R1未达:仅2项】【R2不适用】【R6置换候选:特斯拉 累-4.72%/日-3.93%】"
+ },
+ {
+  "account": "us",
+  "code": "usINTU",
+  "verdict": "BUY",
+  "confidence": 60,
+  "note": "已持仓加仓，4/6(多头/RS/新高/阳线突破)，日+4.15%，量比失真不计。加仓不占席位，现金9.1%小量。【R1命中:多头排列+相对强度高+20日新高+阳线突破】"
+ },
+ {
+  "account": "us",
+  "code": "usPYPL",
+  "verdict": "HOLD",
+  "confidence": 60,
+  "note": "R1达标4/6(多头/RS/新高/阳线突破)，delta2.4，日+3.47%；新票8/8满席无法开仓。【R1达标但服从仓位否决】【R6置换候选:特斯拉 累-4.72%/日-3.93%】"
+ },
+ {
+  "account": "us",
+  "code": "usV",
+  "verdict": "HOLD",
+  "confidence": 55,
+  "note": "已持仓加仓：3/6(多头/RS/新高)，现价426.21低于今开428.65，阳线突破未成，累+6.16%贴近8%止盈线，弹药留给最强动量。【R1达标(3项)/复核不加仓】"
+ },
+ {
+  "account": "us",
+  "code": "usMA",
+  "verdict": "HOLD",
+  "confidence": 60,
+  "note": "R1达标3/6(多头/RS/新高)，delta2.4，日+1.70%；新票8/8满席无法开仓。【R1达标但服从仓位否决】【R6置换候选:特斯拉 累-4.72%/日-3.93%】"
+ },
+ {
+  "account": "us",
+  "code": "usBLK",
+  "verdict": "HOLD",
+  "confidence": 62,
+  "note": "R1达标4/6(多头/RS/新高/阳线突破)，delta2.4，日+3.04%；新票8/8满席无法开仓。【R1达标但服从仓位否决】【R6置换候选:特斯拉 累-4.72%/日-3.93%】"
+ }
 ]
