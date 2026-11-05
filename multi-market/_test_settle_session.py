@@ -19,6 +19,9 @@ _closed_session_label = ns['_closed_session_label']
 _next_session_open = ns['_next_session_open']
 next_trading_day = ns['next_trading_day']
 
+# 动态取「今天真实交易日标签」，避免把写测试当天的日期硬编码（否则隔天必烂）
+TODAY_LABEL = _closed_session_label('cn', datetime.datetime.now())
+
 ok = fail = 0
 
 
@@ -76,10 +79,10 @@ check("US 北京周六05:00(美东周五17:00已收盘) -> 标签周五",
 # 1a. nextDate 落后 8 天，仍应按真实交易日打标签，而不是补写旧日期
 s = mk_state(next_date="2026-10-20")
 lab = settle(s, 0.5)
-check("滞后账户按真实交易日打标签", lab == "2026-10-28" and s["history"][-1]["date"] == "2026-10-28",
+check("滞后账户按真实交易日打标签", lab == TODAY_LABEL and s["history"][-1]["date"] == TODAY_LABEL,
       "lab=%s row=%s" % (lab, s["history"][-1]["date"] if s["history"] else None))
 check("结算后 nextDate 推进到下一交易日",
-      s["nextDate"] == next_trading_day("2026-10-28"), s["nextDate"])
+      s["nextDate"] == next_trading_day(TODAY_LABEL), s["nextDate"])
 
 # 1b. 幂等：同一天连续结算两次，只允许一条 history
 s2 = mk_state(next_date="2026-10-20")
@@ -91,13 +94,13 @@ check("同一交易日重复结算被幂等跳过",
       "lab2=%s len=%d" % (lab2, len(s2["history"])))
 
 # 1c. 已有今日行时，不再追加（防「同一天结算两次」老 bug 复发）
-s3 = mk_state(history=[{"date": "2026-10-28", "mkt": 0.1, "total": 100000.0,
+s3 = mk_state(history=[{"date": TODAY_LABEL, "mkt": 0.1, "total": 100000.0,
                         "dayPnl": 0.0, "ret": 0.0, "mret": 0.0}])
 lab3 = settle(s3, 0.5)
 check("history 已有当日行 -> 不追加", lab3 is None and len(s3["history"]) == 1, lab3)
 
 # 1d. 显式指定日期（手动 /api/settle）保持旧行为，不被幂等拦截
-s4 = mk_state(history=[{"date": "2026-10-28", "mkt": 0.1, "total": 100000.0,
+s4 = mk_state(history=[{"date": TODAY_LABEL, "mkt": 0.1, "total": 100000.0,
                         "dayPnl": 0.0, "ret": 0.0, "mret": 0.0}])
 lab4 = settle(s4, 0.2, date_str="2026-10-27")
 check("显式日期仍可写入（手动结算不被拦截）",

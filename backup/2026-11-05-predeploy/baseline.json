@@ -1,0 +1,56 @@
+{
+ "us": {
+  "cash": 19294.129999999994,
+  "total": null,
+  "hold": 8,
+  "trades": 66,
+  "pool": 102,
+  "approved": 0,
+  "waiting": 6,
+  "revlog": 200,
+  "hist_last": {
+   "date": "2026-11-05",
+   "mkt": 1.58,
+   "total": 90237.46,
+   "dayPnl": 2051.23,
+   "ret": -9.7625,
+   "mret": -1.1448
+  }
+ },
+ "cn_conservative": {
+  "cash": 32714.820000000003,
+  "total": null,
+  "hold": 8,
+  "trades": 29,
+  "pool": 86,
+  "approved": 0,
+  "waiting": 3,
+  "revlog": 200,
+  "hist_last": {
+   "date": "2026-11-04",
+   "mkt": 2.16,
+   "total": 94160.11,
+   "dayPnl": -2183.9,
+   "ret": -5.8399,
+   "mret": -2.6027
+  }
+ },
+ "cn_aggressive": {
+  "cash": 8538.910000000013,
+  "total": null,
+  "hold": 12,
+  "trades": 44,
+  "pool": 73,
+  "approved": 0,
+  "waiting": 6,
+  "revlog": 200,
+  "hist_last": {
+   "date": "2026-11-03",
+   "mkt": 2.16,
+   "total": 89400.61,
+   "dayPnl": -1981.72,
+   "ret": -10.5994,
+   "mret": -4.6316
+  }
+ }
+}
