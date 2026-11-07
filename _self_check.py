@@ -145,6 +145,23 @@ def build_truth(acct, facts, state, today):
     last_row = rows[-1] if rows else None
     prev = [r for r in rows if r["date"] < today]
     prev_total = prev[-1]["total"] if prev else None
+    # E18（2026-11-07 修）：history 末行可能比「实际上一交易日」还旧一天（us 常见，结算滞后一个 session），
+    # 此时 prev_total 取到的是两天前的净值，当日涨跌被算成两日累计（11-07 us 被算成 -1.42%，真值为 +0.66%）。
+    # 缺口 >1 个自然日时，改用「昨日快照」的现金+市值现算前收总值。
+    try:
+        if prev_total and prev and prev[-1]["date"]:
+            _gap = (datetime.datetime.strptime(today, "%Y-%m-%d").date()
+                    - datetime.datetime.strptime(prev[-1]["date"], "%Y-%m-%d").date()).days
+            if _gap > 1:
+                _y = (datetime.datetime.strptime(today, "%Y-%m-%d").date() - datetime.timedelta(days=1)).isoformat()
+                _sp = os.path.join(SNAPDIR, _y, "state_%s.json" % acct)
+                if os.path.exists(_sp):
+                    _ss = json.load(open(_sp, encoding="utf-8"))
+                    _st = _ss.get("cash", 0) + sum(h["shares"] * h["price"] for h in _ss.get("holdings", []) if h.get("shares", 0) > 0)
+                    if _st and abs(_st - prev_total) / prev_total > 0.0005:
+                        prev_total = _st
+    except Exception:
+        pass
     mkt_today = None
     for r in rows:
         if r["date"] == today:
