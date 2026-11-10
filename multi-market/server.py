@@ -485,6 +485,7 @@ CN_CONSERVATIVE_CONFIG = {
     "approvedTTLHours": 8,   # 2026-10-15 收紧 24→8：A股只当日成交，隔夜批准一律过期重评（防风语筑式18.6h陈旧信号）
     "sameDayBuyMax": 1,      # 同一只股票当日最多自动买入次数（防评审冷却间隙里同股连买）
     "minBuyAmount": 2000,    # 2026-10-15 新增：最小下单金额（元），低于此停买保留弹药（防零股塞单）
+    "minSellAmount": 1000,   # 2026-11-10 新增：止盈分批的最小单笔金额（元），折半后低于此且整仓不大则直接清仓残股（防 313 股拆 7 笔的碎单）
     # ---- 信号源（新闻之外的影响因素） ----
     "useTech": True,     # 技术面：均线多空/20日新高新低/量比
     "useLhb": True,      # 龙虎榜：机构游资净买净卖
@@ -544,6 +545,7 @@ CN_AGGRESSIVE_CONFIG = {
     "approvedTTLHours": 8,   # 2026-10-15 收紧 24→8：A股只当日成交，隔夜批准一律过期重评（防风语筑式18.6h陈旧信号）
     "sameDayBuyMax": 1,      # 同一只股票当日最多自动买入次数（防评审冷却间隙里同股连买）
     "minBuyAmount": 2000,    # 2026-10-15 新增：最小下单金额（元），低于此停买保留弹药（防零股塞单）
+    "minSellAmount": 1000,   # 2026-11-10 新增：止盈分批的最小单笔金额（元），折半后低于此且整仓不大则直接清仓残股（防 313 股拆 7 笔的碎单）
     # ---- 信号源（新闻之外的影响因素） ----
     "useTech": True,     # 技术面：均线多空/20日新高新低/量比
     "useLhb": True,      # 龙虎榜：机构游资净买净卖
@@ -601,6 +603,7 @@ US_CONFIG = {
     "approvedTTLHours": 12,  # 2026-10-15 收紧 24→12：隔一个美东交易时段以上的批准结论过期重评
     "sameDayBuyMax": 1,      # 同一只股票当日最多自动买入次数（防评审冷却间隙里同股连买）
     "minBuyAmount": 300,     # 2026-10-15 新增：最小下单金额（美元），低于此停买保留弹药
+    "minSellAmount": 300,    # 2026-11-10 新增：止盈分批的最小单笔金额（美元），同上防碎单
     # ---- 信号源（美股版：龙虎榜/公告/估值均为 A 股专属，已关闭；仅保留技术面 + 新闻） ----
     "useTech": True,     # 技术面：均线多空/20日新高新低/量比（美股 K 线源可用）
     "useLhb": False,     # 龙虎榜：美股无此概念，关闭
@@ -2435,6 +2438,7 @@ def check_stops(s):
 
         reason = ""
         qty = 0
+        mark_tp = False
         # 1. 固定止损：深套清仓
         if pnl_pct <= stop_loss:
             reason = "止损：浮亏%.1f%% 触及%.0f%% 线" % (pnl_pct, stop_loss)
@@ -2446,8 +2450,20 @@ def check_stops(s):
             qty = h["shares"]
         # 3. 目标止盈：达到目标位，分批落袋（先卖一半）
         elif pnl_pct >= take:
+            # 2026-11-10 修复：同一持仓当日只触发一次。此前交易时段每轮都把
+            # 剩余仓位再折半，313 股被拆成 7 笔（最小 31 元）、最终卖掉 99%，
+            # 与「先卖一半」的设计意图相悖（风语筑 2026-11-10 实证）。
+            if h.get("tpDate") == today_str():
+                continue
             reason = "目标止盈：浮盈%.1f%% 触及%.0f%% 目标，分批落袋" % (pnl_pct, take)
             qty = max(1, int(h["shares"] * 0.5))
+            # 折半后单笔金额过小（残股），且整仓本就不大 → 一次清掉，不留给
+            # 下一轮再拆（伊利 12 股折成 6/3/1/1、风语筑余 3 股 46 元实证）
+            min_amt = float(cfg.get("minSellAmount", 1000) or 0)
+            if min_amt > 0 and qty * price < min_amt \
+                    and h["shares"] * price < min_amt * 2:
+                qty = h["shares"]
+            mark_tp = True
 
         if qty <= 0:
             continue
@@ -2458,9 +2474,12 @@ def check_stops(s):
         tr = do_sell(s, name, code, price, qty, reason)
         if tr:
             done += 1
+            if mark_tp:
+                h["tpDate"] = today_str()
             # 止损止盈清仓后，重置峰值，避免残留影响未来重新建仓
             if h["shares"] <= 0:
                 h.pop("peak", None)
+                h.pop("tpDate", None)
             log("止损止盈卖出 %s %d 股 @%.3f（%s）" % (name, qty, price, reason))
     return done
 
@@ -2570,6 +2589,14 @@ def _risk_check(s, item, code, direction, price, advisory=False):
         total = total_asset(s) or 1.0
         if h and h["shares"] > 0 and (h["price"] * h["shares"]) / total * 100.0 >= cfg["maxPosPct"]:
             return "单票仓位已达%.0f%%上限" % cfg["maxPosPct"]
+        # 2026-11-10 新增：单票剩余额度连一手都不够时，加仓必然在执行端
+        # 弃单（qty=int(room/price)=0），但此前初审不拦，评审团照批——
+        # us 礼来 11-10 单日 4 轮 BUY 全批、0 股成交（权重 19.0%，剩余额度
+        # 919 元 < 股价 1412）。在入队初审就否决，评审不再收到买不了的候选。
+        if h and h["shares"] > 0:
+            room = total * cfg["maxPosPct"] / 100.0 - h["price"] * h["shares"]
+            if room < price * 1:
+                return "单票剩余额度%.0f元不足一手，无法加仓" % max(room, 0.0)
         mv = sum(x["price"] * x["shares"] for x in s["holdings"])
         # 大盘择时：防守档收紧总仓位上限，保留弹药
         pos_cap = cfg.get("maxTotalPos", 92)
@@ -3582,7 +3609,7 @@ class Handler(BaseHTTPRequestHandler):
                 self._json(daily_facts(load_state()))
             return
         if path == "/api/version":
-            self._json({"ok": True, "features": ["gate", "pendingReview", "dailyFacts", "dailyReview", "marketContext", "reviewDecoupled", "reviewTTL", "catchup", "approvedTTL", "sameDayBuyMax", "councilInitialReview", "accountAliases", "minBuyAmount", "lossReReview"], "time": now_str()})
+            self._json({"ok": True, "features": ["gate", "pendingReview", "dailyFacts", "dailyReview", "marketContext", "reviewDecoupled", "reviewTTL", "catchup", "approvedTTL", "sameDayBuyMax", "councilInitialReview", "accountAliases", "minBuyAmount", "lossReReview", "tpOncePerDay", "roomVeto"], "time": now_str()})
             return
         self._send(404, "not found", "text/plain; charset=utf-8")
 

@@ -87,5 +87,35 @@ n = server.check_stops(s)
 chk("关闭时不卖", n == 0)
 chk("持仓不变", h["shares"] == 100)
 
+
+print("stops：目标止盈当日只触发一次（2026-11-10 风语筑 313 股拆 7 笔修复）")
+s, h = mk_state(cost=13.9, price=15.33, shares=313)
+s["config"]["takeProfitPct"] = 8
+n = server.check_stops(s)
+chk("首笔卖一半 156 股", n == 1 and h["shares"] == 157)
+chk("tpDate 已标记", h.get("tpDate") == server.today_str())
+n2 = server.check_stops(s)
+chk("同日第二轮不再卖", n2 == 0 and h["shares"] == 157)
+
+print("stops：目标止盈次日可再触发（分批落袋设计保留）")
+h["tpDate"] = "2000-01-01"
+n = server.check_stops(s)
+chk("次日再卖一半", n == 1 and h["shares"] == 79)
+
+print("stops：残股清仓（折半后单笔 < minSellAmount 且整仓不大）")
+s, h = mk_state(cost=13.9, price=15.33, shares=10)
+s["config"]["takeProfitPct"] = 8
+n = server.check_stops(s)
+chk("整仓 153 元一次清掉", n == 1 and h["shares"] == 0)
+chk("清仓后 tpDate 与 peak 均清除", "tpDate" not in h and "peak" not in h)
+
+print("stops：整仓够大时仍只卖一半（不误伤正常分批）")
+s, h = mk_state(cost=13.9, price=15.33, shares=2000)
+s["config"]["takeProfitPct"] = 8
+n = server.check_stops(s)
+chk("卖 1000 股留 1000 股", n == 1 and h["shares"] == 1000)
+
+
+
 print("\n结果：%d 通过，%d 失败" % (_passed, _failed))
 sys.exit(1 if _failed else 0)

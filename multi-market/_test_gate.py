@@ -178,10 +178,20 @@ s = fresh_state()
 srv.enqueue_review_candidates(s, [news_item("苹果", 5)])
 s["pendingReview"][0]["state"] = "approved"
 s["pendingReview"][0]["queuedAt"] = ago(1)
-s["pendingReview"][0]["reviewedAt"] = ago(30)
-chk("已批准的项不因 TTL 作废（保留待交易时段成交）",
+s["pendingReview"][0]["reviewedAt"] = ago(2)
+chk("已批准未过期：不因 TTL 作废（保留待交易时段成交）",
     srv.expire_stale_reviews(s) == 0 and len(s["pendingReview"]) == 1 and
     s["pendingReview"][0]["state"] == "approved")
+
+# 2026-10-28 设计变更：批准结论也有盘中保质期（approvedTTLHours），超时作废重评。
+# 旧用例 reviewedAt=ago(30) 恰好压在 24h 边界上，随运行时刻漂移忽过忽不过，已改为确定性用例。
+s = fresh_state()
+srv.enqueue_review_candidates(s, [news_item("苹果", 5)])
+s["pendingReview"][0]["state"] = "approved"
+s["pendingReview"][0]["queuedAt"] = ago(200)
+s["pendingReview"][0]["reviewedAt"] = ago(200)
+chk("已批准超盘中保质期：作废出队（2026-10-28 设计）",
+    srv.expire_stale_reviews(s) == 1 and len(s["pendingReview"]) == 0)
 
 # ------------------------------------------------ 11. 评审与执行解耦
 print("\n评审与执行解耦：结论落队列，交易时段才成交")
