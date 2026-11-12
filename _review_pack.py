@@ -26,6 +26,13 @@ import sys
 import urllib.request
 
 BASE = "https://stock-sim-us.app.workbuddy.host"
+SHARECODE = "6R7GBTHXQI"  # 2026-11-12 平台改版：所有请求必须带 sharecode，否则网关 403
+
+
+def _url(path):
+    return BASE + path + ("&" if "?" in path else "?") + "sharecode=" + SHARECODE
+
+
 ACCOUNTS = [("us", "美股"), ("cn_conservative", "A股稳健"), ("cn_aggressive", "A股激进")]
 ROOT = os.path.dirname(os.path.abspath(__file__))
 LOGDIR = os.path.join(ROOT, "logs")
@@ -36,7 +43,7 @@ CTX.verify_mode = ssl.CERT_NONE
 
 
 def get(path):
-    req = urllib.request.Request(BASE + path, headers={"User-Agent": "review-pack/1.0"})
+    req = urllib.request.Request(_url(path), headers={"User-Agent": "review-pack/1.0"})
     with urllib.request.urlopen(req, timeout=45, context=CTX) as r:
         return json.loads(r.read().decode("utf-8"))
 
@@ -274,7 +281,7 @@ def push_reviews(path):
             bad += 1
             continue
         req = urllib.request.Request(
-            "%s/api/daily_review?account=%s" % (BASE, acc),
+            "%s/api/daily_review?account=%s&sharecode=%s" % (BASE, acc, SHARECODE),
             data=json.dumps(it, ensure_ascii=False).encode("utf-8"),
             headers={"Content-Type": "application/json; charset=utf-8"}, method="POST")
         try:

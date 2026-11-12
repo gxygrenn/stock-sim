@@ -1,6 +1,7 @@
 import json, urllib.request, urllib.parse
 
 BASE = "https://stock-sim-us.app.workbuddy.host/api/review_done"
+SHARECODE = "6R7GBTHXQI"  # 2026-11-12 起平台网关要求所有请求必须带 sharecode，否则 403
 
 # (account, code, verdict, confidence, note)
 candidates = [
@@ -16,7 +17,7 @@ candidates = [
 ]
 
 for acct, code, verdict, conf, note in candidates:
-    url = BASE + "?account=" + acct
+    url = BASE + "?account=" + acct + "&sharecode=" + SHARECODE
     body = json.dumps({"code": code, "verdict": verdict, "confidence": conf, "note": note}, ensure_ascii=False).encode("utf-8")
     req = urllib.request.Request(url, data=body, headers={"Content-Type": "application/json"}, method="POST")
     try:

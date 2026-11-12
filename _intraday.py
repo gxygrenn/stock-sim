@@ -28,6 +28,13 @@ import urllib.error
 import urllib.request
 
 BASE = "https://stock-sim-us.app.workbuddy.host"
+SHARECODE = "6R7GBTHXQI"  # 2026-11-12 平台改版：所有请求必须带 sharecode，否则网关 403
+
+
+def _url(path):
+    return BASE + path + ("&" if "?" in path else "?") + "sharecode=" + SHARECODE
+
+
 ALL = ["us", "cn_conservative", "cn_aggressive"]
 LABEL = {"us": "美股", "cn_conservative": "A股稳健", "cn_aggressive": "A股激进"}
 CTX = ssl.create_default_context()
@@ -42,7 +49,7 @@ def call(path, payload=None, timeout=120):
     if payload is not None:
         data = json.dumps(payload, ensure_ascii=False).encode("utf-8")
         hdr["Content-Type"] = "application/json; charset=utf-8"
-    req = urllib.request.Request(BASE + path, data=data, headers=hdr,
+    req = urllib.request.Request(_url(path), data=data, headers=hdr,
                                  method="POST" if data is not None else "GET")
     try:
         with urllib.request.urlopen(req, timeout=timeout, context=CTX) as r:

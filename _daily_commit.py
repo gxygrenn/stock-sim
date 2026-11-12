@@ -16,6 +16,7 @@ import sys
 import urllib.request
 
 BASE = "https://stock-sim-us.app.workbuddy.host"
+SHARECODE = "6R7GBTHXQI"  # 2026-11-12 平台改版：所有请求必须带 sharecode，否则网关 403
 ACCOUNTS = ["us", "cn_conservative", "cn_aggressive"]
 ROOT = os.path.dirname(os.path.abspath(__file__))
 SNAP = os.path.join(ROOT, "multi-market", "snapshot", "data-multi.snapshot.json")
@@ -34,7 +35,7 @@ def fetch_states():
     data, ok, fail = {}, [], []
     for acc in ACCOUNTS:
         try:
-            req = urllib.request.Request("%s/api/state?account=%s" % (BASE, acc),
+            req = urllib.request.Request("%s/api/state?account=%s&sharecode=%s" % (BASE, acc, SHARECODE),
                                          headers={"User-Agent": "daily-commit/2.0"})
             with urllib.request.urlopen(req, timeout=60, context=CTX) as r:
                 data[acc] = json.loads(r.read().decode("utf-8"))

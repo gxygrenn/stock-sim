@@ -29,6 +29,13 @@ import sys
 import urllib.request
 
 BASE = "https://stock-sim-us.app.workbuddy.host"
+SHARECODE = "6R7GBTHXQI"  # 2026-11-12 平台改版：所有请求必须带 sharecode，否则网关 403
+
+
+def _url(path):
+    return BASE + path + ("&" if "?" in path else "?") + "sharecode=" + SHARECODE
+
+
 ACCOUNTS = [("us", "美股", "us"), ("cn_conservative", "A股稳健", "cnc"), ("cn_aggressive", "A股激进", "cna")]
 SHELF_H = {"us": 12.0, "cn_conservative": 8.0, "cn_aggressive": 8.0}
 ROOT = os.path.dirname(os.path.abspath(__file__))
@@ -62,7 +69,7 @@ def _ctx():
 
 
 def fetch(path):
-    req = urllib.request.Request(BASE + path, headers={"User-Agent": "selfcheck/2.0"})
+    req = urllib.request.Request(_url(path), headers={"User-Agent": "selfcheck/2.0"})
     with urllib.request.urlopen(req, timeout=30, context=_ctx()) as r:
         return json.loads(r.read().decode("utf-8"))
 

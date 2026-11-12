@@ -4,10 +4,11 @@
 import json, ssl, urllib.request, sys
 
 BASE = "https://stock-sim-us.app.workbuddy.host"
+SHARECODE = "6R7GBTHXQI"  # 2026-11-12 起平台网关要求所有请求必须带 sharecode
 CTX = ssl.create_default_context(); CTX.check_hostname = False; CTX.verify_mode = ssl.CERT_NONE
 
 def get(acc):
-    req = urllib.request.Request(BASE + "/api/state?account=" + acc, headers={"User-Agent": "peek/1.0"})
+    req = urllib.request.Request(BASE + "/api/state?account=" + acc + "&sharecode=" + SHARECODE, headers={"User-Agent": "peek/1.0"})
     with urllib.request.urlopen(req, timeout=90, context=CTX) as r:
         return json.loads(r.read().decode("utf-8", "ignore"))
 
