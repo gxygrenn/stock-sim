@@ -36,6 +36,23 @@ DATA_FILE = os.path.join(BASE, "data-multi.json")   # 独立数据文件，避�
 # 跨部署持久化快照：随代码一起进 git 仓库并部署，重新部署后若 data-multi.json 丢失则从此恢复。
 SNAPSHOT_DIR = os.path.join(BASE, "snapshot")
 SNAPSHOT_FILE = os.path.join(SNAPSHOT_DIR, "data-multi.snapshot.json")
+if __name__ != "__main__":
+    # 测试/工具导入隔离（2026-11-13）：worker 线程曾随 import 启动，周期性 save_state
+    # 把单账户存档写进真实 data-multi.json 与跨部署种子，随发布包上传后把线上 us/cna
+    # 存档冲成默认值（当日已从备份恢复）。凡非 `python server.py` 直接运行的导入场景，
+    # 数据文件一律重定向到 PID 后缀临时文件并在进程退出时清理，从根上杜绝污染。
+    _TEST_PID = os.getpid()
+    DATA_FILE = os.path.join(BASE, "data-multi.test-%d.json" % _TEST_PID)
+    SNAPSHOT_FILE = os.path.join(SNAPSHOT_DIR, "data-multi.test-%d.snapshot.json" % _TEST_PID)
+    import atexit as _atexit
+    @_atexit.register
+    def _cleanup_test_data_files():
+        for _p in (DATA_FILE, SNAPSHOT_FILE):
+            try:
+                if os.path.exists(_p):
+                    os.remove(_p)
+            except Exception:
+                pass
 UA = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"}
 
 # ---------------------------------------------------------------- 词库
