@@ -4,7 +4,8 @@ import sys
 sys.path.insert(0, '.')
 
 ns = {'__name__': 'server_under_test', '__file__': 'server.py'}
-exec(compile(open('server.py', encoding='utf-8').read(), 'server.py', 'exec'), ns)
+import server
+ns = server.__dict__
 
 now_str = ns['now_str']
 enqueue_review_candidates = ns['enqueue_review_candidates']

@@ -17,7 +17,8 @@ src = open('server.py', encoding='utf-8').read()
 
 # 用 exec 方式加载，避免直接 import 时跑 main
 ns = {'__name__': 'server_under_test', '__file__': 'server.py'}
-exec(compile(src, 'server.py', 'exec'), ns)
+import server
+ns = server.__dict__
 
 now_str = ns['now_str']
 today_str = ns['today_str']
