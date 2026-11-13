@@ -519,7 +519,7 @@ CN_CONSERVATIVE_CONFIG = {
     "takeProfitPct": 30,         # 目标止盈：浮盈达到该%则分批落袋（先卖一半）
     "reReviewPct": -5,           # 2026-10-15 新增：浮亏触及该%强制送 LLM 复核去留（介于0与止损线之间）
     "reReviewGapH": 72,          # 同一持仓两次强制复核的最小间隔（小时）
-    "reReviewWorsenPp": 3,       # 2026-10-30 新增：冷却期内浮亏再恶化该 pp 数即提前重触发复核
+    "reReviewWorsenPp": 2,       # 2026-10-30 新增；2026-11-13 收紧 3→2：莫德纳恶化 1.47pp<3pp 未获重触发，当日多亏约 70 元
     # ---- 行业轮动 RRG（相对旋转图，识别强势行业，供进攻档聚焦强势行业） ----
     "useSectorRotation": True,   # 每轮扫描算行业相对强弱，进攻档聚焦领先/转强行业
     # ---- 量价微观结构因子（买卖压力/振幅/凸显性，直接进 delta 打分） ----
@@ -580,7 +580,7 @@ CN_AGGRESSIVE_CONFIG = {
     "takeProfitPct": 40,         # 目标止盈位抬高（激进版 40）
     "reReviewPct": -8,           # 2026-10-15 新增：浮亏触及该%强制送 LLM 复核去留（激进版止损-15，复核线放宽）
     "reReviewGapH": 72,          # 同一持仓两次强制复核的最小间隔（小时）
-    "reReviewWorsenPp": 3,       # 2026-10-30 新增：冷却期内浮亏再恶化该 pp 数即提前重触发复核
+    "reReviewWorsenPp": 2,       # 2026-10-30 新增；2026-11-13 收紧 3→2：莫德纳恶化 1.47pp<3pp 未获重触发，当日多亏约 70 元
     # ---- 行业轮动 RRG（激进版：更强调强势行业聚焦，加成更大） ----
     "useSectorRotation": True,
     # ---- 量价微观结构因子（激进版：同样接入 delta，但阈值更松） ----
@@ -639,7 +639,7 @@ US_CONFIG = {
     "takeProfitPct": 30,
     "reReviewPct": -5,           # 2026-10-15 新增：浮亏触及该%强制送 LLM 复核去留（AMD 曾-6.5%无复核）
     "reReviewGapH": 72,          # 同一持仓两次强制复核的最小间隔（小时）
-    "reReviewWorsenPp": 3,       # 2026-10-30 新增：冷却期内浮亏再恶化该 pp 数即提前重触发复核
+    "reReviewWorsenPp": 2,       # 2026-10-30 新增；2026-11-13 收紧 3→2：莫德纳恶化 1.47pp<3pp 未获重触发，当日多亏约 70 元
     # ---- 行业轮动 RRG（美股：用标普500做基准，识别强势行业） ----
     "useSectorRotation": True,
     # ---- 量价微观结构因子（美股：同样接入 delta） ----
@@ -697,7 +697,7 @@ def default_state(account=None):
         "council": [],     # 评议团合议记录（最近若干次）
         "pendingReview": [],  # 待 LLM 专家团评审的候选（autoTrade 关闭时由 scan 维护）
         "reviewed": {},    # code -> 最近一次专家评审时间（冷却用）
-        "reviewLog": [],   # 专家团评审历史台账（code/name/verdict/confidence/note/outcome/成交价，最近 200 条，独立于队列生命周期）
+        "reviewLog": [],   # 专家团评审历史台账（code/name/verdict/confidence/note/outcome/成交价，最近 600 条，独立于队列生命周期；2026-11-13 起 200→600：跨周对账需 ≥2 周样本，200 条只够回溯 5~8 个交易日）
         "expiredReviews": [],  # 队列 TTL 超时作废 / 已批准未成交的候选（最近 100 条）
         "dailyReviews": [],  # 每日复盘存档（最近 30 天，由复盘自动化写入）
         "marketContext": None,  # 最近一次市场环境播报（国际因素 + 市场情绪，由播报自动化写入）
@@ -2836,7 +2836,7 @@ def daily_facts(s):
         "expiredRecent": (s.get("expiredReviews") or [])[-5:],
         "reviewedToday": reviewed_today,
         "reviewed": s.get("reviewed") or {},   # 完整 code->时间戳（冷却判断用，跨天也可靠）
-        "reviewLog": (s.get("reviewLog") or [])[-200:],
+        "reviewLog": (s.get("reviewLog") or [])[-600:],
         "councilToday": council_today[:10],
         "marketContext": s.get("marketContext"),
         "historyLast10": hist[-10:],
@@ -3096,13 +3096,10 @@ def execute_approved(s):
             # 各 2 小时内买了 3 次）。在执行咽喉统一拦截。
             day_max = int(cfg.get("sameDayBuyMax", 1) or 1)
             ckey = (p.get("code") or "").lower()
-            buys_today = sum(1 for t in s.get("trades") or []
-                             if (t.get("code") or "").lower() == ckey
-                             and t.get("side") == "买入"
-                             and (t.get("time") or "").startswith(today_str()))
-            if buys_today >= day_max:
+            _nbuys = buys_today(s, p.get("code"))
+            if _nbuys >= day_max:
                 s.setdefault("reviewed", {})[ckey] = now_str()
-                drop(p, "同股当日已买 %d 次（限 %d 次/日）" % (buys_today, day_max))
+                drop(p, "同股当日已买 %d 次（限 %d 次/日）" % (_nbuys, day_max))
                 continue
             floor = cfg.get("buySigFloor", -6)
             sd = int(sig.get("delta", 0) or 0)
@@ -3310,6 +3307,11 @@ def enqueue_review_candidates(s, fresh):
                 floor += int(cfg.get("regimeBuyFloor", 0))
             if int(sig.get("delta", 0) or 0) < floor:
                 return   # 信号分低于买入下限，不入队（同 execute 的买入门槛）
+            # 2026-11-13：当日限买已用的票不再入队——入队必被执行侧拦截，评审只是
+            # 空转（11-06 us 30 条评审 11 条结论是「限买已用」），还把操作限制混进
+            # HOLD 污染误杀归因。卖出/强制复核候选不受此条影响。
+            if buys_today(s, code) >= int(cfg.get("sameDayBuyMax", 1) or 1):
+                return
         entry = {"code": code, "name": item["name"], "direction": direction,
                  "score": score, "delta": sig.get("delta", 0),
                  "reason": reason[:60], "time": now_str(),
@@ -3553,6 +3555,15 @@ def done_today_count(s):
     return sum(1 for t in s["trades"] if t["time"].startswith(today))
 
 
+def buys_today(s, code):
+    """同股当日已成交买入次数（sameDayBuyMax 的统一计数口径，入队与执行两处共用）。"""
+    ckey = (code or "").lower()
+    return sum(1 for t in s.get("trades") or []
+               if (t.get("code") or "").lower() == ckey
+               and t.get("side") == "买入"
+               and (t.get("time") or "").startswith(today_str()))
+
+
 def quota_block(s):
     """执行额度检查：本轮笔数 + 当日笔数。返回拦截理由，放行返回空串。
 
@@ -3726,13 +3737,16 @@ class Handler(BaseHTTPRequestHandler):
                         outcome = "HOLD，出队"
                     # 评审历史台账：完整留存结论，独立于队列生命周期，供事后对账审计
                     # 补记评审时价格：让「被否决/HOLD 的票后来涨跌」可回算，供每日误杀归因学习
-                    # 取值优先级：入队时已缓存的 px（最稳）→ poolQuote → current_price 实时拉价
-                    _rev_price = hit.get("px") or 0.0
-                    if _rev_price <= 0:
-                        _rev_price = cached_price(s, hit.get("code"))
+                    # 取值优先级（2026-11-13 调整）：评审时刻价优先——cached_price（poolQuote，
+                    # 每轮 refresh 更新）→ current_price 实时拉价 → 入队 px 兜底。
+                    # 旧口径 px 优先会让急拉股取到入队价（≈昨收），误杀涨幅系统性虚高
+                    # （11-12 东方环宇虚增约 10pp，R7 补买溢价同步失真）
+                    _rev_price = cached_price(s, hit.get("code")) or 0.0
                     if _rev_price <= 0:
                         _rev_item = next((it for it in s["pool"] if it.get("code") == hit.get("code")), None)
                         _rev_price = current_price(s, _rev_item) if _rev_item else 0.0
+                    if _rev_price <= 0:
+                        _rev_price = hit.get("px") or 0.0
                     rl = s.setdefault("reviewLog", [])
                     rl.append({"code": hit.get("code"), "name": hit.get("name"),
                                "verdict": verdict, "confidence": conf, "note": note,
@@ -3740,7 +3754,7 @@ class Handler(BaseHTTPRequestHandler):
                                "queued": verdict in ("BUY", "SELL"),
                                "priceAtReview": round(_rev_price, 3) if _rev_price > 0 else None,
                                "fillPrice": None, "fillTime": None})
-                    s["reviewLog"] = rl[-200:]
+                    s["reviewLog"] = rl[-600:]
                     log("专家团评审 %s(%s) -> %s 信心%s（%s）| %s"
                         % (code, hit.get("name"), verdict or "?", conf or "-",
                            note[:30], outcome))

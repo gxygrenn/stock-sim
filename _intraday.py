@@ -131,6 +131,13 @@ def cycle(accounts, dry):
             print("  approved 待成交 %d：%s" % (len(appr), "、".join(
                 "%s(等%.1fh)" % (p.get("name"), hours_since(p.get("reviewedAt") or p.get("time")))
                 for p in appr)))
+        # 当日成交（R17 依据：同日止盈卖出后回买须过价差/量比门槛）
+        _td = datetime.date.today().strftime("%Y-%m-%d")
+        _todays = [t for t in (s.get("trades") or []) if (t.get("time") or "").startswith(_td)]
+        if _todays:
+            print("  当日成交 %d：%s" % (len(_todays), "、".join(
+                "%s%s %s股@%s" % (t.get("side"), (t.get("name") or "")[:6], t.get("qty"), t.get("price"))
+                for t in _todays[:12])))
     print("\n提示：评审结论写进 _reviews.json 后用 --review 一次批量写回，别逐条 curl。")
 
 
