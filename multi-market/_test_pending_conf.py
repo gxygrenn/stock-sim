@@ -71,7 +71,7 @@ s["reviewLog"] = [{"i": i} for i in range(700)]
 s["reviewLog"] = s["reviewLog"][-600:]
 chk("裁剪到600", len(s["reviewLog"]) == 600)
 src = open("server.py", encoding="utf-8").read()
-chk("代码中不再有 [-200:] 台账裁剪", "rl[-200:]" not in src and "[-200:]" not in src.split("reviewLog")[-1][:500] or True)
+chk("代码中台账裁剪已无 200 残留", "rl[-200:]" not in src and '"reviewLog": (s.get("reviewLog") or [])[-200:]' not in src)
 
 print("\n合计: PASS=%d FAIL=%d" % (PASS, FAIL))
 sys.exit(1 if FAIL else 0)
