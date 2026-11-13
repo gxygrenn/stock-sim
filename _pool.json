@@ -1,14 +1,38 @@
 [
-  {"account": "cn_conservative", "code": "sh601360", "action": "approve", "note": "PE80远高于软件行业中枢，评分0无动量，估值透支成立"},
-  {"account": "cn_conservative", "code": "sz000338", "action": "approve", "note": "60日-35%趋势破坏，重卡链无催化，纯技术面淘汰成立"},
-  {"account": "cn_conservative", "code": "sz002714", "action": "approve", "note": "生猪行业性亏损、猪价无反转信号，同板块温氏同步亏损，淘汰成立"},
-  {"account": "cn_conservative", "code": "sz001979", "action": "reject", "note": "央企地产，单一亏损指标不足；深圳二手房全款占比回升、政策托底未变，属方向性误判"},
-  {"account": "cn_conservative", "code": "sz300498", "action": "approve", "note": "与牧原同属猪周期底部亏损，养殖板块无政策催化，理由充分"},
-  {"account": "cn_conservative", "code": "sz002640", "action": "approve", "note": "长期亏损、主业萎缩且流动性差，淘汰成立"},
-  {"account": "cn_conservative", "code": "sh600609", "action": "reject", "note": "10月乘用车零售同比-27.1%需求走弱，60日仅7%、量价0分，流入0.95亿偏小，强势不足"},
-  {"account": "cn_conservative", "code": "sh603706", "action": "approve", "note": "供暖旺季+公用事业逆势领涨，量价3分确认，60日仅5%位置低"},
-  {"account": "cn_conservative", "code": "sz000026", "action": "approve", "note": "金价4149高位支撑饰品存货重估，60日16%未过热，净流入0.70亿"},
-  {"account": "cn_conservative", "code": "sh603683", "action": "approve", "note": "评分5.09为本轮最高、净流入1.59亿居首，60日14%未透支"},
-  {"account": "cn_aggressive", "code": "sz002724", "action": "reject", "note": "60日+123%严重透支，远超50%红线，追高风险大于评分4.0的吸引力"},
-  {"account": "cn_aggressive", "code": "sz300049", "action": "reject", "note": "评分仅0.19贴近阈值、量价0分无确认，强势证据不足"}
+ {
+  "account": "cn_aggressive",
+  "code": "sz002077",
+  "action": "reject",
+  "note": "仅凭PE114估值过热单一指标淘汰，但半导体为当日主力净流入首位23.53亿、算力芯片逆势走强，理由不足"
+ },
+ {
+  "account": "cn_aggressive",
+  "code": "sh600506",
+  "action": "reject",
+  "note": "隔夜布伦特+3.30%大涨、石化链受益，以估值过热淘汰与方向冲突，理由不足"
+ },
+ {
+  "account": "cn_aggressive",
+  "code": "sz300613",
+  "action": "approve",
+  "note": "安防视频芯片，60日仅涨15%未透支，主力净流入2.68亿且半导体资金回流居首，强势有前景"
+ },
+ {
+  "account": "cn_aggressive",
+  "code": "sz300473",
+  "action": "reject",
+  "note": "60日涨幅156%已严重透支，量价仅1分，追高风险远大于评分优势"
+ },
+ {
+  "account": "cn_aggressive",
+  "code": "sh600609",
+  "action": "approve",
+  "note": "商用车零部件，60日涨22%属温和区间，主力净流入1.76亿、量价2分，评分4.02转正可跟踪"
+ },
+ {
+  "account": "cn_aggressive",
+  "code": "sz001308",
+  "action": "approve",
+  "note": "智能显示终端，主力净流入1.03亿、60日涨29%不过热且量价3分为同批最佳，纳入监控"
+ }
 ]
