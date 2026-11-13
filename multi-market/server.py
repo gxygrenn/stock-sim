@@ -479,6 +479,7 @@ CN_CONSERVATIVE_CONFIG = {
     "maxPosPct": 30,     # 单只个股占总资产上限
     "cooldownMin": 30,   # 同一只股票两次交易的最小间隔
     "maxHold": 8,        # 最多同时持有几只
+    "swapGate": True,    # 2026-11-13 新增：满席换仓闸门——已有「将清仓」的已批 SELL 时按先卖后买放行（用户拍板开启；/api/config 传 false 可关）
     "indexCode": "sh000001",
     "reviewCooldownMin": 60,  # 同一只股票专家评审后多久内不再进入待评审队列
     "reviewTTLHours": 24,  # 候选在待评审队列里最多等这么久，超时作废出队（防坑位被长期占死）
@@ -539,6 +540,7 @@ CN_AGGRESSIVE_CONFIG = {
     "maxPosPct": 45,     # 单只个股占总资产上限（稳健版 30）
     "cooldownMin": 10,   # 同股两次交易最小间隔（稳健版 30）
     "maxHold": 12,       # 最多同时持有几只（稳健版 8）
+    "swapGate": True,    # 2026-11-13 新增：满席换仓闸门——已有「将清仓」的已批 SELL 时按先卖后买放行（用户拍板开启；/api/config 传 false 可关）
     "indexCode": "sh000001",
     "reviewCooldownMin": 30,  # 评审冷却（稳健版 60）
     "reviewTTLHours": 24,  # 候选在待评审队列里最多等这么久，超时作废出队（防坑位被长期占死）
@@ -597,6 +599,7 @@ US_CONFIG = {
     "maxPosPct": 20,     # 2026-10-15 收紧 30→20：AMD 单票曾达 30%，科技回撤日集中度放大亏损
     "cooldownMin": 30,   # 同一只股票两次交易的最小间隔
     "maxHold": 8,        # 最多同时持有几只
+    "swapGate": True,    # 2026-11-13 新增：满席换仓闸门——已有「将清仓」的已批 SELL 时按先卖后买放行（用户拍板开启；/api/config 传 false 可关）
     "indexCode": "usINX",  # 美股版：标普500 指数（替代上证 sh000001）
     "reviewCooldownMin": 60,  # 同一只股票专家评审后多久内不再进入待评审队列
     "reviewTTLHours": 24,  # 候选在待评审队列里最多等这么久，超时作废出队（防坑位被长期占死）
@@ -2548,6 +2551,28 @@ def _flow_opinion(s, code, sig, q):
     return 0, "成交%.0f亿，无席位" % (amt / 1e8)
 
 
+def _is_clear_sell(p):
+    """该队列项是否为「将清仓」的 SELL（执行后必然释放一个席位）。
+
+    清仓口径（2026-11-13 R15）：forced=true 的浮亏强制复核终审 SELL，或 note 带
+    【R15清仓腾位】标记的置换 SELL——这两类在执行端卖全量（见 execute_approved）。
+    普通 sellPct 部分卖出不清仓、不释放席位，不算数。
+    """
+    if ((p.get("review") or {}).get("verdict") or "").upper() != "SELL":
+        return False
+    if p.get("forced") or "【R15清仓腾位" in ((p.get("review") or {}).get("note") or ""):
+        return True
+    return False
+
+
+def _approved_clear_sell_pending(s):
+    """队列里是否已有「已批准且将清仓」的 SELL（换仓闸门的放行前提）。"""
+    for p in s.get("pendingReview") or []:
+        if (p.get("state") or "") == "approved" and _is_clear_sell(p):
+            return True
+    return False
+
+
 def _risk_check(s, item, code, direction, price, advisory=False):
     """风控官审查。返回否决理由，放行返回空串。
 
@@ -2585,7 +2610,15 @@ def _risk_check(s, item, code, direction, price, advisory=False):
                 return "该股浮亏%.1f%%，禁止加仓摊平" % pnl
         alive = [x for x in s["holdings"] if x["shares"] > 0]
         if len(alive) >= cfg["maxHold"] and (h is None or h["shares"] <= 0):
-            return "持仓只数已达上限%d" % cfg["maxHold"]
+            # 2026-11-13 新增：换仓闸门（swapGate）。满席不再一票否决——队列里已有
+            # 一笔「将清仓」的已批准 SELL（强制复核终审 / R15 清仓指令）时按
+            # 「先卖后买」放行：执行端同轮先卖腾位、再买入回补（execute_approved
+            # 已改为 SELL 先于 BUY）。部分卖出不释放席位，不放行。
+            # 背景（T10/T14/T28）：cnc 东方环宇 delta5.9 连续 4 日因只数上限 HOLD，
+            # 11-10 @21.79 → 11-13 @27.99（+28.5%），而账户现金 25.2% 与满 8 席
+            # 并存；11-13 三一置换 SELL 仅成交 100/326 股、席位未释放。
+            if not (cfg.get("swapGate") and _approved_clear_sell_pending(s)):
+                return "持仓只数已达上限%d" % cfg["maxHold"]
         total = total_asset(s) or 1.0
         if h and h["shares"] > 0 and (h["price"] * h["shares"]) / total * 100.0 >= cfg["maxPosPct"]:
             return "单票仓位已达%.0f%%上限" % cfg["maxPosPct"]
@@ -3010,7 +3043,14 @@ def execute_approved(s):
         log("已批准候选 %s 未成交出队：%s" % (p.get("name") or p.get("code"), why))
 
     done = 0
-    for p in list(pend):
+    # 2026-11-13：执行顺序改为「先卖后买」。原按队列先后，批准的 BUY 可能排在
+    # SELL 之前，满席账户卖出的席位要等下一轮才能被 BUY 使用；换仓闸门（swapGate）
+    # 依赖「卖出先成交腾位、买入后回补」的同轮配对。非 approved / 非 SELL 的相对
+    # 顺序保持稳定（sort 稳定排序），等待中的候选不受影响。
+    _pend = list(pend)
+    _pend.sort(key=lambda p: 0 if ((p.get("state") or "") == "approved"
+              and ((p.get("review") or {}).get("verdict") or "").upper() == "SELL") else 1)
+    for p in _pend:
         if (p.get("state") or "") != "approved":
             continue
         stop = quota_block(s)
@@ -3099,7 +3139,15 @@ def execute_approved(s):
             if not h or h["shares"] <= 0:
                 drop(p, "已无持仓")
                 continue
-            qty = max(100, int(h["shares"] * cfg["sellPct"] / 100.0 // 100) * 100)
+            # 2026-11-13（R15）：强制复核终审 SELL（forced）与 note 带【R15清仓腾位】
+            # 的置换 SELL 一律卖全量——部分卖出既不释放席位，也把残仓留在深亏里。
+            # 实证：cnc 三一重工 11-13 卖 100/326 股，余 226 股仍 -6.24%，席位未腾，
+            # 东方环宇同日 14:32 再被满席否决；cna 大洋电机两轮共卖 700 股，
+            # 余 244 股仍 -12.77%。普通 LLM SELL 仍按 sellPct 部分卖出。
+            if _is_clear_sell(p):
+                qty = h["shares"]
+            else:
+                qty = max(100, int(h["shares"] * cfg["sellPct"] / 100.0 // 100) * 100)
             qty = min(qty, h["shares"])
             tr = do_sell(s, item["name"], p["code"], price, qty, reason)
             if tr:
@@ -3609,7 +3657,7 @@ class Handler(BaseHTTPRequestHandler):
                 self._json(daily_facts(load_state()))
             return
         if path == "/api/version":
-            self._json({"ok": True, "features": ["gate", "pendingReview", "dailyFacts", "dailyReview", "marketContext", "reviewDecoupled", "reviewTTL", "catchup", "approvedTTL", "sameDayBuyMax", "councilInitialReview", "accountAliases", "minBuyAmount", "lossReReview", "tpOncePerDay", "roomVeto"], "time": now_str()})
+            self._json({"ok": True, "features": ["gate", "pendingReview", "dailyFacts", "dailyReview", "marketContext", "reviewDecoupled", "reviewTTL", "catchup", "approvedTTL", "sameDayBuyMax", "councilInitialReview", "accountAliases", "minBuyAmount", "lossReReview", "tpOncePerDay", "roomVeto", "swapGate", "clearSell"], "time": now_str()})
             return
         self._send(404, "not found", "text/plain; charset=utf-8")
 
