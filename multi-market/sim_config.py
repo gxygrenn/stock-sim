@@ -478,7 +478,7 @@ CN_CONSERVATIVE_CONFIG = {
     "minAgree": 2,       # 通过所需最少同意票（弃权的分析师不计入票池）
     "useRisk": True,     # 风控官一票否决权
     "maxTotalPos": 92,   # 总仓位上限%，超过则禁止再买
-    "stopLossPct": -8,   # 个股浮亏超过该比例，禁止加仓摊平
+    "stopLossPct": -6,   # 硬止损/禁加仓线；2026-11-14 收紧 -8→-6（用户拍板+45天反事实模拟净改善+2032元）
     # ---- 动态调池：自动淘汰没前景 + 选入强势股（LLM 门控确认后生效） ----
     "useRebalance": True,        # 启用股票池自动轮动
     "rebalanceIntervalDays": 7,  # 每 N 天生成一轮调池建议
@@ -496,7 +496,7 @@ CN_CONSERVATIVE_CONFIG = {
     "useStops": True,            # 启用固定止损 + 移动止盈 + 目标止盈
     "trailPct": 15,              # 移动止盈：从历史峰值回撤超过该%则卖出锁利润
     "takeProfitPct": 30,         # 目标止盈：浮盈达到该%则分批落袋（先卖一半）
-    "reReviewPct": -5,           # 2026-10-15 新增：浮亏触及该%强制送 LLM 复核去留（介于0与止损线之间）
+    "reReviewPct": -4,           # 强制复核线；2026-11-14 前移 -5→-4（硬止损 -6 前留处置窗口）
     "reReviewGapH": 72,          # 同一持仓两次强制复核的最小间隔（小时）
     "reReviewWorsenPp": 2,       # 2026-10-30 新增；2026-11-13 收紧 3→2：莫德纳恶化 1.47pp<3pp 未获重触发，当日多亏约 70 元
     # ---- 行业轮动 RRG（相对旋转图，识别强势行业，供进攻档聚焦强势行业） ----
@@ -540,7 +540,7 @@ CN_AGGRESSIVE_CONFIG = {
     "minAgree": 1,       # 通过所需最少同意票（稳健版 2）
     "useRisk": True,     # 风控官保留否决权（激进但仍守底线）
     "maxTotalPos": 98,   # 总仓位上限%（稳健版 92）
-    "stopLossPct": -15,  # 浮亏禁加仓线放宽（稳健版 -8）
+    "stopLossPct": -8,   # 硬止损/禁加仓线；2026-11-14 收紧 -15→-8（用户拍板+45天反事实模拟净改善+4271元，-15实测只值-57）
     # ---- 动态调池：激进版换得更勤 ----
     "useRebalance": True,
     "rebalanceIntervalDays": 5,
@@ -558,7 +558,7 @@ CN_AGGRESSIVE_CONFIG = {
     "useStops": True,
     "trailPct": 20,              # 移动止盈回撤线放宽（激进版 20）
     "takeProfitPct": 40,         # 目标止盈位抬高（激进版 40）
-    "reReviewPct": -8,           # 2026-10-15 新增：浮亏触及该%强制送 LLM 复核去留（激进版止损-15，复核线放宽）
+    "reReviewPct": -5,           # 强制复核线；2026-11-14 前移 -8→-5（激进档保持比稳健档(-4)宽1pp，硬止损-8前留窗口）
     "reReviewGapH": 72,          # 同一持仓两次强制复核的最小间隔（小时）
     "reReviewWorsenPp": 2,       # 2026-10-30 新增；2026-11-13 收紧 3→2：莫德纳恶化 1.47pp<3pp 未获重触发，当日多亏约 70 元
     # ---- 行业轮动 RRG（激进版：更强调强势行业聚焦，加成更大） ----
@@ -600,7 +600,7 @@ US_CONFIG = {
     "minAgree": 2,       # 通过所需最少同意票（弃权的分析师不计入票池）
     "useRisk": True,     # 风控官一票否决权
     "maxTotalPos": 92,   # 总仓位上限%，超过则禁止再买
-    "stopLossPct": -8,   # 个股浮亏超过该比例，禁止加仓摊平
+    "stopLossPct": -6,   # 硬止损/禁加仓线；2026-11-14 收紧 -8→-6（用户拍板+45天反事实模拟净改善+3231元）
     # ---- 动态调池：候选强势榜为 A 股专属接口，美股暂不启用 ----
     "useRebalance": False,
     "rebalanceIntervalDays": 7,
@@ -618,7 +618,7 @@ US_CONFIG = {
     "useStops": True,
     "trailPct": 15,
     "takeProfitPct": 30,
-    "reReviewPct": -5,           # 2026-10-15 新增：浮亏触及该%强制送 LLM 复核去留（AMD 曾-6.5%无复核）
+    "reReviewPct": -4,           # 强制复核线；2026-11-14 前移 -5→-4（与A股稳健版一致，硬止损-6前留处置窗口）
     "reReviewGapH": 72,          # 同一持仓两次强制复核的最小间隔（小时）
     "reReviewWorsenPp": 2,       # 2026-10-30 新增；2026-11-13 收紧 3→2：莫德纳恶化 1.47pp<3pp 未获重触发，当日多亏约 70 元
     # ---- 行业轮动 RRG（美股：用标普500做基准，识别强势行业） ----
