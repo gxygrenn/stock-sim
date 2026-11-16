@@ -1,38 +1,8 @@
 [
  {
   "account": "cn_aggressive",
-  "code": "sz002077",
-  "action": "reject",
-  "note": "仅凭PE114估值过热单一指标淘汰，但半导体为当日主力净流入首位23.53亿、算力芯片逆势走强，理由不足"
- },
- {
-  "account": "cn_aggressive",
-  "code": "sh600506",
-  "action": "reject",
-  "note": "隔夜布伦特+3.30%大涨、石化链受益，以估值过热淘汰与方向冲突，理由不足"
- },
- {
-  "account": "cn_aggressive",
-  "code": "sz300613",
-  "action": "approve",
-  "note": "安防视频芯片，60日仅涨15%未透支，主力净流入2.68亿且半导体资金回流居首，强势有前景"
- },
- {
-  "account": "cn_aggressive",
-  "code": "sz300473",
-  "action": "reject",
-  "note": "60日涨幅156%已严重透支，量价仅1分，追高风险远大于评分优势"
- },
- {
-  "account": "cn_aggressive",
-  "code": "sh600609",
-  "action": "approve",
-  "note": "商用车零部件，60日涨22%属温和区间，主力净流入1.76亿、量价2分，评分4.02转正可跟踪"
- },
- {
-  "account": "cn_aggressive",
   "code": "sz001308",
   "action": "approve",
-  "note": "智能显示终端，主力净流入1.03亿、60日涨29%不过热且量价3分为同批最佳，纳入监控"
+  "note": "智能显示终端ODM，主力净流入1.03亿属电子板块净流出逾200亿背景下的逆势吸筹，60日涨29%未过热，量价3分为同批最佳，评分1.76转正，纳入监控池观察"
  }
 ]
