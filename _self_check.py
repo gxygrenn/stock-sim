@@ -113,7 +113,12 @@ def load_sources(acct, tag, date, mode):
     if os.path.exists(snap_f) and os.path.exists(snap_s):
         tf = json.load(open(snap_f, encoding="utf-8"))
         ts = json.load(open(snap_s, encoding="utf-8"))
-        return tf, ts, (live_s or ts), "快照 %s" % date
+        note = "快照 %s" % date
+        if mode != "offline" and live_s is None:
+            # 实时取数失败 → 回落的是「写回之前」的快照，其中不可能有今日复盘正文。
+            # 标记出来，供 C00 判为「无法核验」而不是「未写入」。
+            note += "·实时取数失败"
+        return tf, ts, (live_s or ts), note
     if live_f and live_s:
         return live_f, live_s, live_s, "无快照·按实时核对"
     # 离线兜底
@@ -528,7 +533,10 @@ def main():
         rv = [x for x in (lstate or tstate).get("dailyReviews", []) if x.get("date") == today]
         res = []
         if not rv:
-            add(res, "C00", "FAIL", "当日复盘未写入（%s 无记录）" % today)
+            if "实时取数失败" in note:
+                add(res, "C00", "WARN", "当日复盘无法核验：实时取数失败，回落到写回之前的快照（%s），该快照必然不含今日正文。请加 NO_PROXY 重跑" % note)
+            else:
+                add(res, "C00", "FAIL", "当日复盘未写入（%s 无记录）" % today)
         else:
             check(tr, rv[0], today, res)
         dr = drift(tr, lstate, today)
