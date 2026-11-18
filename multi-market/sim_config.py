@@ -466,6 +466,14 @@ CN_CONSERVATIVE_CONFIG = {
     "sameDayBuyMax": 1,      # 同一只股票当日最多自动买入次数（防评审冷却间隙里同股连买）
     "minBuyAmount": 2000,    # 2026-10-15 新增：最小下单金额（元），低于此停买保留弹药（防零股塞单）
     "minSellAmount": 1000,   # 2026-11-10 新增：止盈分批的最小单笔金额（元），折半后低于此且整仓不大则直接清仓残股（防 313 股拆 7 笔的碎单）
+    # ---- 单票超配减仓 + 卖出股数下限（2026-11-18 起，B 类参数落地）----
+    "useTrim": True,           # 单票超配定期减仓总开关（传 false 可一键回退）
+    "trimPct": 22,             # 触发线：连续 trimConfirmDays 个交易日权重 >22%（20~22% 是赢家漂移区，超额 +2.92%）
+    "trimTargetPct": 20,       # 减仓目标权重：卖到 20%，留 2pp 缓冲防次日再触发
+    "trimConfirmDays": 3,      # 连续确认交易日数（防盘中噪声）
+    "trimCooldownDays": 10,    # 同标的减仓冷却交易日
+    "sellFloorRatio": 2.0,     # 单笔卖出金额 ≥ 此倍数×minSellAmount（防碎单）
+    "clearRemainderRatio": 1.5,  # 卖后残值 < 此倍数×minSellAmount → 一次清仓（防残股占席）
     # ---- 信号源（新闻之外的影响因素） ----
     "useTech": True,     # 技术面：均线多空/20日新高新低/量比
     "useLhb": True,      # 龙虎榜：机构游资净买净卖
@@ -528,6 +536,14 @@ CN_AGGRESSIVE_CONFIG = {
     "sameDayBuyMax": 1,      # 同一只股票当日最多自动买入次数（防评审冷却间隙里同股连买）
     "minBuyAmount": 2000,    # 2026-10-15 新增：最小下单金额（元），低于此停买保留弹药（防零股塞单）
     "minSellAmount": 1000,   # 2026-11-10 新增：止盈分批的最小单笔金额（元），折半后低于此且整仓不大则直接清仓残股（防 313 股拆 7 笔的碎单）
+    # ---- 单票超配减仓 + 卖出股数下限（2026-11-18 起，B 类参数落地）----
+    "useTrim": True,           # 单票超配定期减仓总开关（传 false 可一键回退）
+    "trimPct": 22,             # 触发线：连续 trimConfirmDays 个交易日权重 >22%（20~22% 是赢家漂移区，超额 +2.92%）
+    "trimTargetPct": 20,       # 减仓目标权重：卖到 20%，留 2pp 缓冲防次日再触发
+    "trimConfirmDays": 3,      # 连续确认交易日数（防盘中噪声）
+    "trimCooldownDays": 10,    # 同标的减仓冷却交易日
+    "sellFloorRatio": 2.0,     # 单笔卖出金额 ≥ 此倍数×minSellAmount（防碎单）
+    "clearRemainderRatio": 1.5,  # 卖后残值 < 此倍数×minSellAmount → 一次清仓（防残股占席）
     # ---- 信号源（新闻之外的影响因素） ----
     "useTech": True,     # 技术面：均线多空/20日新高新低/量比
     "useLhb": True,      # 龙虎榜：机构游资净买净卖
@@ -588,6 +604,14 @@ US_CONFIG = {
     "sameDayBuyMax": 1,      # 同一只股票当日最多自动买入次数（防评审冷却间隙里同股连买）
     "minBuyAmount": 300,     # 2026-10-15 新增：最小下单金额（美元），低于此停买保留弹药
     "minSellAmount": 300,    # 2026-11-10 新增：止盈分批的最小单笔金额（美元），同上防碎单
+    # ---- 单票超配减仓 + 卖出股数下限（2026-11-18 起，B 类参数落地）----
+    "useTrim": True,           # 单票超配定期减仓总开关（传 false 可一键回退）
+    "trimPct": 22,             # 触发线：连续 trimConfirmDays 个交易日权重 >22%（20~22% 是赢家漂移区，超额 +2.92%）
+    "trimTargetPct": 20,       # 减仓目标权重：卖到 20%，留 2pp 缓冲防次日再触发
+    "trimConfirmDays": 3,      # 连续确认交易日数（防盘中噪声）
+    "trimCooldownDays": 10,    # 同标的减仓冷却交易日
+    "sellFloorRatio": 2.0,     # 单笔卖出金额 ≥ 此倍数×minSellAmount（防碎单）
+    "clearRemainderRatio": 1.5,  # 卖后残值 < 此倍数×minSellAmount → 一次清仓（防残股占席）
     # ---- 信号源（美股版：龙虎榜/公告/估值均为 A 股专属，已关闭；仅保留技术面 + 新闻） ----
     "useTech": True,     # 技术面：均线多空/20日新高新低/量比（美股 K 线源可用）
     "useLhb": False,     # 龙虎榜：美股无此概念，关闭

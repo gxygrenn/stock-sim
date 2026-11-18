@@ -225,6 +225,170 @@ def _update_peak(h, price):
 
 
 
+def _market_of(s):
+    """当前账户所属市场（cn/us），用于整手规则与交易日历。"""
+    try:
+        return (server.ACCOUNTS.get(server.current_account()) or {}).get("market") or "cn"
+    except Exception:
+        return "cn"
+
+
+
+def _lot_size(s):
+    return 100 if _market_of(s) == "cn" else 1
+
+
+
+def _is_trading_day(d, market):
+    from datetime import date
+    try:
+        y, m, dd = map(int, str(d)[:10].split("-"))
+        dt = date(y, m, dd)
+    except Exception:
+        return False
+    if dt.weekday() >= 5:
+        return False
+    if market == "cn" and str(d)[:10] in CN_HOLIDAYS_2026:
+        return False
+    return True
+
+
+
+def trading_days_between(d1, d2, market):
+    """(d1, d2) 之间的交易日数，不含两端；d1 缺失返回 999（当作不连续）。"""
+    from datetime import date, timedelta
+    if not d1:
+        return 999
+    try:
+        a = date(*map(int, str(d1)[:10].split("-")))
+        b = date(*map(int, str(d2)[:10].split("-")))
+    except Exception:
+        return 999
+    if b <= a:
+        return 0
+    n, cur = 0, a + timedelta(days=1)
+    while cur < b:
+        if _is_trading_day(cur.isoformat(), market):
+            n += 1
+        cur += timedelta(days=1)
+    return n
+
+
+
+def sell_floor_qty(s, price, shares, qty):
+    """统一卖出股数下限（2026-11-18 起，B4）。
+
+    1) 单笔卖出金额 ≥ sellFloorRatio×minSellAmount（默认 2 倍）——低于此既费通道
+       也解决不了仓位问题；
+    2) 卖后残值 < clearRemainderRatio×minSellAmount（默认 1.5 倍）→ 一次清仓，
+       不留残股占席位（cnc 伊利 1 股、cna 大洋电机余 244 股跨 12 天才清完）。
+    """
+    cfg = s.get("config") or {}
+    shares = int(shares)
+    qty = max(0, min(int(qty), shares))
+    msa = float(cfg.get("minSellAmount", 0) or 0)
+    if qty <= 0 or price <= 0 or msa <= 0:
+        return qty
+    lot = _lot_size(s)
+    floor_amt = msa * float(cfg.get("sellFloorRatio", 2.0) or 2.0)
+    if qty * price < floor_amt:
+        import math
+        need = int(math.ceil(floor_amt / price))
+        qty = min(shares, max(qty, ((need + lot - 1) // lot) * lot))
+    remain = shares - qty
+    if remain > 0 and remain * price < msa * float(cfg.get("clearRemainderRatio", 1.5) or 1.5):
+        qty = shares
+    return qty
+
+
+
+def check_trims(s):
+    """单票超配定期减仓（2026-11-18 起，B3）。
+
+    反事实依据：25 天快照里，权重 20%~22% 的持仓 5 日超额 +2.92%（胜率 67%，
+    属赢家漂移区），22%~25% 为 -5.26%（胜率 13%），>25% -1.66%。所以不在 20%
+    砍，而在 22% 砍，且要连续 3 个交易日确认。
+
+    返回卖出笔数。只读 s，卖单走 do_sell（与 check_stops 同一执行路径）。
+    """
+    cfg = s["config"]
+    if not cfg.get("useTrim", True):
+        return 0
+    if not server.in_trading_hours():
+        return 0
+    market = _market_of(s)
+    trig = float(cfg.get("trimPct", 22) or 22)
+    tgt = float(cfg.get("trimTargetPct", 20) or 20)
+    need_days = int(cfg.get("trimConfirmDays", 3) or 3)
+    cool = int(cfg.get("trimCooldownDays", 10) or 10)
+    total = total_asset(s)
+    if total <= 0:
+        return 0
+    lot = _lot_size(s)
+    streaks = s.setdefault("trimStreak", {})
+    today = server.today_str()
+    done = 0
+    for h in list(s["holdings"]):
+        if h["shares"] <= 0 or h["price"] <= 0:
+            continue
+        code, px = h["code"], h["price"]
+        val = px * h["shares"]
+        weight = val / total * 100.0
+        st = streaks.get(code) or {}
+        if weight < trig:
+            if st.get("days"):
+                streaks[code] = {"days": 0, "last": today}
+            continue
+        # 连续交易日确认：同一交易日重复扫描不重复计数；间隔 ≤1 个交易日才算连续
+        if st.get("last") == today:
+            days = int(st.get("days") or 0)
+        else:
+            gap = trading_days_between(st.get("last"), today, market)
+            days = int(st.get("days") or 0) + 1 if gap <= 1 else 1
+            streaks[code] = {"days": days, "last": today}
+        if days < need_days:
+            continue
+        last_trim = h.get("trimDate")
+        if last_trim and trading_days_between(last_trim, today, market) < cool:
+            continue
+        pct_now = float(h.get("pct") or 0)
+        pnl_pct = (px - h["cost"]) / h["cost"] * 100.0 if h.get("cost") else 0.0
+        if pct_now >= 5:
+            continue          # 当日大涨：强者恒强，次日再看（R19 同源证据：急涨日放行=接刀）
+        if pnl_pct >= float(cfg.get("takeProfitPct", 8) or 8):
+            continue          # 已进止盈区，交给 check_stops/R10
+        if pct_now <= -3:
+            log("超配减仓顺延 %s：当日跌 %.1f%%，不在下跌中砸盘" % (h["name"], pct_now))
+            continue
+        sell_val = val - total * tgt / 100.0
+        if sell_val <= 0:
+            continue
+        # 按整手取「减仓后权重最接近目标、且不低于 20% 太多」的股数：
+        # 1000 股 @23 元、卖到 20% 需 130 股，取 100 股(22%)或 200 股(18.4%)，
+        # 选离 20% 更近的一档，避免向下取整后仍高于触发线、冷却期一过又砍一刀。
+        base_lots = int((sell_val / px) // lot)
+        cands = [base_lots * lot, (base_lots + 1) * lot]
+        cands = [q for q in cands if 0 < q < h["shares"]]
+        if not cands:
+            continue
+        qty = min(cands, key=lambda q: abs((val - q * px) / total * 100.0 - tgt))
+        qty = sell_floor_qty(s, px, h["shares"], qty)
+        if qty <= 0:
+            continue
+        if quota_block(s):
+            log("超配减仓暂停（%s）" % quota_block(s))
+            break
+        reason = "超配减仓：权重%.1f%%超%.0f%%线连续%d日，减至%.0f%%" % (weight, trig, days, tgt)
+        tr = do_sell(s, h["name"], code, px, qty, reason)
+        if tr:
+            done += 1
+            h["trimDate"] = today
+            streaks[code] = {"days": 0, "last": today}
+            log("超配减仓卖出 %s %d 股 @%.3f（%s）" % (h["name"], qty, px, reason))
+    return done
+
+
+
 def check_stops(s):
     """持仓级止损/止盈纪律（借鉴 QuantsPlaybook 的组合风控思想）。
 
@@ -281,12 +445,10 @@ def check_stops(s):
                 continue
             reason = "目标止盈：浮盈%.1f%% 触及%.0f%% 目标，分批落袋" % (pnl_pct, take)
             qty = max(1, int(h["shares"] * 0.5))
-            # 折半后单笔金额过小（残股），且整仓本就不大 → 一次清掉，不留给
-            # 下一轮再拆（伊利 12 股折成 6/3/1/1、风语筑余 3 股 46 元实证）
-            min_amt = float(cfg.get("minSellAmount", 1000) or 0)
-            if min_amt > 0 and qty * price < min_amt \
-                    and h["shares"] * price < min_amt * 2:
-                qty = h["shares"]
+            # 2026-11-18：改用统一卖出下限（单笔 ≥2×minSellAmount；卖后残值
+            # <1.5×minSellAmount 直接清仓），替代原来只判「qty<min_amt 且
+            # 整仓<2×min_amt」的窄口径（伊利 1 股、风语筑 2 股碎单实证）。
+            qty = sell_floor_qty(s, price, h["shares"], qty)
             mark_tp = True
 
         if qty <= 0:

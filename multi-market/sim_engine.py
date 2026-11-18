@@ -205,6 +205,14 @@ def scan(s, force_trade=False):
     except Exception as exc:
         log("止损止盈异常: %s" % exc)
 
+    # 单票超配定期减仓（2026-11-18 起）：权重连续 3 个交易日 >22% → 减至 20%
+    try:
+        trimmed = check_trims(s)
+        if trimmed:
+            log("超配减仓触发 %d 笔" % trimmed)
+    except Exception as exc:
+        log("超配减仓异常: %s" % exc)
+
     # 市场环境温度计：大盘择时（RSRS + 扩散指标 + 动量），供买卖决策/风控收紧用
     try:
         market_regime(s)

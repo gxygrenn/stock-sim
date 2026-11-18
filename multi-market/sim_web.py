@@ -85,7 +85,7 @@ class Handler(BaseHTTPRequestHandler):
                 self._json(daily_facts(load_state()))
             return
         if path == "/api/version":
-            self._json({"ok": True, "features": ["gate", "pendingReview", "dailyFacts", "dailyReview", "marketContext", "reviewDecoupled", "reviewTTL", "catchup", "approvedTTL", "sameDayBuyMax", "councilInitialReview", "accountAliases", "minBuyAmount", "lossReReview", "tpOncePerDay", "roomVeto", "swapGate", "clearSell", "pxAtReviewV2", "reviewLog600", "enqSkip"], "time": now_str()})
+            self._json({"ok": True, "features": ["gate", "pendingReview", "dailyFacts", "dailyReview", "marketContext", "reviewDecoupled", "reviewTTL", "catchup", "approvedTTL", "sameDayBuyMax", "councilInitialReview", "accountAliases", "minBuyAmount", "lossReReview", "tpOncePerDay", "roomVeto", "swapGate", "clearSell", "pxAtReviewV2", "reviewLog600", "enqSkip", "trimRule", "sellFloor"], "time": now_str()})
             return
         self._send(404, "not found", "text/plain; charset=utf-8")
 

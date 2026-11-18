@@ -629,6 +629,9 @@ def execute_approved(s):
                 qty = h["shares"]
             else:
                 qty = max(100, int(h["shares"] * cfg["sellPct"] / 100.0 // 100) * 100)
+                # 2026-11-18（B4）：普通 SELL 也受统一下限约束——单笔 ≥2×minSellAmount，
+                # 卖后残值 <1.5×minSellAmount 直接清仓，避免「卖了没腾位」的残股。
+                qty = sell_floor_qty(s, price, h["shares"], qty)
             qty = min(qty, h["shares"])
             tr = do_sell(s, item["name"], p["code"], price, qty, reason)
             if tr:

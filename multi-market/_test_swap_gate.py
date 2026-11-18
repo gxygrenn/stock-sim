@@ -169,12 +169,16 @@ chk("226 股全部卖出", h["shares"] <= 0)
 
 print("十一、note 里只出现『清仓』字样但无 R15 标记 → 不误判为清仓指令")
 s = mk_state()
+# 2026-11-18：仓位放大到 2,260 股，避免撞上 B4「残值 <1.5×minSellAmount 清仓」
+# 下限（226 股 @18 的半数仅 1,800 元 < 2×minSellAmount，会被抬量并清掉），
+# 这样仍能验证「无 R15 标记 → 不做清仓指令」的本意。
+server.find_holding(s, "sh600031")["shares"] = 2260
 s["pendingReview"] = [pend_sell("sh600031", "三一重工", forced=False,
-                                note="建议下轮对该置换标的出清仓单【R15席位未释放:三一重工 余113股】")]
+                                note="建议下轮对该置换标的出清仓单【R15席位未释放:三一重工 余1130股】")]
 server.execute_approved(s)
 h = server.find_holding(s, "sh600031")
-chk("仍部分卖出 100 股（226→126）",
-    any(t["code"] == "sh600031" and t["qty"] == 100 for t in s["trades"]))
+chk("仍部分卖出 1100 股（2260→1160）",
+    any(t["code"] == "sh600031" and t["qty"] == 1100 for t in s["trades"]))
 
 print("十二、满席下 BUY 已批但配对 SELL 未批/未成交 → 买入留队不超限")
 s = mk_state()

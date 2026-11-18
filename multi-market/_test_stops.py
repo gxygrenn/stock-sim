@@ -97,10 +97,18 @@ chk("tpDate 已标记", h.get("tpDate") == server.today_str())
 n2 = server.check_stops(s)
 chk("同日第二轮不再卖", n2 == 0 and h["shares"] == 157)
 
-print("stops：目标止盈次日可再触发（分批落袋设计保留）")
+print("stops：目标止盈次日再触发 + B4 残值下限（2026-11-18）")
 h["tpDate"] = "2000-01-01"
 n = server.check_stops(s)
-chk("次日再卖一半", n == 1 and h["shares"] == 79)
+# 157 股 @15.33：折半 78 股仅 1,196 元 < 2×minSellAmount，抬量后剩 0~1 手残值 <1.5×
+# minSellAmount（1,500 元）→ 按 B4 一把清掉，不再留 79 股碎单
+chk("次日触发且一次清完残仓", n == 1 and h["shares"] == 0)
+
+print("stops：仓位足够大时仍保留分批（B4 下限不误伤）")
+s, h = mk_state(cost=13.9, price=15.33, shares=3130)
+s["config"]["takeProfitPct"] = 8
+n = server.check_stops(s)
+chk("首笔卖一半 1565 股", n == 1 and h["shares"] == 1565)
 
 print("stops：残股清仓（折半后单笔 < minSellAmount 且整仓不大）")
 s, h = mk_state(cost=13.9, price=15.33, shares=10)
