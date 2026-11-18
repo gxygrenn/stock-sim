@@ -150,5 +150,28 @@ print("sell_floor_qty：不足 2×minSellAmount 时抬量")
 s, _ = mk("us", 77000, 100.0, 20, code="usTEST3")
 chk("卖 2 股=200 <600 -> 抬到 6 股", server.sell_floor_qty(s, 100.0, 20, 2) == 6)
 
+
+# ---------------- B3 配套：已超减仓线的持仓禁止加仓 ----------------
+print("execute_approved：超配持仓不得加仓（防与减仓自相抵消）")
+_box["d"] = "2026-11-18"
+server.set_account("cn_aggressive")
+s = server.default_state("cn_aggressive")
+s["config"]["maxPerRound"] = 10
+s["config"]["maxPerDay"] = 100
+s["config"]["takeProfitPct"] = 8
+s["priceMode"] = "test"
+s["cash"] = 77000.0
+s["pool"] = [{"name": "工商银行", "code": "sh601398"}]
+s["poolQuote"] = {"sh601398": {"price": 23.0}}
+s["holdings"] = [{"name": "工商银行", "code": "sh601398", "shares": 1000,
+                  "price": 23.0, "preClose": 23.0, "cost": 22.0, "pct": 0.0, "beta": 1.0}]
+s["pendingReview"] = [{"code": "sh601398", "name": "工商银行", "direction": "买入",
+                       "state": "approved", "px": 23.0,
+                       "queuedAt": server.now_str(), "reviewedAt": server.now_str(),
+                       "review": {"verdict": "BUY", "confidence": 70, "note": "测试"}}]
+n = server.execute_approved(s)
+chk("超配持仓不加仓", n == 0 and s["holdings"][0]["shares"] == 1000)
+chk("丢弃原因写减仓线", any("减仓线" in str(x.get("why") or "") for x in s.get("expiredReviews", [])))
+
 print("\n%d passed, %d failed" % (_passed, _failed))
 sys.exit(1 if _failed else 0)

@@ -23,21 +23,26 @@
   `check_trims()` 超配减仓
 - forced / 【R15清仓腾位】仍按原逻辑全量卖出，不受下限影响
 
-### 3. 配置默认值（sim_config.py，三账户）
+### 3. 配套：超配持仓禁止加仓（防与减仓自相抵消）
+- `execute_approved()` 的 BUY 分支新增闸门：持仓权重已 > `trimPct`(22%) 时丢弃买单，
+  理由「单票权重已超 22% 减仓线，禁止加仓」——否则「今天买上去、明天被 check_trims
+  卖回 20%」白付双边成本。
+
+### 4. 配置默认值（sim_config.py，三账户）
 ```
 useTrim=True, trimPct=22, trimTargetPct=20, trimConfirmDays=3,
 trimCooldownDays=10, sellFloorRatio=2.0, clearRemainderRatio=1.5
 ```
 线上存档 config 缺这些键时按上述默认值生效，无需推 /api/config。
 
-### 4. 未改动（有数据依据）
+### 5. 未改动（有数据依据）
 - **防守档开口子（B2）不改**：δ≥3.9 且被仓位否决的候选，去重 20 个 episode
   5 日收益 −1.49%，按 2pp 仓位估算累计 −558 元；当日涨 ≥7% 的一组 5 日超额 −7.13%。
   样本内「仓位否决」是对的，维持 `regimePosCap` 70/80。
 
 ## 测试
-- 新增 `_test_trim.py` 27 项（触发线/连续日/周末不断链/三档豁免/冷却/开关/美股 1 股/
-  下限与残值清仓）
+- 新增 `_test_trim.py` 29 项（触发线/连续日/周末不断链/三档豁免/冷却/开关/美股 1 股/
+  下限与残值清仓/超配禁加仓）
 - 因 B4 下限，更新两处旧断言：`_test_stops.py`（157 股残仓一把清完）、
   `_test_swap_gate.py`（放大到 2,260 股，保留「无 R15 标记不做清仓」本意）
 - 全量 21 个测试文件 0 失败

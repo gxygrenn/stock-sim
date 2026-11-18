@@ -596,6 +596,12 @@ def execute_approved(s):
             total = total_asset(s)
             room = total * cfg["maxPosPct"] / 100.0
             h = find_holding(s, p["code"])
+            # 2026-11-18（B3 配套）：已超减仓触发线的持仓不得再加仓，否则
+            # 「今天买上去、明天被 check_trims 卖回 20%」自相抵消，白付双边成本。
+            if h and h["price"] * h["shares"] / total * 100 > float(cfg.get("trimPct", 22) or 22):
+                s.setdefault("reviewed", {})[ckey] = now_str()
+                drop(p, "单票权重已超 %.0f%% 减仓线，禁止加仓" % float(cfg.get("trimPct", 22) or 22))
+                continue
             if h:
                 room -= h["price"] * h["shares"]
             budget = min(s["cash"] * cfg["buyPct"] / 100.0, room, s["cash"] * 0.98)
