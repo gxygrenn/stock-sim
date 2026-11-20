@@ -24,3 +24,10 @@ downloads/
 .DS_Store
 Thumbs.db
 *.swp
+
+# 一次性存档（历史脚本与状态转储，2026-11-20 归档，不参与版本管理）
+_archive/
+
+# 单次运行的取数/写回载荷（state 转储、_ctx/_reviews 等），不做版本管理
+_*.json
+!multi-market/*.json

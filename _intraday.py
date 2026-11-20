@@ -131,6 +131,23 @@ def cycle(accounts, dry):
             print("  approved 待成交 %d：%s" % (len(appr), "、".join(
                 "%s(等%.1fh)" % (p.get("name"), hours_since(p.get("reviewedAt") or p.get("time")))
                 for p in appr)))
+        # 持仓巡检（R22 依据 2026-11-20）：把「浮亏最深」与「止盈临界(累≥6%)」两只持仓直接印出来，
+        # 并标注是否在 waiting 队列里——评审层只能对队列内 code 写回，队列外的巡检只做留痕。
+        if hold:
+            def _cum(h):
+                c = h.get("cost") or 0
+                return ((h.get("price") or 0) / c - 1) * 100 if c else 0.0
+            _wq = {(p.get("code") or "").lower() for p in waiting}
+            def _tag(h):
+                return "在队列" if (h.get("code") or "").lower() in _wq else "未入队"
+            _worst = min(hold, key=_cum)
+            _near = sorted([h for h in hold if _cum(h) >= 6.0], key=_cum, reverse=True)[:2]
+            _parts = ["最差 %s %s 累%+.2f%%/日%+.2f%%（%s）" % (
+                _worst.get("code"), (_worst.get("name") or "")[:6], _cum(_worst),
+                _worst.get("pct") or 0, _tag(_worst))]
+            for h in _near:
+                _parts.append("止盈临界 %s 累%+.2f%%（%s）" % (h.get("code"), _cum(h), _tag(h)))
+            print("  持仓巡检：" + "｜".join(_parts))
         # 当日成交（R17 依据：同日止盈卖出后回买须过价差/量比门槛）
         _td = datetime.date.today().strftime("%Y-%m-%d")
         _todays = [t for t in (s.get("trades") or []) if (t.get("time") or "").startswith(_td)]
