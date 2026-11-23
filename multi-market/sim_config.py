@@ -506,6 +506,11 @@ CN_CONSERVATIVE_CONFIG = {
     "takeProfitPct": 30,         # 目标止盈：浮盈达到该%则分批落袋（先卖一半）
     "reReviewPct": -4,           # 强制复核线；2026-11-14 前移 -5→-4（硬止损 -6 前留处置窗口）
     "reReviewGapH": 72,          # 同一持仓两次强制复核的最小间隔（小时）
+    # 2026-11-23（用户拍板）：浮亏减半 + 峰值曾达标后移动止盈不再要求当前浮盈。
+    # 默认关闭（0），按账户存档开启；us 线上已推 loseCutPct=-2 / trailArmPct=4。
+    "loseCutPct": 0,             # <0 生效：浮亏达该线先减 loseCutFrac 仓位，每个持仓只触发一次
+    "loseCutFrac": 0.5,          # 减仓比例
+    "trailArmPct": 0,            # >0 生效：峰值浮盈曾达该值后，回撤 trailPct 即卖（不等当前浮盈）
     "reReviewWorsenPp": 2,       # 2026-10-30 新增；2026-11-13 收紧 3→2：莫德纳恶化 1.47pp<3pp 未获重触发，当日多亏约 70 元
     # ---- 行业轮动 RRG（相对旋转图，识别强势行业，供进攻档聚焦强势行业） ----
     "useSectorRotation": True,   # 每轮扫描算行业相对强弱，进攻档聚焦领先/转强行业
@@ -576,6 +581,11 @@ CN_AGGRESSIVE_CONFIG = {
     "takeProfitPct": 40,         # 目标止盈位抬高（激进版 40）
     "reReviewPct": -5,           # 强制复核线；2026-11-14 前移 -8→-5（激进档保持比稳健档(-4)宽1pp，硬止损-8前留窗口）
     "reReviewGapH": 72,          # 同一持仓两次强制复核的最小间隔（小时）
+    # 2026-11-23（用户拍板）：浮亏减半 + 峰值曾达标后移动止盈不再要求当前浮盈。
+    # 默认关闭（0），按账户存档开启；us 线上已推 loseCutPct=-2 / trailArmPct=4。
+    "loseCutPct": 0,             # <0 生效：浮亏达该线先减 loseCutFrac 仓位，每个持仓只触发一次
+    "loseCutFrac": 0.5,          # 减仓比例
+    "trailArmPct": 0,            # >0 生效：峰值浮盈曾达该值后，回撤 trailPct 即卖（不等当前浮盈）
     "reReviewWorsenPp": 2,       # 2026-10-30 新增；2026-11-13 收紧 3→2：莫德纳恶化 1.47pp<3pp 未获重触发，当日多亏约 70 元
     # ---- 行业轮动 RRG（激进版：更强调强势行业聚焦，加成更大） ----
     "useSectorRotation": True,
@@ -644,6 +654,11 @@ US_CONFIG = {
     "takeProfitPct": 30,
     "reReviewPct": -4,           # 强制复核线；2026-11-14 前移 -5→-4（与A股稳健版一致，硬止损-6前留处置窗口）
     "reReviewGapH": 72,          # 同一持仓两次强制复核的最小间隔（小时）
+    # 2026-11-23（用户拍板）：浮亏减半 + 峰值曾达标后移动止盈不再要求当前浮盈。
+    # 默认关闭（0），按账户存档开启；us 线上已推 loseCutPct=-2 / trailArmPct=4。
+    "loseCutPct": 0,             # <0 生效：浮亏达该线先减 loseCutFrac 仓位，每个持仓只触发一次
+    "loseCutFrac": 0.5,          # 减仓比例
+    "trailArmPct": 0,            # >0 生效：峰值浮盈曾达该值后，回撤 trailPct 即卖（不等当前浮盈）
     "reReviewWorsenPp": 2,       # 2026-10-30 新增；2026-11-13 收紧 3→2：莫德纳恶化 1.47pp<3pp 未获重触发，当日多亏约 70 元
     # ---- 行业轮动 RRG（美股：用标普500做基准，识别强势行业） ----
     "useSectorRotation": True,

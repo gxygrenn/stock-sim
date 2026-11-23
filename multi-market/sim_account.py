@@ -411,6 +411,15 @@ def check_stops(s):
     stop_loss = float(cfg.get("stopLossPct", -8))
     trail = float(cfg.get("trailPct", 15))
     take = float(cfg.get("takeProfitPct", 30))
+    # 2026-11-23 新增（用户拍板：很多票到不了止盈线就回落）
+    #   loseCutPct : 浮亏达到该线先减半仓（<0 生效，0/None 关闭），每个持仓只触发一次。
+    #                美股回测（23 episode）净改善 +1998：救 超威/Palantir/新东方/爱彼迎/Visa
+    #                等「买入即跌」的票；A股同类规则会砍错慢牛（工行 -750、农行 -414），故 A 股关闭。
+    #   trailArmPct: 峰值浮盈曾达该值后，移动止盈不再要求「当前仍浮盈」（0/None 关闭）。
+    #                修的是「涨到 6% 没到 8%，跌回成本以下移动止盈永久失效，只能等 -6%」。
+    lose_cut = float(cfg.get("loseCutPct", 0) or 0)
+    lose_frac = float(cfg.get("loseCutFrac", 0.5) or 0.5)
+    trail_arm = float(cfg.get("trailArmPct", 0) or 0)
     for h in list(s["holdings"]):
         if h["shares"] <= 0 or h["cost"] <= 0 or h["price"] <= 0:
             continue
@@ -423,19 +432,33 @@ def check_stops(s):
         _update_peak(h, price)
         peak = h.get("peak") or cost
         drawdown = (price - peak) / peak * 100.0  # 相对峰值回撤（负值）
+        peak_pnl = (peak - cost) / cost * 100.0   # 峰值时刻的浮盈（用于 trail_arm）
 
         reason = ""
         qty = 0
         mark_tp = False
+        mark_lose = False
         # 1. 固定止损：深套清仓
         if pnl_pct <= stop_loss:
             reason = "止损：浮亏%.1f%% 触及%.0f%% 线" % (pnl_pct, stop_loss)
             qty = h["shares"]
-        # 2. 移动止盈：从峰值回撤过大，锁利润
-        elif pnl_pct > 0 and drawdown <= -trail:
-            reason = "移动止盈：从峰值回撤%.1f%% 触及%.0f%% 线（仍浮盈%.1f%%）" % (
-                drawdown, trail, pnl_pct)
+        # 1.5 移动止盈：从峰值回撤过大，锁利润
+        #    trail_arm 生效后，只要「峰值曾赚到 arm%」就不再要求当前仍浮盈——
+        #    否则跌回成本那一刻本条永久失效，+6%→-6% 一路坐电梯（礼来 11-21 实证）。
+        #    注意：本条排在「浮亏减半」之前。若一只票既曾赚过 arm%、又已回撤超线，
+        #    说明涨幅基本回吐完，直接清仓优于先减半再补一刀（礼来同时满足两条，
+        #    旧顺序会拆成两笔、分两轮执行、多占一次当日额度）。
+        elif (pnl_pct > 0 or (trail_arm > 0 and peak_pnl >= trail_arm)) and drawdown <= -trail:
+            reason = "移动止盈：从峰值回撤%.1f%% 触及%.0f%% 线（%s%.1f%%）" % (
+                drawdown, trail, "峰值曾达%+.1f%%，当前" % peak_pnl if pnl_pct <= 0 else "仍浮盈", pnl_pct)
             qty = h["shares"]
+        # 1.6 浮亏减半（2026-11-23）：跌破 loseCutPct 先砍一半，不等 -4% 送评/ -6% 硬清
+        elif lose_cut < 0 and pnl_pct <= lose_cut and not h.get("loseCutDate"):
+            qty = max(1, int(h["shares"] * lose_frac))
+            qty = sell_floor_qty(s, price, h["shares"], qty)
+            reason = "浮亏减半：浮亏%.1f%% 触及%.0f%% 线，先减%.0f%%仓位" % (
+                pnl_pct, lose_cut, qty * 100.0 / max(1, h["shares"]))
+            mark_lose = True
         # 3. 目标止盈：达到目标位，分批落袋（先卖一半）
         elif pnl_pct >= take:
             # 2026-11-10 修复：同一持仓当日只触发一次。此前交易时段每轮都把
@@ -462,9 +485,12 @@ def check_stops(s):
             done += 1
             if mark_tp:
                 h["tpDate"] = today_str()
+            if mark_lose:
+                h["loseCutDate"] = today_str()
             # 止损止盈清仓后，重置峰值，避免残留影响未来重新建仓
             if h["shares"] <= 0:
                 h.pop("peak", None)
                 h.pop("tpDate", None)
+                h.pop("loseCutDate", None)
             log("止损止盈卖出 %s %d 股 @%.3f（%s）" % (name, qty, price, reason))
     return done

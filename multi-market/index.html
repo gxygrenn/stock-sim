@@ -207,10 +207,12 @@
   .b-veto{background:#fff4e6; color:#9c5c00;}
 
   /* ---------- 卖出线（持仓表新增列） ---------- */
+  #tblHold{width:100%;}   /* 内容超宽时按容器压缩换行，避免最右列被面板裁掉 */
   #tblHold th, #tblHold td{padding-left:4px; padding-right:4px;}
   .sell-cell{line-height:1.4;}
   .sell-cell .lv{display:inline-block; font-size:11px; margin-left:5px;}
   .sell-cell .lv:first-child{margin-left:0;}
+  .sell-cell .lv.cut{color:#b45309;}
   .sell-cell .ln2{display:block; font-size:10.5px; color:var(--muted); margin-top:1px;}
   .sell-cell .ln2.up{color:var(--up);}
   .sell-cell .ln2.down{color:var(--down);}
@@ -664,6 +666,8 @@ function renderHoldings(){
   var SL = (c.stopLossPct===undefined?-6:Number(c.stopLossPct));
   var TP = (c.takeProfitPct===undefined?8:Number(c.takeProfitPct));
   var TR = (c.trailPct===undefined?5:Number(c.trailPct));
+  var LC = (c.loseCutPct===undefined?0:Number(c.loseCutPct||0));   // <0 生效：浮亏减半
+  var AR = (c.trailArmPct===undefined?0:Number(c.trailArmPct||0)); // >0 生效：峰值达标后回撤线不再要求浮盈
   var tmv = 0, tfl = 0, hotN = 0, nearN = 0;
   var _d = new Date(), _p = function(n){ return (n<10?"0":"")+n; };
   var TODAY = _d.getFullYear()+"-"+_p(_d.getMonth()+1)+"-"+_p(_d.getDate());
@@ -677,13 +681,24 @@ function renderHoldings(){
       var slPx = h.cost*(1+SL/100), tpPx = h.cost*(1+TP/100);
       var ddPx = (h.peak && h.peak>h.cost) ? h.peak*(1-TR/100) : 0;
       // 距离统一按「现价还要变动多少%」，负=还要跌，正=还要涨
+      // prio 与 check_stops 的执行顺序一致：止损 > 移动止盈 > 浮亏减半 > 目标止盈
       var lines = [
-        {k:"止损", v:(slPx/h.price-1)*100, px:slPx, hot:flp<=SL},
-        {k:"止盈", v:(tpPx/h.price-1)*100, px:tpPx, hot:flp>=TP}
+        {k:"止损", v:(slPx/h.price-1)*100, px:slPx, hot:flp<=SL, prio:1},
+        {k:"止盈", v:(tpPx/h.price-1)*100, px:tpPx, hot:flp>=TP, prio:4}
       ];
-      if(ddPx>0 && flp>0) lines.push({k:"回撤线", v:(ddPx/h.price-1)*100, px:ddPx, hot:h.price<=ddPx});
+      var lcPx = 0;
+      if(LC<0){
+        lcPx = h.cost*(1+LC/100);
+        // 已减过半仓的不再标「已触发」，改由下方文字标「已减半」
+        lines.push({k:"减半", v:(lcPx/h.price-1)*100, px:lcPx, hot:flp<=LC && !h.loseCutDate, prio:3});
+      }
+      // 峰值浮盈：峰值曾达 trailArmPct 后，回撤线不再要求当前浮盈（2026-11-23 新增）
+      var peakPnl = (h.peak && h.cost>0) ? (h.peak/h.cost-1)*100 : 0;
+      var armOn = (AR>0 && peakPnl>=AR);
+      if(ddPx>0 && (flp>0 || armOn)) lines.push({k:"回撤线", v:(ddPx/h.price-1)*100, px:ddPx, hot:h.price<=ddPx, prio:2});
       lines.sort(function(a,b){ return Math.abs(a.v)-Math.abs(b.v); });
-      var urg = lines.filter(function(x){ return x.hot; })[0] || lines[0];
+      // 多条同时命中时按服务端执行顺序取（否则礼来会显示「减半」而实际是回撤线清仓）
+      var urg = lines.filter(function(x){ return x.hot; }).sort(function(a,b){ return a.prio-b.prio; })[0] || lines[0];
       var near = !urg.hot && Math.abs(urg.v) <= 1.0;   // 距触发线 1% 内，等同「随时会卖」
       // 目标止盈当日只触发一次（服务端 tpDate），卖过一半后不再重复标「已触发」
       var tpDone = (urg.k==="止盈" && h.tpDate===TODAY);
@@ -696,10 +711,12 @@ function renderHoldings(){
       var fmt = function(v){ return v>=100 ? v.toFixed(1) : v.toFixed(2); };
       var lv = "<span class='lv down' title='固定止损价 = 成本×(1"+(SL>=0?"+":"")+SL+"%)'>止"+fmt(slPx)+"</span>"+
                "<span class='lv up' title='目标止盈价 = 成本×(1+"+TP+"%)'>盈"+fmt(tpPx)+"</span>";
+      // 减半价不占徽章位（三个价格会把列撑宽 18px、截断最右列），价格在 tooltip 里，
+      // 触发时由下方距离行显示「减半」；每只只触发一次，loseCutDate 为已减标记。
       var mark = (urg.hot && !tpDone) ? " ⚠" : "";
       sellHtml = lv+"<span class='ln2 "+cls(urg.v)+(urg.hot?" hot":"")+(near?" warn":"")+"' title='"+esc(tip)+"'>"+
         (urg.hot?"已触发 ":near?"临近 ":"距")+urg.k+" "+Math.abs(urg.v).toFixed(1)+"%"+
-        (tpDone?" 已卖半":"")+mark+"</span>";
+        (tpDone?" 已卖半":"")+(h.loseCutDate&&urg.k!=="减半"?" 已减半":"")+mark+"</span>";
     }
     var tr = document.createElement("tr");
     tr.innerHTML =
@@ -716,6 +733,7 @@ function renderHoldings(){
   });
   var lg = $("sellLegend");
   if(lg) lg.textContent = "止损 "+(SL>=0?"+":"")+SL+"% · 止盈 +"+TP+"% · 回撤 "+TR+"%"+
+    (LC<0?" · 减半 "+LC+"%":"")+(AR>0?"（峰值≥"+AR+"%后回撤线生效）":"")+
     (hotN?" · "+hotN+" 只已触发":"")+(nearN?" · "+nearN+" 只临近":"");
   if(hs.length){
     tf.innerHTML = "<tr><td>合计</td><td></td><td></td><td></td><td></td><td></td><td>"+money(tmv)+
