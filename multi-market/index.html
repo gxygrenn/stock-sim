@@ -206,6 +206,17 @@
   .b-wait{background:#f1f3f5; color:#6b7280;}
   .b-veto{background:#fff4e6; color:#9c5c00;}
 
+  /* ---------- 卖出线（持仓表新增列） ---------- */
+  #tblHold th, #tblHold td{padding-left:4px; padding-right:4px;}
+  .sell-cell{line-height:1.4;}
+  .sell-cell .lv{display:inline-block; font-size:11px; margin-left:5px;}
+  .sell-cell .lv:first-child{margin-left:0;}
+  .sell-cell .ln2{display:block; font-size:10.5px; color:var(--muted); margin-top:1px;}
+  .sell-cell .ln2.up{color:var(--up);}
+  .sell-cell .ln2.down{color:var(--down);}
+  .sell-cell .ln2.hot{font-weight:700;}
+  .sell-cell .ln2.warn{color:#b45309; font-weight:700;}
+
   /* ---------- 评议团 ---------- */
   .council{max-height:520px; overflow:auto; display:flex;
     flex-direction:column; gap:9px; margin:0 -4px;}
@@ -356,10 +367,11 @@
       </div>
 
       <div class="panel">
-        <h2><span class="ico">持</span>持仓 <span class="tag" id="holdCount"></span></h2>
+        <h2><span class="ico">持</span>持仓 <span class="tag" id="holdCount"></span>
+          <span class="right"><span class="tag" id="sellLegend" title="服务端 check_stops / check_trims 的自动卖出线，按当前账户 config 实时计算"></span></span></h2>
         <div class="scroll">
           <table id="tblHold">
-            <thead><tr><th>名称</th><th>现价</th><th>涨跌</th><th>数量</th><th>成本</th><th>市值</th><th>浮动盈亏</th></tr></thead>
+            <thead><tr><th>名称</th><th>现价</th><th>涨跌</th><th>数量</th><th>成本</th><th>卖出线</th><th>市值</th><th>浮动盈亏</th></tr></thead>
             <tbody></tbody><tfoot></tfoot>
           </table>
         </div>
@@ -644,20 +656,50 @@ function renderCards(){
 function renderHoldings(){
   var tb = $("tblHold").querySelector("tbody"), tf = $("tblHold").querySelector("tfoot");
   tb.innerHTML=""; tf.innerHTML="";
-  var hs = S.holdings||[];
+  var hs = (S.holdings||[]).filter(function(h){ return (h.shares||0)>0; });
   $("holdEmpty").style.display = hs.length ? "none":"block";
   $("holdCount").textContent = hs.length ? (hs.length+" 只"):"";
-  var tmv = 0, tfl = 0;
+  // 卖出线取自服务端 config（check_stops / check_trims 实际使用的阈值），不在前端写死
+  var c = S.config||{};
+  var SL = (c.stopLossPct===undefined?-6:Number(c.stopLossPct));
+  var TP = (c.takeProfitPct===undefined?8:Number(c.takeProfitPct));
+  var TR = (c.trailPct===undefined?5:Number(c.trailPct));
+  var tmv = 0, tfl = 0, hotN = 0, nearN = 0;
+  var _d = new Date(), _p = function(n){ return (n<10?"0":"")+n; };
+  var TODAY = _d.getFullYear()+"-"+_p(_d.getMonth()+1)+"-"+_p(_d.getDate());
   hs.forEach(function(h){
     var mv = h.price*h.shares, fl = mv - h.cost*h.shares;
     var flp = h.cost>0 && h.shares>0 ? (h.price/h.cost-1)*100 : 0;
     tmv += mv; tfl += fl;
-    // 移动止盈状态：显示历史峰值及当前回撤
-    var peakTag = "";
-    if(h.peak && h.peak>0 && h.shares>0){
-      var dd = (h.price/h.peak-1)*100;
-      peakTag = " <span class='small' title='移动止盈：历史峰值 "+h.peak.toFixed(2)+"，当前回撤 "+
-        (dd>=0?"+":"")+dd.toFixed(1)+"%'>峰值"+h.peak.toFixed(2)+"</span>";
+    // ---- 卖出线：三个价位 + 最近一条触发线的距离 ----
+    var sellHtml = "-";
+    if(h.shares>0 && h.cost>0 && h.price>0){
+      var slPx = h.cost*(1+SL/100), tpPx = h.cost*(1+TP/100);
+      var ddPx = (h.peak && h.peak>h.cost) ? h.peak*(1-TR/100) : 0;
+      // 距离统一按「现价还要变动多少%」，负=还要跌，正=还要涨
+      var lines = [
+        {k:"止损", v:(slPx/h.price-1)*100, px:slPx, hot:flp<=SL},
+        {k:"止盈", v:(tpPx/h.price-1)*100, px:tpPx, hot:flp>=TP}
+      ];
+      if(ddPx>0 && flp>0) lines.push({k:"回撤线", v:(ddPx/h.price-1)*100, px:ddPx, hot:h.price<=ddPx});
+      lines.sort(function(a,b){ return Math.abs(a.v)-Math.abs(b.v); });
+      var urg = lines.filter(function(x){ return x.hot; })[0] || lines[0];
+      var near = !urg.hot && Math.abs(urg.v) <= 1.0;   // 距触发线 1% 内，等同「随时会卖」
+      // 目标止盈当日只触发一次（服务端 tpDate），卖过一半后不再重复标「已触发」
+      var tpDone = (urg.k==="止盈" && h.tpDate===TODAY);
+      if(urg.hot) hotN++;
+      if(near) nearN++;
+      var tip = (h.peak ? "历史峰值 "+h.peak.toFixed(3)+"（当前回撤 "+((h.price/h.peak-1)*100).toFixed(1)+"%）\n" : "")+
+        lines.map(function(x){
+        return x.k+"价 "+x.px.toFixed(3)+"（现价还需 "+(x.v>=0?"+":"")+x.v.toFixed(1)+"%）"+(x.hot?" ← 已触发":"");
+      }).join("\n");
+      var fmt = function(v){ return v>=100 ? v.toFixed(1) : v.toFixed(2); };
+      var lv = "<span class='lv down' title='固定止损价 = 成本×(1"+(SL>=0?"+":"")+SL+"%)'>止"+fmt(slPx)+"</span>"+
+               "<span class='lv up' title='目标止盈价 = 成本×(1+"+TP+"%)'>盈"+fmt(tpPx)+"</span>";
+      var mark = (urg.hot && !tpDone) ? " ⚠" : "";
+      sellHtml = lv+"<span class='ln2 "+cls(urg.v)+(urg.hot?" hot":"")+(near?" warn":"")+"' title='"+esc(tip)+"'>"+
+        (urg.hot?"已触发 ":near?"临近 ":"距")+urg.k+" "+Math.abs(urg.v).toFixed(1)+"%"+
+        (tpDone?" 已卖半":"")+mark+"</span>";
     }
     var tr = document.createElement("tr");
     tr.innerHTML =
@@ -666,13 +708,17 @@ function renderHoldings(){
       "<td class='"+cls(h.pct||0)+"'>"+pct(h.pct||0)+"</td>"+
       "<td>"+h.shares+"</td>"+
       "<td>"+(h.shares>0?h.cost.toFixed(3):"-")+"</td>"+
+      "<td class='sell-cell'>"+sellHtml+"</td>"+
       "<td>"+money(mv)+"</td>"+
       "<td class='"+cls(fl)+"'>"+(fl>=0?"+":"")+money(fl)+
-        (h.shares>0?" <span class='small'>("+pct(flp)+")</span>":"")+peakTag+"</td>";
+        (h.shares>0?" <span class='small'>("+pct(flp)+")</span>":"")+"</td>";
     tb.appendChild(tr);
   });
+  var lg = $("sellLegend");
+  if(lg) lg.textContent = "止损 "+(SL>=0?"+":"")+SL+"% · 止盈 +"+TP+"% · 回撤 "+TR+"%"+
+    (hotN?" · "+hotN+" 只已触发":"")+(nearN?" · "+nearN+" 只临近":"");
   if(hs.length){
-    tf.innerHTML = "<tr><td>合计</td><td></td><td></td><td></td><td></td><td>"+money(tmv)+
+    tf.innerHTML = "<tr><td>合计</td><td></td><td></td><td></td><td></td><td></td><td>"+money(tmv)+
       "</td><td class='"+cls(tfl)+"'>"+(tfl>=0?"+":"")+money(tfl)+"</td></tr>";
   }
 }
