@@ -31,3 +31,6 @@ _archive/
 # 单次运行的取数/写回载荷（state 转储、_ctx/_reviews 等），不做版本管理
 _*.json
 !multi-market/*.json
+
+# 日K缓存（可重建，体积大）
+snap/*/kline_cache.json

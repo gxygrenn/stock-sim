@@ -37,6 +37,36 @@ def _url(path):
 
 ALL = ["us", "cn_conservative", "cn_aggressive"]
 LABEL = {"us": "美股", "cn_conservative": "A股稳健", "cn_aggressive": "A股激进"}
+
+# ---- 买入侧「涨幅透支」判定辅助（2026-11-23 起，配合 R24）----
+# 评审层原先只看得到 delta，看不到「近 20 日已经涨了多少、当日涨跌多少」，
+# 而这两个变量是买入端最有效的风险前兆（60 笔复盘：前20日≥12% 且当日≤+1% 的 11 笔全部亏损）。
+# 这里只做只读取数，不改任何交易参数，也不写回任何数据。
+_TREND_CACHE = {}
+_SERVER = None
+
+
+def _trend(code):
+    """返回 (20日涨幅%, 当日涨幅%)；取不到返回 None。日K 结构=(date,open,close,high,low,vol)。"""
+    if code in _TREND_CACHE:
+        return _TREND_CACHE[code]
+    global _SERVER
+    try:
+        if _SERVER is None:
+            import os
+            sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "multi-market"))
+            import server as _srv
+            _SERVER = _srv
+        bars = _SERVER.fetch_kline(code, 30)
+        if len(bars) < 22:
+            val = None
+        else:
+            c = [b[2] for b in bars]
+            val = ((c[-1] / c[-21] - 1) * 100, (c[-1] / c[-2] - 1) * 100)
+    except Exception:
+        val = None
+    _TREND_CACHE[code] = val
+    return val
 CTX = ssl.create_default_context()
 CTX.check_hostname = False
 CTX.verify_mode = ssl.CERT_NONE
@@ -121,9 +151,11 @@ def cycle(accounts, dry):
             age = hours_since(last) if last else -1
             cooldown = ("上次审 %.1fh前→冷却中" % age) if 0 <= age < 1 else \
                        (("上次审 %.1fh前" % age) if age >= 1 else "从未评审")
-            print("   %-10s %-8s %s｜delta %s｜等 %sh｜初审 %s%s｜%s" % (
+            tr = _trend(p.get("code") or "")
+            trs = ("｜20日%+.0f%%｜日%+.1f%%" % tr) if tr else "｜20日-"
+            print("   %-10s %-8s %s｜delta %s%s｜等 %sh｜初审 %s%s｜%s" % (
                 p.get("code"), (p.get("name") or "")[:8], p.get("direction"),
-                ("%.1f" % (p.get("delta") or 0)),
+                ("%.1f" % (p.get("delta") or 0)), trs,
                 ("%.1f" % hours_since(p.get("queuedAt") or p.get("time"))),
                 c.get("verdict") or "无",
                 ("（%s）" % c.get("veto")) if c.get("veto") else "", cooldown))
