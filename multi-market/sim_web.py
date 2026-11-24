@@ -85,7 +85,7 @@ class Handler(BaseHTTPRequestHandler):
                 self._json(daily_facts(load_state()))
             return
         if path == "/api/version":
-            self._json({"ok": True, "features": ["gate", "pendingReview", "dailyFacts", "dailyReview", "marketContext", "reviewDecoupled", "reviewTTL", "catchup", "approvedTTL", "sameDayBuyMax", "councilInitialReview", "accountAliases", "minBuyAmount", "lossReReview", "tpOncePerDay", "roomVeto", "swapGate", "clearSell", "pxAtReviewV2", "reviewLog600", "enqSkip", "trimRule", "sellFloor", "loseCut", "trailArm"], "time": now_str()})
+            self._json({"ok": True, "features": ["gate", "pendingReview", "dailyFacts", "dailyReview", "marketContext", "reviewDecoupled", "reviewTTL", "catchup", "approvedTTL", "sameDayBuyMax", "councilInitialReview", "accountAliases", "minBuyAmount", "lossReReview", "tpOncePerDay", "roomVeto", "swapGate", "clearSell", "pxAtReviewV2", "reviewLog600", "enqSkip", "trimRule", "sellFloor", "loseCut", "trailArm", "closeSweep", "tpSellFrac"], "time": now_str()})
             return
         self._send(404, "not found", "text/plain; charset=utf-8")
 
@@ -441,6 +441,25 @@ def worker():
             try:
                 s = load_state(account)
                 cfg = s["config"]
+                # 收盘前补扫（2026-11-24，P1）：A股 14:55-14:59 一次纯代码 check_stops，
+                # 补 14:40→15:00 的扫描盲区。不调 LLM、不取新闻、不进评审队列，每账户每日一次。
+                now = datetime.now()
+                if (server.cn_close_sweep_window(now)
+                        and s.get("closeSweepDate") != today_str()):
+                    try:
+                        r = server.close_sweep(s)
+                        if r.get("ran"):
+                            s["closeSweepDate"] = today_str()
+                            if r.get("sold"):
+                                msg = "收盘前补扫 %s：止盈止损 %d 笔" % (account, r["sold"])
+                            else:
+                                msg = "收盘前补扫 %s：无触发%s" % (
+                                    account, "（%s）" % r["why"] if r.get("why") else "")
+                            log(msg)
+                            save_state()
+                    except Exception as exc:
+                        log("收盘前补扫异常[%s]: %s" % (account, exc))
+                        save_state()
                 need = cfg.get("scanMin", 30) * 60
                 # 频率优化：休市时降低扫描频率（至少 4 小时一次），盘中按 scanMin
                 if not server.in_trading_hours():

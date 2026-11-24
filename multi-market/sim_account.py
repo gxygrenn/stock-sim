@@ -459,19 +459,27 @@ def check_stops(s):
             reason = "浮亏减半：浮亏%.1f%% 触及%.0f%% 线，先减%.0f%%仓位" % (
                 pnl_pct, lose_cut, qty * 100.0 / max(1, h["shares"]))
             mark_lose = True
-        # 3. 目标止盈：达到目标位，分批落袋（先卖一半）
+        # 3. 目标止盈：达到目标位落袋。卖出比例由 takeProfitSellFrac 决定：
+        #    0.5 = 分批（先卖一半，旧行为）；1.0 = 全清（2026-11-24 用户选 B 档）。
+        #    依据 12 个 episode 回测：全清相对半仓 +2,728 元，优于残仓保护 1.5% 的
+        #    +1,998（deliverables/auto-trade/tp-residual-guard-2026-11-24.md）。
         elif pnl_pct >= take:
             # 2026-11-10 修复：同一持仓当日只触发一次。此前交易时段每轮都把
             # 剩余仓位再折半，313 股被拆成 7 笔（最小 31 元）、最终卖掉 99%，
             # 与「先卖一半」的设计意图相悖（风语筑 2026-11-10 实证）。
             if h.get("tpDate") == today_str():
                 continue
-            reason = "目标止盈：浮盈%.1f%% 触及%.0f%% 目标，分批落袋" % (pnl_pct, take)
-            qty = max(1, int(h["shares"] * 0.5))
-            # 2026-11-18：改用统一卖出下限（单笔 ≥2×minSellAmount；卖后残值
-            # <1.5×minSellAmount 直接清仓），替代原来只判「qty<min_amt 且
-            # 整仓<2×min_amt」的窄口径（伊利 1 股、风语筑 2 股碎单实证）。
-            qty = sell_floor_qty(s, price, h["shares"], qty)
+            frac = float(cfg.get("takeProfitSellFrac", 0.5) or 0.5)
+            if frac >= 0.999:
+                qty = h["shares"]
+                reason = "目标止盈：浮盈%.1f%% 触及%.0f%% 目标，全仓落袋" % (pnl_pct, take)
+            else:
+                reason = "目标止盈：浮盈%.1f%% 触及%.0f%% 目标，分批落袋" % (pnl_pct, take)
+                qty = max(1, int(h["shares"] * min(max(frac, 0.05), 1.0)))
+                # 2026-11-18：改用统一卖出下限（单笔 ≥2×minSellAmount；卖后残值
+                # <1.5×minSellAmount 直接清仓），替代原来只判「qty<min_amt 且
+                # 整仓<2×min_amt」的窄口径（伊利 1 股、风语筑 2 股碎单实证）。
+                qty = sell_floor_qty(s, price, h["shares"], qty)
             mark_tp = True
 
         if qty <= 0:

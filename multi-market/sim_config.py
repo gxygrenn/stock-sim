@@ -504,6 +504,8 @@ CN_CONSERVATIVE_CONFIG = {
     "useStops": True,            # 启用固定止损 + 移动止盈 + 目标止盈
     "trailPct": 15,              # 移动止盈：从历史峰值回撤超过该%则卖出锁利润
     "takeProfitPct": 30,         # 目标止盈：浮盈达到该%则分批落袋（先卖一半）
+    "takeProfitSellFrac": 0.5,   # 止盈卖出比例：0.5=卖一半；1.0=全清（2026-11-24 用户选 B 档，线上推 1.0）
+    "useCloseSweep": True,       # A股 14:55 收盘前补扫（纯代码 check_stops，补 :40 扫描的 20 分钟盲区）
     "reReviewPct": -4,           # 强制复核线；2026-11-14 前移 -5→-4（硬止损 -6 前留处置窗口）
     "reReviewGapH": 72,          # 同一持仓两次强制复核的最小间隔（小时）
     # 2026-11-23（用户拍板）：浮亏减半 + 峰值曾达标后移动止盈不再要求当前浮盈。
@@ -579,6 +581,8 @@ CN_AGGRESSIVE_CONFIG = {
     "useStops": True,
     "trailPct": 20,              # 移动止盈回撤线放宽（激进版 20）
     "takeProfitPct": 40,         # 目标止盈位抬高（激进版 40）
+    "takeProfitSellFrac": 0.5,   # 止盈卖出比例：0.5=卖一半；1.0=全清（2026-11-24 用户选 B 档，线上推 1.0）
+    "useCloseSweep": True,       # A股 14:55 收盘前补扫（纯代码 check_stops，补 :40 扫描的 20 分钟盲区）
     "reReviewPct": -5,           # 强制复核线；2026-11-14 前移 -8→-5（激进档保持比稳健档(-4)宽1pp，硬止损-8前留窗口）
     "reReviewGapH": 72,          # 同一持仓两次强制复核的最小间隔（小时）
     # 2026-11-23（用户拍板）：浮亏减半 + 峰值曾达标后移动止盈不再要求当前浮盈。
@@ -652,6 +656,8 @@ US_CONFIG = {
     "useStops": True,
     "trailPct": 15,
     "takeProfitPct": 30,
+    "takeProfitSellFrac": 0.5,   # 止盈卖出比例：0.5=卖一半；1.0=全清（2026-11-24 用户选 B 档，线上推 1.0）
+    "useCloseSweep": True,       # A股 14:55 收盘前补扫；美股不在本窗口内（in_trading_hours 自然挡住）
     "reReviewPct": -4,           # 强制复核线；2026-11-14 前移 -5→-4（与A股稳健版一致，硬止损-6前留处置窗口）
     "reReviewGapH": 72,          # 同一持仓两次强制复核的最小间隔（小时）
     # 2026-11-23（用户拍板）：浮亏减半 + 峰值曾达标后移动止盈不再要求当前浮盈。

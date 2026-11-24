@@ -184,6 +184,47 @@ def maybe_catchup(s):
 
 
 
+def close_sweep(s):
+    """收盘前补扫（2026-11-24，P1）：只刷持仓现价 + 跑 check_stops。
+
+    扫描时点是每小时 :40，A 股 14:40 到 15:00 收盘之间是 20 分钟盲区，期间越过止盈线
+    的持仓当日没有任何规则会看到 —— 建设银行 11-20 收盘 +8.75%、盘中最高 +8.92%，
+    tpDate 为空、一股未卖；11-23 盘中再到 +8.41%，再次漏掉，两日回吐约 374 元。
+
+    本入口不取新闻、不算信号、不进评审队列、不调 LLM，只做一次纯代码判定，
+    成交走与 scan() 相同的 do_sell 路径。roundTrades 归零（独立一轮），当日上限仍生效。
+    返回 {"ran":bool,"sold":int,"why":str}。
+    """
+    cfg = s.get("config") or {}
+    if not cfg.get("useCloseSweep", True):
+        return {"ran": False, "sold": 0, "why": "useCloseSweep 关闭"}
+    if s.get("priceMode") != "real":
+        return {"ran": False, "sold": 0, "why": "非实时价格模式"}
+    if not server.in_trading_hours():
+        return {"ran": False, "sold": 0, "why": "非交易时段"}
+    held = [h for h in (s.get("holdings") or []) if (h.get("shares") or 0) > 0]
+    if not held:
+        return {"ran": True, "sold": 0, "why": "无持仓"}
+    why = ""
+    try:
+        quotes = server.fetch_prices([h["code"] for h in held])
+        for h in held:
+            q = quotes.get(h["code"]) or {}
+            if (q.get("price") or 0) > 0:
+                h["preClose"] = q.get("preClose") or h.get("preClose")
+                h["price"] = q["price"]
+                h["pct"] = q.get("pct", h.get("pct"))
+    except Exception as exc:
+        why = "行情刷新失败: %s" % exc
+    s["roundTrades"] = 0        # 独立一轮，不受 14:40 那轮额度影响
+    try:
+        sold = check_stops(s)
+    except Exception as exc:
+        return {"ran": True, "sold": 0, "why": "check_stops 异常: %s" % exc}
+    return {"ran": True, "sold": sold, "why": why}
+
+
+
 def scan(s, force_trade=False):
     """算信号 -> 抓新闻 -> 打分 -> 匹配个股 -> 自动交易；无新闻的强信号也独立触发。"""
     cfg = s["config"]

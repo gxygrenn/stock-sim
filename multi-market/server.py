@@ -92,6 +92,7 @@ def default_state(account=None):
         "quote": None,
         "poolQuote": {},
         "lastScan": "",
+        "closeSweepDate": "",  # 收盘前补扫（A股 14:55）当日已执行标记，每账户每日一次
         "scanErr": "",
         "signals": {},     # code -> {tech,lhb,ann,delta,block,notes[],time}
         "sigFired": {},    # code -> "2026-09-13+" 综合信号当日已触发方向
