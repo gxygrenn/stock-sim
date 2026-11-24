@@ -39,9 +39,10 @@ def mk_state(acc, cost, price, shares=1000, **cfg_over):
     return s, s["holdings"][0]
 
 
-print("一、补扫时间窗（14:50-14:59，仅 A 股交易日）")
+print("一、补扫时间窗（14:40-14:59，仅 A 股交易日）")
 mon = datetime(2026, 11, 24)      # 周二
-chk("14:49 不触发", not server.cn_close_sweep_window(mon.replace(hour=14, minute=49)))
+chk("14:39 不触发", not server.cn_close_sweep_window(mon.replace(hour=14, minute=39)))
+chk("14:40 触发", server.cn_close_sweep_window(mon.replace(hour=14, minute=40)))
 chk("14:50 触发", server.cn_close_sweep_window(mon.replace(hour=14, minute=50)))
 chk("14:55 触发", server.cn_close_sweep_window(mon.replace(hour=14, minute=55)))
 chk("14:59 触发", server.cn_close_sweep_window(mon.replace(hour=14, minute=59)))
