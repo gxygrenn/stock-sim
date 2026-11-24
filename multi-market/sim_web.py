@@ -66,6 +66,12 @@ class Handler(BaseHTTPRequestHandler):
         path = self.path.split("?")[0]
         with server._lock:
             maybe_catchup(load_state())
+            # 收盘前补扫（2026-11-24）：14:50-14:59 任一次访问触发一次 check_stops，
+            # 不依赖后台线程（云端沙箱无人访问时 worker 会挂起）。
+            try:
+                server.maybe_close_sweep(load_state(), self._account())
+            except Exception as exc:
+                log("收盘前补扫异常: %s" % exc)
         if path in ("/", "/index.html"):
             try:
                 with open(INDEX_HTML, "rb") as fh:
@@ -441,25 +447,11 @@ def worker():
             try:
                 s = load_state(account)
                 cfg = s["config"]
-                # 收盘前补扫（2026-11-24，P1）：A股 14:55-14:59 一次纯代码 check_stops，
-                # 补 14:40→15:00 的扫描盲区。不调 LLM、不取新闻、不进评审队列，每账户每日一次。
-                now = datetime.now()
-                if (server.cn_close_sweep_window(now)
-                        and s.get("closeSweepDate") != today_str()):
-                    try:
-                        r = server.close_sweep(s)
-                        if r.get("ran"):
-                            s["closeSweepDate"] = today_str()
-                            if r.get("sold"):
-                                msg = "收盘前补扫 %s：止盈止损 %d 笔" % (account, r["sold"])
-                            else:
-                                msg = "收盘前补扫 %s：无触发%s" % (
-                                    account, "（%s）" % r["why"] if r.get("why") else "")
-                            log(msg)
-                            save_state()
-                    except Exception as exc:
-                        log("收盘前补扫异常[%s]: %s" % (account, exc))
-                        save_state()
+                # 收盘前补扫（2026-11-24，P1）：与请求路径共用同一入口（内部已做窗口+节流判定）
+                try:
+                    server.maybe_close_sweep(s, account)
+                except Exception as exc:
+                    log("收盘前补扫异常[%s]: %s" % (account, exc))
                 need = cfg.get("scanMin", 30) * 60
                 # 频率优化：休市时降低扫描频率（至少 4 小时一次），盘中按 scanMin
                 if not server.in_trading_hours():
@@ -519,12 +511,36 @@ def worker():
 
 
 
+def sweep_worker():
+    """收盘前补扫的独立线程：与扫描主循环解耦，避免一次长扫描把补扫一起拖住。
+
+    扫描循环里已经有同一个入口（maybe_close_sweep 幂等），这里只是多一层保险；
+    真正保证「一定会触发」的是请求路径——云端沙箱无人访问时后台线程会被挂起。
+    """
+    while True:
+        try:
+            time.sleep(20)
+            if not server.cn_close_sweep_window(datetime.now()):
+                continue
+            for account in list(ACCOUNTS):
+                set_account(account)
+                try:
+                    with server._lock:
+                        server.maybe_close_sweep(load_state(account), account)
+                except Exception as exc:
+                    log("补扫线程异常[%s]: %s" % (account, exc))
+        except Exception:
+            time.sleep(60)
+
+
+
 def main():
     port = int(os.environ.get("PORT", "8000"))
     for account in ACCOUNTS:
         load_state(account)
     if not os.environ.get("NO_WORKER"):      # 测试时可用 NO_WORKER=1 关掉自循环
         threading.Thread(target=worker, daemon=True).start()
+        threading.Thread(target=sweep_worker, daemon=True).start()
     srv = ThreadingHTTPServer(("0.0.0.0", port), Handler)
     print("多市场模拟炒股服务已启动: http://0.0.0.0:%d" % port, flush=True)
     try:

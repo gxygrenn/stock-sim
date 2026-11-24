@@ -39,9 +39,10 @@ def mk_state(acc, cost, price, shares=1000, **cfg_over):
     return s, s["holdings"][0]
 
 
-print("一、补扫时间窗（14:55-14:59，仅 A 股交易日）")
+print("一、补扫时间窗（14:50-14:59，仅 A 股交易日）")
 mon = datetime(2026, 11, 24)      # 周二
-chk("14:54 不触发", not server.cn_close_sweep_window(mon.replace(hour=14, minute=54)))
+chk("14:49 不触发", not server.cn_close_sweep_window(mon.replace(hour=14, minute=49)))
+chk("14:50 触发", server.cn_close_sweep_window(mon.replace(hour=14, minute=50)))
 chk("14:55 触发", server.cn_close_sweep_window(mon.replace(hour=14, minute=55)))
 chk("14:59 触发", server.cn_close_sweep_window(mon.replace(hour=14, minute=59)))
 chk("15:00 不触发（已收盘）", not server.cn_close_sweep_window(mon.replace(hour=15, minute=0)))
@@ -108,6 +109,24 @@ s, h = mk_state("cn_conservative", 100.0, 100.0)
 s["holdings"] = []
 r = server.close_sweep(s)
 chk("空仓直接返回", r["ran"] and r["sold"] == 0, str(r))
+
+print("八、maybe_close_sweep 请求触发入口（窗口外不动作 / 节流 / 不重复卖）")
+import time as _time
+s, h = mk_state("cn_conservative", 100.0, 100.0, takeProfitPct=8, takeProfitSellFrac=1.0)
+server.cn_close_sweep_window = lambda now=None: False
+chk("窗口外返回 0", server.maybe_close_sweep(s, "cn_conservative") == 0 and h["shares"] == 1000)
+
+server.cn_close_sweep_window = lambda now=None: True
+server.fetch_prices = lambda codes: {c: {"price": 108.0, "preClose": 100.0, "pct": 8.0} for c in codes}
+s, h = mk_state("cn_conservative", 100.0, 100.0, takeProfitPct=8, takeProfitSellFrac=1.0)
+chk("窗口内触发并全清", server.maybe_close_sweep(s, "cn_conservative") == 1 and h["shares"] == 0)
+chk("标记 closeSweepDate", s.get("closeSweepDate") == server.today_str(), str(s.get("closeSweepDate")))
+chk("二次调用被 3 分钟节流挡住", server.maybe_close_sweep(s, "cn_conservative") == 0)
+
+print("九、节流过期后可再检查（尾盘价格还在动），不会重复卖")
+s["_sweepTs"] = _time.time() - 200
+chk("过期后再跑无新增卖出",
+    server.maybe_close_sweep(s, "cn_conservative") == 0 and h["shares"] == 0)
 
 print("\n结果：PASS %d / FAIL %d" % (_p, _f))
 sys.exit(1 if _f else 0)

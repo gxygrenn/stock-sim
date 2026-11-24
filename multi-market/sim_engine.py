@@ -225,6 +225,42 @@ def close_sweep(s):
 
 
 
+def maybe_close_sweep(s, account=""):
+    """来访触发收盘前补扫（2026-11-24，P1）。
+
+    与 maybe_catchup 同一个原因：云端沙箱无人访问时后台线程会被挂起，纯后台定时动作
+    不可靠 —— 11-24 实测 worker 线程自 11:15 起 80 分钟没有推进扫描。所以补扫必须挂在
+    「任何一次访问」上：14:50-14:59 期间任一面板刷新/自动化请求都会触发一次 check_stops。
+
+    同窗口内 3 分钟节流，可重复检查（尾盘价格还在动）；卖出幂等由 tpDate / loseCutDate
+    保证，不会重复卖。返回卖出笔数。
+    """
+    if not server.cn_close_sweep_window(datetime.now()):
+        return 0
+    now_ts = time.time()
+    try:
+        last = float(s.get("_sweepTs") or 0)
+    except Exception:
+        last = 0.0
+    if now_ts - last < 180:
+        return 0
+    r = close_sweep(s)
+    if not r.get("ran"):
+        return 0
+    s["_sweepTs"] = now_ts
+    sold = r.get("sold") or 0
+    if sold:
+        log("收盘前补扫%s：止盈止损 %d 笔" % (" " + account if account else "", sold))
+        save_state()
+    elif s.get("closeSweepDate") != today_str():
+        log("收盘前补扫%s：无触发%s" % (
+            " " + account if account else "",
+            "（%s）" % r["why"] if r.get("why") else ""))
+    s["closeSweepDate"] = today_str()
+    return sold
+
+
+
 def scan(s, force_trade=False):
     """算信号 -> 抓新闻 -> 打分 -> 匹配个股 -> 自动交易；无新闻的强信号也独立触发。"""
     cfg = s["config"]

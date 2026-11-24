@@ -16,13 +16,19 @@
 
 ## 变更
 
-### 1. P1 收盘前补扫 —— `sim_time.cn_close_sweep_window()` + `sim_engine.close_sweep()`
+### 1. P1 收盘前补扫 —— `sim_time.cn_close_sweep_window()` + `sim_engine.close_sweep()` / `maybe_close_sweep()`
 
-- **窗口**：A 股工作日 **14:55–14:59**（法定节假日 `is_cn_holiday` 排除），每账户每日一次
-  （`state["closeSweepDate"]` 幂等标记）。
+- **窗口**：A 股工作日 **14:50–14:59**（法定节假日 `is_cn_holiday` 排除），窗口内 **3 分钟节流**
+  可重复检查（尾盘价格还在动）；卖出幂等由 `tpDate` / `loseCutDate` 保证，不会重复卖。
 - **动作**：只做「刷持仓现价 → `check_stops`」两件事。不取新闻、不算信号、不进评审队列、
   不调 LLM，**零 token**。
-- **触发位置**：`sim_web.worker()` 每 30 秒的账户循环里，先于常规扫描判断。
+- **触发位置（双通道，请求为主）**：
+  1. `Handler.do_GET` —— 任何一次面板刷新/自动化访问落在窗口内即触发。**这是主通道**：
+     云端沙箱无人访问时后台线程会被挂起（11-24 12:36~12:38 连续心跳实测，worker 自 11:15
+     起 80 分钟没有推进扫描；`maybe_catchup` 的注释早就记录过同一现象）。
+  2. `worker()` 账户循环 + 独立 `sweep_worker()` 线程 —— 线程活着时的兜底，与扫描主循环解耦，
+     避免一次长扫描把补扫一起拖住。
+  窗口取 14:50 起而非 14:55，就是为了被 14:40 那轮自动化的访问覆盖到。
 - **额度**：进入前 `roundTrades=0`（视为独立一轮），当日 `maxPerDay` 仍生效。
 - **成交**：走与 `scan()` 相同的 `do_sell` 路径，14:55 仍在连续竞价内，可正常成交。
 - **开关**：`useCloseSweep`（false 一键回退）；非 `real` 价格模式、非交易时段自动跳过。
@@ -46,8 +52,11 @@
 
 ## 测试
 
-- 新增 `_test_close_sweep.py`：17 项全通过（时间窗 5 项、全清/半仓/未达标、三前置条件、
-  行情异常降级、空仓）。
+- 新增 `_test_close_sweep.py`：23 项全通过（时间窗 6 项、全清/半仓/未达标、三前置条件、
+  行情异常降级、空仓、请求入口的窗口判定/节流/不重复卖）。
+- 新增 `_test_close_sweep_http.py`：4 项全通过 —— 真起 `ThreadingHTTPServer` 打 GET
+  `/api/state`，验证 `do_GET → maybe_close_sweep → close_sweep` 这条接线真的通（判定逻辑
+  另测；这里只证明「有访问就会跑」）。
 - 回归：`_test_tp_rules` 19、`_test_stops` 24、`_test_trim` 29、`_test_swap_gate` 21、
   `_test_ttl_sameday` 11、`_test_e2e` 17、`_test_gate` 38、`_test_room_veto` 6、
   `_test_settle_session` 20，全部 0 失败。
@@ -56,7 +65,8 @@
 
 1. 刷新跨部署种子 `snapshot/data-multi.snapshot.json`（3 账户，1402KB），确认 `multi-market/` 无 `data-multi.json`。
 2. 备份三账户 state 至 `backup/2026-11-24-1231/`。
-3. 发布：沙箱 `ec0c735d`（复用，数据不丢），`startCmd=python run.py`。
+3. 首轮发布（12:33）：只挂在 worker 循环里 → 随后实测发现 worker 被沙箱挂起，
+   改为「请求触发为主 + 双线程兜底」（窗口同时放宽到 14:50），二次发布（12:52）。
 4. 验收：`/api/version` features 含 `closeSweep` / `tpSellFrac`；三账户 现金/持仓只数/市值/
    待评审/已实现/成交笔数 与部署前逐项一致（us 65,475.09 / 4 只 / 2 待评审；cnc 28,096.91 /
    6 只 / 0；cna 20,206.00 / 11 只 / 0）。
