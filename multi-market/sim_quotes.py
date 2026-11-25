@@ -60,8 +60,12 @@ def fetch_quote(code):
     is_us = code.startswith("us")
     # 成交额：A股 p[37] 单位为万元，美股为美元全额
     amount = _f(p, 37) * (1 if is_us else 1e4)
+    # 2026-11-25：补 open/high/low。p[33]=今日最高、p[34]=今日最低（A股与美股同一排布，
+    # 已对 sh601939/sz300760/usTGT/usCMCSA 核验）。据此把「买入后高点」从
+    # 「每轮刷价取样」升级为「行情日内真实最高」，避免插针高点被漏记。
     return {
         "name": p[1], "code": code, "price": price, "preClose": pre_close,
+        "open": _f(p, 5), "high": _f(p, 33), "low": _f(p, 34),
         "chg": float(p[31] or 0), "pct": float(p[32] or 0),
         "amount": amount, "time": _fmt_ts(ts) or "--",
         "turn": _f(p, 38), "pe": _f(p, 39), "pb": _f(p, 46),

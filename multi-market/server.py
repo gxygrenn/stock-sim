@@ -483,10 +483,17 @@ def refresh_prices(s):
                     h["pct"] = q["pct"]
                     # 建仓以来最高价（2026-11-25）：刷价即更新，避免「峰值低于现价」的
                     # 滞后态（塔吉特 11-25 峰值 170.26 < 现价 176.06，回撤线被算到成本下方）。
-                    # check_stops 随后用的是同一个 price，故不改变原有止盈止损判定。
-                    # 只对在仓标的更新（shares>0）：清仓残影的峰值留给下次建仓前重置。
+                    # 同日第二次修订：优先取行情「今日最高」p[33]，覆盖盘中插针——旧实现只
+                    # 取每轮刷价时的现价，日内冲动的高点会漏记。两条边界：
+                    #   ① 本场次内建仓的标的（buySess == 行情场次）不用今日最高，因为那个
+                    #      高点可能发生在买入之前，会凭空拔高回撤线；
+                    #   ② 只对在仓标的更新（shares>0），清仓残影的峰值留给下次建仓重置。
+                    # check_stops 随后用的是同一个 price，止盈止损的触发价不变。
                     if h.get("shares", 0) > 0:
-                        _update_peak(h, h["price"])
+                        hi = float(q.get("high") or 0)
+                        sess = str(q.get("time") or "")[:10]
+                        bought_today = bool(sess) and h.get("buySess") == sess
+                        _update_peak(h, max(h["price"], 0 if bought_today else hi))
         except Exception as exc:
             err = (err + " / " if err else "") + "个股行情失败: %s" % exc
     if s["pool"]:

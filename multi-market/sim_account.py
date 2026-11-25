@@ -68,6 +68,12 @@ def do_buy(s, name, code, price, qty, reason):
         s["seq"] += 1
         s["holdings"].append(h)
     h["cost"] = (h["cost"] * h["shares"] + amount) / (h["shares"] + qty)
+    if h["shares"] <= 0:
+        # 新建仓（含清仓后重买）：峰值从买入价重新起算，并记录建仓场次。
+        # buySess 供 refresh_prices 判断「今日最高」是否可能早于买入——本场次内建仓
+        # 只按现价抬峰值，不用当日最高，避免把买入前的冲高算成「买入后高点」。
+        h["peak"] = price
+        h["buySess"] = _sess_of(s)
     h["shares"] += qty
     h["price"] = price
     tr = {"time": now_str(), "side": "买入", "name": name, "code": code,
@@ -222,6 +228,22 @@ def _update_peak(h, price):
     """更新持仓历史最高价（用于移动止盈回撤计算）。"""
     if price > (h.get("peak") or 0):
         h["peak"] = price
+
+
+
+def _sess_of(s):
+    """当前行情场次标识（YYYY-MM-DD）。
+
+    优先取指数行情时间戳：A 股即当日、美股即美东交易日（北京 22:30 开盘后仍算同一场）。
+    取不到时回落北京日期。用于判断「今日最高价」是否可能发生在建仓之前。
+    """
+    try:
+        t = str((s.get("quote") or {}).get("time") or "")[:10]
+        if len(t) == 10 and t[4] == "-" and t[7] == "-":
+            return t
+    except Exception:
+        pass
+    return today_str()
 
 
 
