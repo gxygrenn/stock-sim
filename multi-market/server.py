@@ -481,6 +481,12 @@ def refresh_prices(s):
                     h["preClose"] = q["preClose"] or h["preClose"]
                     h["price"] = q["price"]
                     h["pct"] = q["pct"]
+                    # 建仓以来最高价（2026-11-25）：刷价即更新，避免「峰值低于现价」的
+                    # 滞后态（塔吉特 11-25 峰值 170.26 < 现价 176.06，回撤线被算到成本下方）。
+                    # check_stops 随后用的是同一个 price，故不改变原有止盈止损判定。
+                    # 只对在仓标的更新（shares>0）：清仓残影的峰值留给下次建仓前重置。
+                    if h.get("shares", 0) > 0:
+                        _update_peak(h, h["price"])
         except Exception as exc:
             err = (err + " / " if err else "") + "个股行情失败: %s" % exc
     if s["pool"]:

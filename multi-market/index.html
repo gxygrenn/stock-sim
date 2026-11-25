@@ -218,6 +218,10 @@
   .sell-cell .ln2.down{color:var(--down);}
   .sell-cell .ln2.hot{font-weight:700;}
   .sell-cell .ln2.warn{color:#b45309; font-weight:700;}
+  /* 现价/买入后高点：上行现价 + 下行峰值，悬停看浮盈与回撤 */
+  .px-cell{line-height:1.35; cursor:help;}
+  .px-cell .pxv{display:block;}
+  .px-cell .small{display:block; font-size:10.5px; margin-top:1px; color:var(--muted-2); white-space:nowrap;}
 
   /* ---------- 评议团 ---------- */
   .council{max-height:520px; overflow:auto; display:flex;
@@ -373,7 +377,7 @@
           <span class="right"><span class="tag" id="sellLegend" title="服务端 check_stops / check_trims 的自动卖出线，按当前账户 config 实时计算"></span></span></h2>
         <div class="scroll">
           <table id="tblHold">
-            <thead><tr><th>名称</th><th>现价</th><th>涨跌</th><th>数量</th><th>成本</th><th>卖出线</th><th>市值</th><th>浮动盈亏</th></tr></thead>
+            <thead><tr><th>名称</th><th title="上行＝现价；下行＝买入后高点（建仓以来取样最高价，每轮刷价更新）。悬停看峰值浮盈与当前回撤">现价 / 高点</th><th>涨跌</th><th>数量</th><th>成本</th><th>卖出线</th><th>市值</th><th>浮动盈亏</th></tr></thead>
             <tbody></tbody><tfoot></tfoot>
           </table>
         </div>
@@ -719,9 +723,22 @@ function renderHoldings(){
         (tpDone?" 已卖半":"")+(h.loseCutDate&&urg.k!=="减半"?" 已减半":"")+mark+"</span>";
     }
     var tr = document.createElement("tr");
+    // ---- 买入后高点：建仓以来取样最高价（服务端 peak，已随每轮刷价更新）----
+    // 现价若已越过采样峰值（刚创新高、峰值尚未落盘），按现价计，避免「高点低于现价」。
+    var pk = Math.max(num(h.peak, 0), h.price);
+    var pkG = (h.cost > 0 && pk > 0) ? (pk/h.cost-1)*100 : 0;   // 峰值时相对成本的浮盈
+    var pkDd = pk > 0 ? (h.price/pk-1)*100 : 0;                 // 现价距高点
+    var isHigh = h.price >= pk - 1e-9;
+    var pkTip = "买入后高点 " + pk.toFixed(3) +
+      "\n峰值浮盈 " + (pkG>=0?"+":"") + pkG.toFixed(2) + "%（成本 " + h.cost.toFixed(3) + "）" +
+      "\n现价距高点 " + pkDd.toFixed(2) + "%" +
+      "\n回撤线 = 高点×(1-" + TR + "%)，见「卖出线」列" +
+      "\n口径：每轮刷价取一次，非分时逐笔最高";
+    var pxHtml = "<span class='pxv'>" + h.price.toFixed(3) + "</span>" +
+      "<span class='small'>" + (isHigh ? "高点即现价" : "峰" + pk.toFixed(3)) + "</span>";
     tr.innerHTML =
       "<td>"+esc(h.name)+" <span class='small'>"+esc(h.code)+"</span></td>"+
-      "<td>"+h.price.toFixed(3)+"</td>"+
+      "<td class='px-cell' title='"+esc(pkTip)+"'>"+pxHtml+"</td>"+
       "<td class='"+cls(h.pct||0)+"'>"+pct(h.pct||0)+"</td>"+
       "<td>"+h.shares+"</td>"+
       "<td>"+(h.shares>0?h.cost.toFixed(3):"-")+"</td>"+
