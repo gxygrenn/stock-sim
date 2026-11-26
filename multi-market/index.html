@@ -821,7 +821,7 @@ function renderTrades(){
   var tb = $("tblTr").querySelector("tbody"); tb.innerHTML="";
   var ts = S.trades||[];
   $("trEmpty").style.display = ts.length?"none":"block";
-  $("trCount").textContent = ts.length?(ts.length+" 笔"):"";
+  $("trCount").textContent = ts.length?(ts.length+" 笔"+(num(S.fees,0)>0?(" · 累计手续费 "+money(num(S.fees,0))):"")):"";
   ts.slice(0,60).forEach(function(t){
     var tr = document.createElement("tr");
     tr.innerHTML =
@@ -830,7 +830,7 @@ function renderTrades(){
       "<td>"+esc(t.name)+"</td>"+
       "<td>"+t.price.toFixed(3)+"</td>"+
       "<td>"+t.qty+"</td>"+
-      "<td>"+money(t.amount)+"</td>"+
+      "<td>"+money(t.amount)+(num(t.fee,0)>0?("<div style='font-size:10px;opacity:.55;line-height:1.2'>费 "+money(num(t.fee,0))+"</div>"):"")+"</td>"+
       "<td style='text-align:left'>"+esc(t.reason)+"</td>";
     tb.appendChild(tr);
   });

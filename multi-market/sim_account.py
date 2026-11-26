@@ -25,15 +25,48 @@ def total_asset(s):
 
 
 
-def buy_fee(amount):
-    # 美股零佣金（对标 Robinhood 等零佣金通道），无印花税/过户费
-    return 0.0
+# 2026-11-26（用户拍板）：此前买卖费用是美股一套口径（买入 0、卖出仅 SEC 费 2.3bp），
+# A 股账户沿用同一函数等于印花税/佣金/过户费全免，收益被系统性高估——
+# 实测 cnc 45 笔仅累计 3.13 元，按真实费率应约 299 元（占资产 0.32%）、cna 应约 443 元（0.49%）。
+# 现按 market 分支：A 股佣金万 2.5（最低 5 元，双边）+ 印花税 0.05%（仅卖出）+ 过户费 0.001%（双边）。
+CN_COMMISSION_RATE = 0.00025   # 佣金 万 2.5
+CN_COMMISSION_MIN = 5.0        # 单笔最低佣金 5 元
+CN_STAMP_RATE = 0.0005         # 印花税 0.05%，仅卖出端
+CN_TRANSFER_RATE = 0.00001     # 过户费 0.001%，双边
+
+
+def _market_of(s=None):
+    """账户所属市场（cn/us）：优先读 state["account"]，回落到当前请求账户。
+
+    2026-11-26：费用按市场分支后，卖出/买入可能在不同请求上下文中执行，
+    只认 current_account() 会把 A 股账户误按美股零佣金计费，故 state 优先。
+    """
+    m = (ACCOUNTS.get((s or {}).get("account")) or {}).get("market")
+    if m:
+        return m
+    try:
+        m = (ACCOUNTS.get(server.current_account()) or {}).get("market")
+    except Exception:
+        m = None
+    return m or "cn"
 
 
 
-def sell_fee(amount):
-    # 仅 SEC 交易费（约 22.9 美元/百万，仅卖出端收取）
-    return round(amount * 0.000023, 2)
+def buy_fee(amount, s=None):
+    if _market_of(s) == "us":
+        # 美股零佣金（对标 Robinhood 等零佣金通道），无印花税/过户费
+        return 0.0
+    return round(max(amount * CN_COMMISSION_RATE, CN_COMMISSION_MIN)
+                 + amount * CN_TRANSFER_RATE, 2)
+
+
+
+def sell_fee(amount, s=None):
+    if _market_of(s) == "us":
+        # 仅 SEC 交易费（约 22.9 美元/百万，仅卖出端收取）
+        return round(amount * 0.000023, 2)
+    return round(max(amount * CN_COMMISSION_RATE, CN_COMMISSION_MIN)
+                 + amount * CN_STAMP_RATE + amount * CN_TRANSFER_RATE, 2)
 
 
 
@@ -56,7 +89,7 @@ def do_buy(s, name, code, price, qty, reason):
     if min_amt > 0 and amount < min_amt:
         log("拒单 %s：金额 %.0f 低于最小下单金额 %.0f，保留弹药" % (name, amount, min_amt))
         return None
-    fee = buy_fee(amount)
+    fee = buy_fee(amount, s)
     if amount + fee > s["cash"]:
         return None
     s["cash"] -= amount + fee
@@ -67,7 +100,8 @@ def do_buy(s, name, code, price, qty, reason):
              "preClose": price, "shares": 0, "cost": 0.0, "beta": 1.0, "pct": 0.0}
         s["seq"] += 1
         s["holdings"].append(h)
-    h["cost"] = (h["cost"] * h["shares"] + amount) / (h["shares"] + qty)
+    # 买入费用摊进持仓成本：pnlPct / check_stops / R10 的浮盈口径都能反映真实建仓成本
+    h["cost"] = (h["cost"] * h["shares"] + amount + fee) / (h["shares"] + qty)
     if h["shares"] <= 0:
         # 新建仓（含清仓后重买）：峰值从买入价重新起算，并记录建仓场次。
         # buySess 供 refresh_prices 判断「今日最高」是否可能早于买入——本场次内建仓
@@ -77,7 +111,8 @@ def do_buy(s, name, code, price, qty, reason):
     h["shares"] += qty
     h["price"] = price
     tr = {"time": now_str(), "side": "买入", "name": name, "code": code,
-          "price": round(price, 3), "qty": qty, "amount": round(amount, 2), "reason": reason}
+          "price": round(price, 3), "qty": qty, "amount": round(amount, 2),
+          "fee": round(fee, 2), "reason": reason}
     s["trades"].insert(0, tr)
     s["trades"] = s["trades"][:300]
     s["lastTrade"][code] = now_str()
@@ -95,17 +130,19 @@ def do_sell(s, name, code, price, qty, reason):
     if qty <= 0:
         return None
     amount = price * qty
-    fee = sell_fee(amount)
+    fee = sell_fee(amount, s)
     s["cash"] += amount - fee
     s["fees"] += fee
-    s["realized"] += (price - h["cost"]) * qty
+    # 已实现收益扣掉卖出费用；买入费已摊进 h["cost"]，两边合计即真实净盈亏
+    s["realized"] += (price - h["cost"]) * qty - fee
     h["shares"] -= qty
     if h["shares"] <= 0:
         h["shares"] = 0
         h["cost"] = 0.0
     h["price"] = price
     tr = {"time": now_str(), "side": "卖出", "name": name, "code": code,
-          "price": round(price, 3), "qty": qty, "amount": round(amount, 2), "reason": reason}
+          "price": round(price, 3), "qty": qty, "amount": round(amount, 2),
+          "fee": round(fee, 2), "reason": reason}
     s["trades"].insert(0, tr)
     s["trades"] = s["trades"][:300]
     s["lastTrade"][code] = now_str()
@@ -244,15 +281,6 @@ def _sess_of(s):
     except Exception:
         pass
     return today_str()
-
-
-
-def _market_of(s):
-    """当前账户所属市场（cn/us），用于整手规则与交易日历。"""
-    try:
-        return (server.ACCOUNTS.get(server.current_account()) or {}).get("market") or "cn"
-    except Exception:
-        return "cn"
 
 
 
