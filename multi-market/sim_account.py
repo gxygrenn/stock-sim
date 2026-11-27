@@ -134,7 +134,12 @@ def do_sell(s, name, code, price, qty, reason):
     s["cash"] += amount - fee
     s["fees"] += fee
     # 已实现收益扣掉卖出费用；买入费已摊进 h["cost"]，两边合计即真实净盈亏
-    s["realized"] += (price - h["cost"]) * qty - fee
+    realized = (price - h["cost"]) * qty - fee
+    s["realized"] += realized
+    # 单笔盈亏留痕（2026-11-27）：成本含买入费、已扣卖出费，与 s["realized"] 同口径。
+    # 必须在 h["cost"] 清零之前算，否则清仓笔的收益率会变成 0。
+    cost_price = h["cost"]
+    cost_amt = cost_price * qty
     h["shares"] -= qty
     if h["shares"] <= 0:
         h["shares"] = 0
@@ -142,7 +147,9 @@ def do_sell(s, name, code, price, qty, reason):
     h["price"] = price
     tr = {"time": now_str(), "side": "卖出", "name": name, "code": code,
           "price": round(price, 3), "qty": qty, "amount": round(amount, 2),
-          "fee": round(fee, 2), "reason": reason}
+          "fee": round(fee, 2), "pnl": round(realized, 2),
+          "pnlPct": round(realized / cost_amt * 100, 2) if cost_amt > 0 else 0.0,
+          "costPrice": round(cost_price, 3), "reason": reason}
     s["trades"].insert(0, tr)
     s["trades"] = s["trades"][:300]
     s["lastTrade"][code] = now_str()

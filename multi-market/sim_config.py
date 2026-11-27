@@ -489,10 +489,20 @@ CN_CONSERVATIVE_CONFIG = {
     "stopLossPct": -6,   # 硬止损/禁加仓线；2026-11-14 收紧 -8→-6（用户拍板+45天反事实模拟净改善+2032元）
     # ---- 动态调池：自动淘汰没前景 + 选入强势股（LLM 门控确认后生效） ----
     "useRebalance": True,        # 启用股票池自动轮动
-    "rebalanceIntervalDays": 7,  # 每 N 天生成一轮调池建议
-    "rebalanceMaxAdd": 6,        # 每轮最多建议选入只数
+    "rebalanceIntervalDays": 4,  # 每 N 天生成一轮调池建议（2026-11-27 扩池：7→4）
+    "rebalanceMaxAdd": 10,       # 每轮最多建议选入只数（2026-11-27 扩池：6→10）
     "rebalanceMaxRemove": 6,     # 每轮最多建议淘汰只数
-    "rebalanceCooldownDays": 21, # 同股被调池建议后 N 天内不重复建议
+    "rebalanceCooldownDays": 10, # 同股被调池建议后 N 天内不重复建议（2026-11-27 扩池：21→10）
+    # 2026-11-27（用户拍板「扩池」）：筛选门槛配置化并放宽，池子才长得起来
+    "rebalancePoolCap": 110,        # 池子硬上限，到顶后只换血不新增（防信号计算被拖慢）
+    "rebalanceStrengthLimit": 70,   # 强势榜取样条数（原写死 40）
+    "rebalanceMinAmount": 6e7,      # 成交额下限（原 1e8）
+    "rebalanceTurnLo": 2,           # 换手下限（原 3）
+    "rebalanceTurnHi": 25,          # 换手上限（原 20）
+    "rebalanceMinR60": 2,           # 60 日涨幅下限（原 5）
+    "rebalanceMaxPE": 80,           # PE 上限
+    "poolRejectTTLHours": 72,       # 被否的调池建议保留小时数，超时清出以允许重新提议
+    "enqueueDeltaPriority": True,   # 队列满时按 delta 抢位（强票挤掉最弱 waiting 买入候选）
     # ---- 市场择时（借鉴 QuantsPlaybook：RSRS 阻力支撑强度 + 扩散指标 + 均线动量） ----
     "useRegime": True,           # 启用大盘择时温度计，防守档收紧买入、进攻档放宽
     "regimeBuyFloor": 2,         # 防守档把买入信号分下限上浮的幅度（buySigFloor 基础上加）
@@ -566,10 +576,19 @@ CN_AGGRESSIVE_CONFIG = {
     "stopLossPct": -8,   # 硬止损/禁加仓线；2026-11-14 收紧 -15→-8（用户拍板+45天反事实模拟净改善+4271元，-15实测只值-57）
     # ---- 动态调池：激进版换得更勤 ----
     "useRebalance": True,
-    "rebalanceIntervalDays": 5,
-    "rebalanceMaxAdd": 8,
+    "rebalanceIntervalDays": 3,   # 2026-11-27 扩池：5→3
+    "rebalanceMaxAdd": 12,        # 2026-11-27 扩池：8→12
     "rebalanceMaxRemove": 8,
-    "rebalanceCooldownDays": 14,
+    "rebalanceCooldownDays": 8,   # 2026-11-27 扩池：14→8
+    "rebalancePoolCap": 100,      # 池子硬上限，到顶后只换血不新增
+    "rebalanceStrengthLimit": 70,
+    "rebalanceMinAmount": 6e7,
+    "rebalanceTurnLo": 2,
+    "rebalanceTurnHi": 25,
+    "rebalanceMinR60": 2,
+    "rebalanceMaxPE": 80,
+    "poolRejectTTLHours": 72,
+    "enqueueDeltaPriority": True,
     # ---- 市场择时（激进版：防守时仍保留稍高仓位，但同样收紧买入） ----
     "useRegime": True,
     "regimeBuyFloor": 1,

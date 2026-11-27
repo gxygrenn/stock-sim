@@ -124,11 +124,32 @@ def build_rebalance(s):
         except Exception:
             pass
     existing = {p["code"] for p in s["pool"]}
+    now = datetime.now()
+
+    # 2026-11-27（用户拍板「扩池」）：被否的调池建议此前永久滞留 poolChanges，
+    # 既把列表堆成几十条死数据，又因 pend_codes 命中而把该 code 永久挡在「已建议」
+    # 之外——线上 cnc 23 条、cna 30 条全是 rejected，池子实际停止扩张。
+    # 处置：超过 poolRejectTTLHours 的 rejected 条目清出队列，允许重新提议
+    # （冷却仍由 poolChangeLog 管，落地过的票不会立刻回流）。
+    ttl_h = float(cfg.get("poolRejectTTLHours", 72) or 0)
+    if ttl_h > 0:
+        kept = []
+        for p in (s.get("poolChanges") or []):
+            if (p.get("state") or "") == "rejected":
+                ts = p.get("queuedAt") or p.get("time") or ""
+                try:
+                    age_h = (now - datetime.strptime(ts, "%Y-%m-%d %H:%M:%S")).total_seconds() / 3600.0
+                except Exception:
+                    age_h = 0.0
+                if age_h >= ttl_h:
+                    continue
+            kept.append(p)
+        s["poolChanges"] = kept
+
     pend = s.setdefault("poolChanges", [])
     pend_codes = {p["code"] for p in pend}
     logbook = {r.get("code"): r for r in (s.get("poolChangeLog") or [])}
     cool_days = int(cfg.get("rebalanceCooldownDays", 21))
-    now = datetime.now()
 
     def cooled(code):
         r = logbook.get(code)
@@ -141,6 +162,10 @@ def build_rebalance(s):
 
     max_add = int(cfg.get("rebalanceMaxAdd", 6))
     max_remove = int(cfg.get("rebalanceMaxRemove", 6))
+    # 池子上限：扩池不是无限扩张，到顶后只做「换血」（先淘汰再选入），防止信号计算越拖越慢
+    cap = int(cfg.get("rebalancePoolCap", 0) or 0)
+    if cap and len(s["pool"]) >= cap:
+        max_add = 0
 
     # ---- 淘汰建议 ----
     n_remove = 0
@@ -157,21 +182,31 @@ def build_rebalance(s):
 
     # ---- 选入建议 ----
     try:
-        cands = server.fetch_strength_candidates(40)
+        # 强势榜取样数随扩池放宽（原写死 40，一轮最多选 6~8 只，样本太少）
+        cands = server.fetch_strength_candidates(int(cfg.get("rebalanceStrengthLimit", 40)))
     except Exception as exc:
         log("强势榜抓取失败: %s" % exc)
         cands = []
     n_add = 0
+    # 2026-11-27（用户拍板「扩池」）：门槛原本写死 amount≥1亿 / 换手 3~20% / PE 0~80 /
+    # 60日涨幅≥5%，一轮最多 6 只、冷却 21 天。实测把大量「60日刚转强、成交额 6-10 亿」
+    # 的中盘强势票挡在池外，池子 84 只里 delta≥3 的常年只有 1-3 只。改为配置化并放宽：
+    # 成交额 ≥rebalanceMinAmount、换手 rebalanceTurnLo~Hi、60日 ≥rebalanceMinR60。
+    min_amount = float(cfg.get("rebalanceMinAmount", 1e8) or 0)
+    turn_lo = float(cfg.get("rebalanceTurnLo", 3) or 0)
+    turn_hi = float(cfg.get("rebalanceTurnHi", 20) or 100)
+    max_pe = float(cfg.get("rebalanceMaxPE", 80) or 80)
+    min_r60 = float(cfg.get("rebalanceMinR60", 5) or 0)
     for c in cands:
         if c["code"] in existing or c["code"] in pend_codes:
             continue
         if not cooled(c["code"]) or _is_bad_name(c["name"]):
             continue
-        if c["amount"] < 1e8:                # 流动性
+        if c["amount"] < min_amount:          # 流动性
             continue
-        if not (3 <= c["turn"] <= 20):       # 活跃但不爆炒
+        if not (turn_lo <= c["turn"] <= turn_hi):   # 活跃但不爆炒
             continue
-        if c["pe"] <= 0 or c["pe"] > 80:     # 盈利且不过热
+        if c["pe"] <= 0 or c["pe"] > max_pe:  # 盈利且不过热
             continue
         try:
             kl = server.fetch_kline(c["code"], 61)
@@ -181,7 +216,7 @@ def build_rebalance(s):
             continue                          # 上市不足 60 日，剔除次新
         closes = [k[2] for k in kl]
         r60 = (closes[-1] / closes[-61] - 1) * 100 if closes[-61] else 0
-        if r60 < 5:
+        if r60 < min_r60:
             continue                          # 60 日趋势未走强
         if n_add >= max_add:
             break

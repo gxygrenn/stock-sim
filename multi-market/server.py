@@ -360,7 +360,12 @@ def fetch_lhb():
 
 
 def fetch_strength_candidates(limit=40):
-    """强势股候选：东财 push2 涨幅榜(f3)+主力净流入榜(f62)为主，龙虎榜净买兜底。
+    """强势股候选：东财 push2 涨幅榜(f3)+主力净流入榜(f62)+60日涨幅榜(f24)，龙虎榜净买兜底。
+
+    2026-11-27（用户拍板「扩池」）：原只有当日涨幅榜与当日资金榜，取回的都是
+    「今天动了、但中期没走强」的票——线上实测 54 只通过基础过滤的候选里 52 只
+    60 日涨幅 <2%，建池通道等于瘫痪（一轮只能加 1 只）。补 f24（60日涨跌幅）
+    排序源，候选宇宙才真正包含「中期趋势已走强」的票。
 
     返回统一结构 [{code(带sh/sz), name, industry, pct, amount, turn, pe, netIn, volRatio}]。
     amount/netIn 单位元。带重试 + 15 分钟内存缓存 + 优雅降级。
@@ -371,11 +376,11 @@ def fetch_strength_candidates(limit=40):
         return hit[1]
 
     cands, seen = [], set()
-    for fid in ("f3", "f62"):
+    for fid in ("f3", "f62", "f24"):
         url = ("https://push2.eastmoney.com/api/qt/clist/get?pn=1&pz=%d&po=1&np=1"
                "&ut=bd1d9ddb04089700cf9c27f6f7426281&fltt=2&invt=2&fid=%s"
                "&fs=m:0+t:6,m:0+t:80,m:1+t:2,m:1+t:23"
-               "&fields=f2,f3,f5,f6,f8,f9,f10,f12,f13,f14,f20,f62,f100" % (limit, fid))
+               "&fields=f2,f3,f5,f6,f8,f9,f10,f12,f13,f14,f20,f24,f62,f100" % (limit, fid))
         d = None
         for _ in range(2):
             try:

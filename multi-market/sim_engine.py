@@ -384,11 +384,31 @@ def enqueue_review_candidates(s, fresh):
 
     def enqueue(item, direction, score, reason, is_news=False):
         code = item["code"]
-        if code in queued or recently(code) or len(pend) >= 6:
+        if code in queued or recently(code):
             return
         sig = (s.get("signals") or {}).get(code) or {}
         if sig.get("block"):
             return
+        if len(pend) >= 6:
+            # 2026-11-27（用户拍板「扩池」配套）：队列固定 6 席，此前先到先得——快讯触发的
+            # 低分票（delta 0.6/0.8）先占坑，同池里 delta 3~4 的强势票反被挡在门外
+            # （11-27 cnc 队列 5 只全是 delta≤1.3 的快讯票，池内 delta3.4 的石头科技进不来）。
+            # 改为按 delta 抢位：更强的买入候选可挤掉队列里最弱的 waiting 买入候选；
+            # approved 与 forced（强制复核）一律不动。
+            if not (cfg.get("enqueueDeltaPriority", True) and direction == "买入"):
+                return
+            d_new = int(sig.get("delta", 0) or 0)
+            evictable = [p for p in pend if p.get("state") == "waiting"
+                         and not p.get("forced") and p.get("direction") == "买入"]
+            if not evictable:
+                return
+            victim = min(evictable, key=lambda p: (p.get("delta") or 0, p.get("queuedAt") or ""))
+            if d_new <= int(victim.get("delta") or 0):
+                return
+            pend.remove(victim)
+            queued.discard(victim.get("code"))
+            log("买入候选按 delta 抢位：%s(%+d) 挤掉 %s(%+d)"
+                % (item.get("name"), d_new, victim.get("name"), int(victim.get("delta") or 0)))
         if direction == "卖出":
             h = find_holding(s, code)
             if not h or h["shares"] <= 0:

@@ -218,6 +218,15 @@
   .sell-cell .ln2.down{color:var(--down);}
   .sell-cell .ln2.hot{font-weight:700;}
   .sell-cell .ln2.warn{color:#b45309; font-weight:700;}
+  /* 成交流水 · 单笔已实现盈亏 */
+  #tblTr th, #tblTr td{padding-left:5px; padding-right:5px;}
+  .tr-reason{display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical;
+    overflow:hidden; white-space:normal; max-width:185px; line-height:1.4;
+    font-size:11.5px; color:var(--muted); text-align:left;}
+  .pnl-cell{line-height:1.35; white-space:nowrap;}
+  .pnl-cell .pnlv{display:block; font-weight:650; font-variant-numeric:tabular-nums;}
+  .pnl-cell .pnlp{display:block; font-size:10px; color:var(--muted-2); margin-top:1px;
+    font-variant-numeric:tabular-nums;}
   /* 现价/买入后高点：上行现价 + 下行峰值，悬停看浮盈与回撤 */
   .px-cell{line-height:1.35; cursor:help;}
   .px-cell .pxv{display:block;}
@@ -585,11 +594,12 @@
         <h2><span class="ico">⇅</span>成交流水 <span class="tag" id="trCount"></span></h2>
         <div class="scroll">
           <table id="tblTr">
-            <thead><tr><th>时间</th><th>方向</th><th>标的</th><th>价格</th><th>数量</th><th>金额</th><th>原因</th></tr></thead>
+            <thead><tr><th>时间</th><th>方向</th><th>标的</th><th>价格</th><th>数量</th><th>金额</th><th>盈亏</th><th>原因</th></tr></thead>
             <tbody></tbody>
           </table>
         </div>
         <div class="empty" id="trEmpty">还没有成交。</div>
+        <div class="small" style="margin-top:6px">「盈亏」为该笔卖出的已实现净盈亏：成本含买入费、已扣卖出费，与账户累计已实现同口径；2026-11-27 之前的成交未记录单笔盈亏，显示为「—」。</div>
       </div>
     </div>
   </div>
@@ -820,10 +830,20 @@ function renderNews(){
 function renderTrades(){
   var tb = $("tblTr").querySelector("tbody"); tb.innerHTML="";
   var ts = S.trades||[];
+  var realized = num(S.realized,0);
   $("trEmpty").style.display = ts.length?"none":"block";
-  $("trCount").textContent = ts.length?(ts.length+" 笔"+(num(S.fees,0)>0?(" · 累计手续费 "+money(num(S.fees,0))):"")):"";
+  $("trCount").textContent = ts.length?(ts.length+" 笔"
+    +(realized?(" · 累计已实现 "+(realized>=0?"+":"")+money(realized)):"")
+    +(num(S.fees,0)>0?(" · 累计手续费 "+money(num(S.fees,0))):"")):"";
   ts.slice(0,60).forEach(function(t){
     var tr = document.createElement("tr");
+    var pnlCell = "<span class='pnlp'>—</span>";
+    if(t.side==="卖出" && typeof t.pnl==="number"){
+      var tip = "成本 "+(t.costPrice!=null?t.costPrice:"--")+" / 卖出 "+t.price+" / 费 "+num(t.fee,0).toFixed(2);
+      pnlCell = "<span class='pnlv "+cls(t.pnl)+"' title='"+esc(tip)+"'>"
+        +(t.pnl>=0?"+":"")+money(t.pnl)+"</span>"
+        +"<span class='pnlp'>"+(t.pnlPct!=null?pct(num(t.pnlPct,0)):"")+"</span>";
+    }
     tr.innerHTML =
       "<td>"+esc((t.time||"").slice(5,16))+"</td>"+
       "<td><span class='badge "+(t.side==="买入"?"b-good":"b-bad")+"'>"+esc(t.side)+"</span></td>"+
@@ -831,7 +851,8 @@ function renderTrades(){
       "<td>"+t.price.toFixed(3)+"</td>"+
       "<td>"+t.qty+"</td>"+
       "<td>"+money(t.amount)+(num(t.fee,0)>0?("<div style='font-size:10px;opacity:.55;line-height:1.2'>费 "+money(num(t.fee,0))+"</div>"):"")+"</td>"+
-      "<td style='text-align:left'>"+esc(t.reason)+"</td>";
+      "<td class='pnl-cell'>"+pnlCell+"</td>"+
+      "<td><div class='tr-reason' title='"+esc(t.reason)+"'>"+esc(t.reason)+"</div></td>";
     tb.appendChild(tr);
   });
 }
